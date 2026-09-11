@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { evaluateMargin } from "../src/margin-governor.ts";
+import { buildOutcomeLearning } from "../src/outcomes.ts";
 import { routeBusinessRequest } from "../src/request-router.ts";
 
 test("broad sales goal starts with observation", () => {
@@ -62,4 +63,27 @@ test("unpriced external action still cannot bypass economics", () => {
     confidence: 0
   });
   assert.equal(result.decision, "REPLAN");
+});
+
+test("verified outcome learning stores useful economics without raw evidence", () => {
+  const learning = buildOutcomeLearning({
+    outcomeId: "outcome-1",
+    outcomeType: "meeting_confirmed",
+    outcomeValueCents: 50000,
+    attributedRevenueCents: 0,
+    modelCostCents: 20,
+    apiCostCents: 10,
+    messagingCostCents: 5,
+    browserCostCents: 0,
+    humanCostCents: 0,
+    attributionConfidence: 0.9,
+    evidenceSource: "calendar",
+    verifiedAt: "2026-09-11T12:00:00.000Z"
+  });
+
+  assert.equal(learning.kind, "verified_outcome");
+  assert.equal(learning.economicValueCents, 50000);
+  assert.equal(learning.totalCostCents, 35);
+  assert.equal(learning.netValueCents, 49965);
+  assert.equal(Object.hasOwn(learning, "evidence"), false);
 });
