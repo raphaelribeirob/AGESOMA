@@ -8,7 +8,6 @@ services:
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
       API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
-      API_SERVER_CORS_ORIGINS: ${HERMES_CORS_ORIGINS:-https://agesoma.vercel.app}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NOUS_API_KEY: ${NOUS_API_KEY:-}
@@ -41,23 +40,5 @@ services:
       hermes:
         condition: service_healthy
 
-  gateway:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    environment:
-      HERMES_DOMAIN: ${HERMES_DOMAIN}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      hermes:
-        condition: service_healthy
-
 volumes:
   hermes_data:
-  caddy_data:
-  caddy_config:
