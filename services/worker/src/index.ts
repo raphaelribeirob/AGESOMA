@@ -44,6 +44,84 @@ type QueuedTask = {
   payload: Record<string, unknown>;
 };
 
+type DueWatcher = {
+  id: string;
+  tenant_id: string;
+  goal_id: string | null;
+  cadence: string | null;
+  config: Record<string, unknown>;
+};
+
+function cadenceMs(cadence: string | null) {
+  if (cadence === "15m") return 15 * 60_000;
+  if (cadence === "1h") return 60 * 60_000;
+  if (cadence === "1d") return 24 * 60 * 60_000;
+  if (cadence === "7d") return 7 * 24 * 60 * 60_000;
+  return 6 * 60 * 60_000;
+}
+
+async function dispatchDueWatchers() {
+  const watchers = await sql<DueWatcher>(`
+    with due as (
+      select id
+      from watchers
+      where status='active' and coalesce(next_check_at, now()) <= now()
+      order by coalesce(next_check_at, created_at) asc
+      for update skip locked
+      limit 20
+    )
+    update watchers w
+      set next_check_at=now() + interval '5 minutes', updated_at=now()
+    from due
+    where w.id=due.id
+    returning w.id, w.tenant_id, w.goal_id, w.cadence, w.config
+  `);
+
+  for (const watcher of watchers) {
+    let objective = typeof watcher.config.objective === "string" ? watcher.config.objective : "Observe o negócio e encontre mudanças relevantes.";
+
+    if (watcher.goal_id) {
+      const [goal] = await sql<{ title: string; status: string }>(`
+        select title, status from goals where id=$1 and tenant_id=$2 limit 1
+      `, [watcher.goal_id, watcher.tenant_id]);
+
+      if (!goal || goal.status !== "active") {
+        await sql(`update watchers set status='paused', updated_at=now() where id=$1 and tenant_id=$2`, [watcher.id, watcher.tenant_id]);
+        continue;
+      }
+      objective = goal.title;
+    }
+
+    const active = await sql<{ id: string }>(`
+      select id from tasks
+      where tenant_id=$1 and status in ('queued','running') and payload->>'watcherId'=$2
+      limit 1
+    `, [watcher.tenant_id, watcher.id]);
+
+    const nextCheckAt = new Date(Date.now() + cadenceMs(watcher.cadence));
+    if (active[0]) {
+      await sql(`update watchers set next_check_at=$3, updated_at=now() where id=$1 and tenant_id=$2`, [watcher.id, watcher.tenant_id, nextCheckAt]);
+      continue;
+    }
+
+    await sql(`
+      insert into tasks (
+        tenant_id, status, action_type, risk_class, reversible, external,
+        expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
+      ) values ($1,'queued','business.observe','R0',true,true,0,0,0,0,$2::jsonb)
+    `, [watcher.tenant_id, JSON.stringify({
+      objective,
+      operation: "discover",
+      destination: null,
+      resource: typeof watcher.config.resource === "string" ? watcher.config.resource : null,
+      watcherId: watcher.id,
+      goalId: watcher.goal_id
+    })]);
+
+    await sql(`update watchers set next_check_at=$3, updated_at=now() where id=$1 and tenant_id=$2`, [watcher.id, watcher.tenant_id, nextCheckAt]);
+  }
+}
+
 async function dispatchQueuedTasks() {
   const tasks = await sql<QueuedTask>(`
     select id, tenant_id, action_type, risk_class, reversible, external,
@@ -153,18 +231,28 @@ await boss.work("agesoma.execute", async ([job]) => {
     await sql(`update tasks set status='completed', execution_finished_at=now(), execution_result=$3::jsonb, updated_at=now() where id=$1 and tenant_id=$2`, [
       data.taskId, data.tenantId, JSON.stringify(result)
     ]);
+    if (typeof data.payload.watcherId === "string") {
+      await sql(`update watchers set last_checked_at=now(), updated_at=now() where id=$1 and tenant_id=$2`, [data.payload.watcherId, data.tenantId]);
+    }
     return result;
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Execution failed";
     await sql(`update tasks set status='failed', execution_finished_at=now(), failure_reason=$3, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId, reason]);
+    if (typeof data.payload.watcherId === "string") {
+      await sql(`update watchers set last_checked_at=now(), updated_at=now() where id=$1 and tenant_id=$2`, [data.payload.watcherId, data.tenantId]);
+    }
     throw error;
   }
 });
 
 await reportHeartbeat();
+await dispatchDueWatchers();
 await dispatchQueuedTasks();
 setInterval(() => {
   reportHeartbeat().catch((error) => console.error("InstantWork heartbeat", error));
+}, 30_000).unref();
+setInterval(() => {
+  dispatchDueWatchers().catch((error) => console.error("InstantWork watcher dispatcher", error));
 }, 30_000).unref();
 setInterval(() => {
   dispatchQueuedTasks().catch((error) => console.error("InstantWork dispatcher", error));
