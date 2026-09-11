@@ -20,6 +20,7 @@ type CreatedRequest = {
   workflow_id: string;
   task_id: string;
   task_status: string;
+  watcher_id: string | null;
 };
 
 type BusinessMemory = {
@@ -85,6 +86,20 @@ export async function POST(req: Request) {
       insert into goals (tenant_id, title, status, objective_key, target_value_cents, horizon_days, config)
       values ($1,$2,'active',$3,$4,$5,$6::jsonb)
       returning id
+    ), new_watcher as (
+      insert into watchers (tenant_id, goal_id, kind, status, cadence, config, next_check_at)
+      select $1, id, 'watch', 'active', $19,
+        jsonb_build_object('source','natural_request','objective',$2),
+        case $19
+          when '15m' then now() + interval '15 minutes'
+          when '1h' then now() + interval '1 hour'
+          when '1d' then now() + interval '1 day'
+          when '7d' then now() + interval '7 days'
+          else now() + interval '6 hours'
+        end
+      from new_goal
+      where $18::boolean
+      returning id
     ), new_workflow as (
       insert into workflows (tenant_id, key, version, status, config)
       select $1, 'request-' || replace(id::text, '-', ''), 1, 'active', jsonb_build_object(
@@ -103,7 +118,8 @@ export async function POST(req: Request) {
       from new_workflow
       returning id, workflow_id, status
     )
-    select g.id as goal_id, w.id as workflow_id, t.id as task_id, t.status as task_status
+    select g.id as goal_id, w.id as workflow_id, t.id as task_id, t.status as task_status,
+      (select id from new_watcher limit 1) as watcher_id
     from new_goal g
     cross join new_workflow w
     cross join new_task t
@@ -124,7 +140,9 @@ export async function POST(req: Request) {
     input.expectedLossCents ?? 0,
     input.confidence ?? 0,
     payload,
-    businessMemory.length
+    businessMemory.length,
+    plan.watch,
+    plan.cadence
   ]);
 
   return NextResponse.json({
@@ -132,6 +150,7 @@ export async function POST(req: Request) {
     workflowId: created.workflow_id,
     taskId: created.task_id,
     taskStatus: created.task_status,
+    watcherId: created.watcher_id,
     plan,
     memoryCount: businessMemory.length,
     economics: {
