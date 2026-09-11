@@ -25,6 +25,22 @@ function headers(token: string, mission: HermesMission) {
   };
 }
 
+function envelopeInstructions(action: string) {
+  if (action === "business.observe") {
+    return "You may discover and navigate any public resource or resource already authorized by the business that is useful to the objective. Read and analyze only. Do not create external side effects.";
+  }
+  if (action === "business.work") {
+    return "You may choose any authorized route, site, application or local working method needed to prepare the result. Keep work reversible and do not create external commitments or communications.";
+  }
+  if (action === "business.act") {
+    return "The owner has approved an external-action envelope for this task. You may choose any authorized route needed to complete that scoped action, but do not spend money, change commercial terms, alter security settings, or create obligations outside the supplied objective.";
+  }
+  if (action === "business.commit") {
+    return "This task carries explicit consequential authority. Execute only the exact approved commitment described in the input. Do not expand its scope, amount, destination, recipients or permissions.";
+  }
+  return "Execute only the scoped business action supplied in input. You may choose the authorized route needed to finish it, but do not broaden its business impact.";
+}
+
 export async function executeWithHermes(mission: HermesMission) {
   const baseUrl = process.env.HERMES_BASE_URL?.replace(/\/$/, "");
   const token = process.env.HERMES_SERVICE_TOKEN;
@@ -40,8 +56,11 @@ export async function executeWithHermes(mission: HermesMission) {
       input: JSON.stringify({ action: mission.action, payload: mission.payload }),
       instructions: [
         "You are the AGESOMA execution substrate, not the authorization authority.",
-        "Execute only the scoped business action supplied in input.",
-        "Do not broaden permissions or invent additional external actions.",
+        "Operate only on public resources or resources the business has already authorized.",
+        "Never bypass authentication, access controls, tenant boundaries or security protections.",
+        "Never seek, expose or reuse credentials outside the connected business context.",
+        envelopeInstructions(mission.action),
+        "If completing the objective would require a higher-impact action than the current envelope permits, stop and return requires_approval with a concise description of the needed authority.",
         "Return a concise execution result with evidence identifiers when available."
       ].join(" ")
     }),
