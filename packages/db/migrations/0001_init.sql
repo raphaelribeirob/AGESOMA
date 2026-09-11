@@ -41,6 +41,7 @@ create table if not exists tasks (
   expected_loss_cents bigint not null default 0,
   confidence numeric(5,4) not null default 0,
   payload jsonb not null default '{}'::jsonb,
+  dispatched_at timestamptz,
   execution_started_at timestamptz,
   execution_finished_at timestamptz,
   execution_result jsonb,
