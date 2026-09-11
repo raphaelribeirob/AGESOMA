@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { buildCapabilityScope, serializeCapabilityScope } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
 import { requireInternalApi, requireJson } from "../../../lib/security";
 
@@ -41,8 +42,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Task is not awaiting approval" }, { status: 409 });
   }
 
-  const scope = { taskId: task.id, action: task.action_type, payload: task.payload };
-  const scopeHash = createHash("sha256").update(JSON.stringify(scope)).digest("hex");
+  const scope = buildCapabilityScope({ taskId: task.id, action: task.action_type, payload: task.payload });
+  const serializedScope = serializeCapabilityScope(scope);
+  const scopeHash = createHash("sha256").update(serializedScope).digest("hex");
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   const nonce = randomUUID();
 
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
     input.tenantId,
     input.taskId,
     task.action_type,
-    JSON.stringify(scope),
+    serializedScope,
     scopeHash,
     actorId,
     nonce,
