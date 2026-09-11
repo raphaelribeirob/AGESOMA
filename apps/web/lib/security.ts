@@ -7,15 +7,26 @@ function safeEqual(a: string, b: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
+function bearer(req: Request) {
+  const authorization = req.headers.get("authorization") ?? "";
+  return authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+}
+
 export function requireInternalApi(req: Request) {
   const expected = process.env.AGESOMA_INTERNAL_API_TOKEN;
-  const authorization = req.headers.get("authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-
+  const token = bearer(req);
   if (!expected || !token || !safeEqual(token, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  return null;
+}
 
+export function requireOutcomeVerifier(req: Request) {
+  const expected = process.env.OUTCOME_VERIFIER_TOKEN;
+  const token = req.headers.get("x-agesoma-verifier-token") ?? "";
+  if (!expected || !token || !safeEqual(token, expected)) {
+    return NextResponse.json({ error: "Unauthorized verifier" }, { status: 401 });
+  }
   return null;
 }
 
