@@ -18,6 +18,38 @@ Conversation is the easiest way to delegate work, but results should become busi
 
 P0 principle: **the workflow is the product, Sentinel is the authority, Hermes is the executor, and the verified outcome is the unit of value.**
 
+## Product functions
+
+AGESOMA is packaged around business jobs, not around a catalog of agents.
+
+- **Observar** — read authorized business state, detect changes and surface opportunities.
+- **Trabalhar** — prepare files, organize information and perform reversible operational work.
+- **Agir** — send, update, schedule or execute external actions inside approved business rules.
+- **Comprometer** — spend, change commercial terms or create material obligations only with explicit scoped authority.
+- **Oportunidades** — proactively convert observed business state into proposed work.
+- **Resultados** — turn completed work into a business artifact with evidence and next steps.
+- **Modo ROI** — show value recovered, work cost and net return instead of agent activity metrics.
+- **Conexões** — attach the systems the SME already uses; the owner should not need to understand integration architecture.
+
+## CAL AI-inspired packaging
+
+AGESOMA uses a value-led onboarding pattern inspired by high-converting consumer apps, adapted for SMEs. It does not copy Cal AI branding or fitness content.
+
+The onboarding route is `/onboarding` and follows this sequence:
+
+1. Promise — state the dream outcome in the owner's language.
+2. Magic demo — show a concrete business result before explaining features.
+3. Goal — choose the result that matters most now.
+4. Current state — understand how the company operates today.
+5. Bottleneck — identify where work or money is being lost.
+6. Autonomy — define how much work AGESOMA may do without interruption.
+7. Connections — select where AGESOMA will eventually work.
+8. Build — show that the operation is being personalized.
+9. Plan reveal — present the first workflow as the owner's plan.
+10. Offer — sell access to work and outcomes, not seats or agent counts.
+
+The current launch packaging target is **AGESOMA Core — US$29/month maximum base access price**. Checkout is intentionally not activated until billing and the first real workflow are production-ready. Usage/outcome economics may be tested later, but the customer-facing value unit remains work completed and verified outcome.
+
 ## P0 stack
 
 - Next.js + React + TypeScript: owner-facing product shell.
@@ -33,7 +65,7 @@ P0 principle: **the workflow is the product, Sentinel is the authority, Hermes i
 ## Repository layout
 
 ```text
-apps/web            Owner shell and API endpoints
+apps/web            Owner shell, onboarding and API endpoints
 packages/core       Sentinel, Margin Governor, outcome contracts
 packages/db         Postgres client + migrations
 services/worker     pg-boss durable execution worker + Hermes adapter
