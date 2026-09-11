@@ -20,3 +20,24 @@ export async function sql<T = Record<string, unknown>>(text: string, values: unk
   const result = await db().query(text, values);
   return result.rows as T[];
 }
+
+export async function tenantSql<T = Record<string, unknown>>(
+  tenantId: string,
+  text: string,
+  values: unknown[] = []
+): Promise<T[]> {
+  const client = await db().connect();
+  try {
+    await client.query("begin");
+    await client.query("set local role authenticated");
+    await client.query("select set_config('app.tenant_id', $1, true)", [tenantId]);
+    const result = await client.query(text, values);
+    await client.query("commit");
+    return result.rows as T[];
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
