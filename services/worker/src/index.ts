@@ -26,10 +26,11 @@ await boss.work("agesoma.execute", async ([job]) => {
   };
 
   const policy = evaluateSentinel(data);
-  if (policy.decision !== "ALLOW") throw new Error(`Sentinel stopped task: ${policy.reason}`);
+  if (policy.decision === "DENY") return { status: "denied", reason: policy.reason };
+  if (policy.decision === "REVIEW") return { status: "awaiting_approval", reason: policy.reason };
 
   const margin = evaluateMargin(data);
-  if (margin.decision !== "EXECUTE") throw new Error(`Margin Governor stopped task: ${margin.reason}`);
+  if (margin.decision !== "EXECUTE") return { status: "replan", reason: margin.reason };
 
   return executeWithHermes({
     taskId: data.taskId,
