@@ -36,10 +36,10 @@ The owner should not need to pre-register every website or application AGESOMA m
 
 The canonical access levels are:
 
-- **Observe:** navigate public or already-authorized resources and read business state without changing it.
-- **Work:** create drafts, prepare files, navigate interfaces and perform reversible operations inside the authorized business context.
-- **Act:** create external side effects such as sending messages, updating external systems or booking meetings. These are controlled by Sentinel and the owner's policy/grants.
-- **Commit:** spend money, change commercial terms, alter authentication/security settings, publish irreversible changes or create material obligations. These always require explicit scoped authority and may be denied by policy.
+- **Observe / `business.observe` / R0:** navigate public or already-authorized resources and read business state without changing it.
+- **Work / `business.work` / R1:** create drafts, prepare files, navigate interfaces and perform reversible operations inside the authorized business context.
+- **Act / `business.act` / R2:** create external side effects such as sending messages, updating external systems or booking meetings. These are controlled by Sentinel and the owner's policy/grants.
+- **Commit / `business.commit` / R3:** spend money, change commercial terms, alter authentication/security settings, publish irreversible changes or create material obligations. These always require explicit scoped authority and may be denied by policy.
 
 The destination does not determine the permission. The impact does. AGESOMA may therefore discover a new site or tool during execution without requiring that destination to be hard-coded in the product, provided the resource is public or the SME has authorized access and the action stays inside the approved impact envelope.
 
@@ -47,13 +47,25 @@ The destination does not determine the permission. The impact does. AGESOMA may 
 
 Each SME must have a logically isolated work cell containing its sessions, files, memory, connector scopes and execution state. Compute may be shared for cost efficiency, but tenant context and credentials may not be shared.
 
-Credentials remain outside model context whenever possible. Hermes receives the minimum execution capability needed for the active task, while AGESOMA/Sentinel remain the authorization authority.
+Credentials remain outside model context whenever possible. Hermes receives the minimum execution authority needed for the active task, while AGESOMA/Sentinel remain the authorization authority.
+
+An authenticated browser profile belongs to exactly one Tenant Work Cell. Reusable cookies, sessions and connected accounts must never be shared across businesses.
+
+## Universal runtime
+
+The execution runtime should expose three routes, all private to the work cell:
+
+1. **Browser automation** for arbitrary web applications. Prefer a low-cost local CDP/headless browser as the default; Hermes supports browser automation and external CDP endpoints.
+2. **Computer use** when a workflow cannot be completed through browser/API primitives and requires a GUI application.
+3. **Sandbox terminal** for files, transformation, code and local automation. It must not provide host-level or cross-tenant privilege.
+
+Browser/computer/terminal availability is a runtime capability, not customer-facing product complexity. The owner asks for a business result; AGESOMA chooses the route.
 
 ## Why Hermes is separate
 
 Hermes is treated as an execution substrate. AGESOMA owns tenant isolation, permission policy, economic limits, outcome attribution, learning records and the owner experience. Credentials are not stored in agent context.
 
-Hermes already supports browser automation and computer-use patterns; AGESOMA should expose that operational freedom through the Tenant Work Cell rather than turning every destination into a bespoke integration.
+Hermes already supports browser automation, computer-use and terminal-based execution. AGESOMA exposes that operational freedom through the Tenant Work Cell rather than turning every destination into a bespoke integration.
 
 ## Muse-for-SME operating loop
 
