@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertActionPayloadSize, getActionPolicy } from "@agesoma/core";
-import { sql } from "@agesoma/db";
+import { tenantSql } from "@agesoma/db";
 import { requireInternalApi, requireJson } from "../../../lib/security";
 
 const schema = z.object({
@@ -34,18 +34,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
 
-  const [tenant] = await sql<{ id: string }>(`select id from tenants where id=$1 limit 1`, [input.tenantId]);
+  const [tenant] = await tenantSql<{ id: string }>(input.tenantId, `select id from tenants where id=$1 limit 1`, [input.tenantId]);
   if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   if (input.workflowId) {
-    const [workflow] = await sql<{ id: string }>(
+    const [workflow] = await tenantSql<{ id: string }>(
+      input.tenantId,
       `select id from workflows where id=$1 and tenant_id=$2 limit 1`,
       [input.workflowId, input.tenantId]
     );
     if (!workflow) return NextResponse.json({ error: "Workflow not found for tenant" }, { status: 404 });
   }
 
-  const [task] = await sql<{ id: string; status: string }>(`
+  const [task] = await tenantSql<{ id: string; status: string }>(input.tenantId, `
     insert into tasks (
       tenant_id, workflow_id, action_type, risk_class, reversible, external,
       expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
