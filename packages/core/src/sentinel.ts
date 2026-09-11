@@ -49,7 +49,9 @@ export function isApprovalGrantValid(
 export function evaluateSentinel(action: ActionRequest): SentinelResult {
   if (action.riskClass === "R4") return { decision: "DENY", reason: "R4 actions are prohibited by default." };
   if (action.riskClass === "R0" || action.riskClass === "R1") return { decision: "ALLOW", reason: "Read-only or reversible internal action." };
-  if (action.riskClass === "R2" && action.hasScopedGrant) return { decision: "ALLOW", reason: "Bounded external action covered by a scoped grant." };
+  if ((action.riskClass === "R2" || action.riskClass === "R3") && action.hasScopedGrant) {
+    return { decision: "ALLOW", reason: "External or consequential action covered by an explicit scoped grant." };
+  }
   if (action.riskClass === "R2") return { decision: "REVIEW", reason: "External action requires owner approval until a scoped grant exists." };
   return { decision: "REVIEW", reason: "Consequential action requires explicit approval." };
 }
