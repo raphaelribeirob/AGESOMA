@@ -31,6 +31,24 @@ InstantWork is packaged around business jobs, not around a catalog of agents.
 - **Modo ROI** — show value recovered, work cost and net return instead of agent activity metrics.
 - **Conexões** — attach the systems the SME already uses; the owner should not need to understand integration architecture.
 
+## Hermes-first execution strategy
+
+InstantWork does not rebuild capabilities that Hermes already provides. Hermes is the operational engine for messaging channels, browser/computer-use, APIs, terminal-capable work and other supported tools. InstantWork remains responsible for tenant context, owner UX, policy/Sentinel, business approvals, outcome verification and ROI.
+
+Canonical path:
+
+`business/customer event -> Hermes gateway/executor -> InstantWork policy boundary -> work -> Outcome Ledger -> ROI`
+
+For WhatsApp, the production path is the official **WhatsApp Business Cloud API** adapter included in Hermes. The deployment passes the `WHATSAPP_CLOUD_*` credentials directly to the Hermes gateway, keeps the webhook listener internal on port `8090`, and can place a Cloudflare Tunnel sidecar in front of it for the public HTTPS callback required by Meta. The unofficial Baileys/WhatsApp-Web bridge is not the default production path.
+
+WhatsApp customer traffic stays allowlisted by default in the checked-in deployment. Before opening the number to arbitrary customers, configure a deliberately restricted `whatsapp_cloud` Hermes toolset; the stock Hermes WhatsApp platform toolset includes broad tools such as terminal access and is not an appropriate trust boundary for untrusted public customer messages.
+
+The intended customer-service loop is:
+
+`customer WhatsApp -> Hermes Cloud adapter -> safe customer-service session -> answer or escalate -> InstantWork records business action/outcome`
+
+Owner-initiated consequential work continues through the InstantWork task/Sentinel path rather than granting customer chats unrestricted execution authority.
+
 ## CAL AI-inspired packaging
 
 InstantWork uses a value-led onboarding pattern inspired by high-converting consumer apps, adapted for SMEs. It does not copy Cal AI branding or fitness content.
@@ -57,7 +75,7 @@ The current launch packaging target is **InstantWork Core — US$29/month maximu
 - pg-boss: durable P0 jobs using the same Postgres database.
 - Sentinel: independent policy gate. The reasoning/execution agent never grants its own permissions.
 - Margin Governor: rejects or escalates work that is not economically rational.
-- Hermes: isolated execution plane for APIs, messaging, browser and computer-use.
+- Hermes: isolated execution plane and messaging gateway for APIs, WhatsApp, browser and computer-use.
 - Outcome Ledger: economic source of truth for every workflow.
 - PostHog: product/outcome analytics.
 - Sentry/C-Trace: reliability and agent execution traces.
@@ -73,6 +91,7 @@ apps/web            Owner shell, onboarding and API endpoints
 packages/core       Sentinel, Margin Governor, outcome contracts
 packages/db         Postgres client + migrations
 services/worker     pg-boss durable execution worker + Hermes adapter
+deploy/production   Hermes gateway, WhatsApp Cloud ingress and worker runtime
 docs                Architecture and release gates
 ```
 
