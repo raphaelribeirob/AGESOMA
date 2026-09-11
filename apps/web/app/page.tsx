@@ -48,6 +48,7 @@ export default function Home() {
         <div className="askBox">
           <span>O que você precisa resolver?</span>
           <strong>Diga o resultado. Eu cuido do trabalho.</strong>
+          <a href="/onboarding">Configurar minha empresa →</a>
         </div>
       </section>
 
