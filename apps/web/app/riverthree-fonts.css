@@ -1,0 +1,22 @@
+:root {
+  font-family: "Geist Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.brand,
+h1,
+h2,
+.orbMeta strong,
+.roiTruth strong,
+.workspaceCard strong,
+.magicDemo strong,
+.planHeader strong,
+.offerCard > div > strong {
+  font-family: "Space Grotesk Variable", "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+.monoLabel,
+.progressText,
+.demoTruth strong,
+.planHeader span {
+  font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
