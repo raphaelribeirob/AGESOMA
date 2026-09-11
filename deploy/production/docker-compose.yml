@@ -1,0 +1,55 @@
+services:
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    restart: unless-stopped
+    command: ["gateway", "run"]
+    environment:
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: "0.0.0.0"
+      API_SERVER_PORT: "8642"
+      API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
+      API_SERVER_CORS_ORIGINS: ${HERMES_CORS_ORIGINS:-https://agesoma.vercel.app}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NOUS_API_KEY: ${NOUS_API_KEY:-}
+    volumes:
+      - hermes_data:/opt/data
+    expose:
+      - "8642"
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: services/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      AGESOMA_DB_SCHEMA: agesoma_p0
+      HERMES_BASE_URL: http://hermes:8642
+      HERMES_SERVICE_TOKEN: ${HERMES_SERVICE_TOKEN}
+      HERMES_RUN_TIMEOUT_MS: ${HERMES_RUN_TIMEOUT_MS:-120000}
+      HERMES_RUN_POLL_MS: ${HERMES_RUN_POLL_MS:-1000}
+      AGESOMA_MIN_NET_VALUE_CENTS: ${AGESOMA_MIN_NET_VALUE_CENTS:-100}
+      AGESOMA_MAX_TASK_COST_CENTS: ${AGESOMA_MAX_TASK_COST_CENTS:-500}
+    depends_on:
+      - hermes
+
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      HERMES_DOMAIN: ${HERMES_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - hermes
+
+volumes:
+  hermes_data:
+  caddy_data:
+  caddy_config:
