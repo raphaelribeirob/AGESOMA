@@ -29,13 +29,13 @@ async function dispatchQueuedTasks() {
     select id, tenant_id, action_type, risk_class, reversible, external,
       expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
     from tasks
-    where status='queued' and action_type is not null
+    where status='queued' and action_type is not null and dispatched_at is null
     order by created_at asc
     limit 25
   `);
 
   for (const task of tasks) {
-    await boss.send("agesoma.execute", {
+    const jobId = await boss.send("agesoma.execute", {
       taskId: task.id,
       tenantId: task.tenant_id,
       action: task.action_type,
@@ -48,6 +48,10 @@ async function dispatchQueuedTasks() {
       confidence: Number(task.confidence),
       payload: task.payload
     }, { singletonKey: task.id, retryLimit: 3, retryDelay: 5 });
+
+    if (jobId) {
+      await sql(`update tasks set dispatched_at=now(), updated_at=now() where id=$1 and tenant_id=$2 and status='queued'`, [task.id, task.tenant_id]);
+    }
   }
 }
 
@@ -74,8 +78,8 @@ await boss.work("agesoma.execute", async ([job]) => {
   `, [data.tenantId, data.taskId, data.action]);
 
   const policy = evaluateSentinel({ ...data, type: data.action, hasScopedGrant: grants.length > 0 });
-  await sql(`insert into policy_decisions (tenant_id, task_id, decision, reason) values ($1,$2,$3,$4)`, [
-    data.tenantId, data.taskId, policy.decision, policy.reason
+  await sql(`insert into policy_decisions (tenant_id, task_id, action_class, risk_class, decision, reason) values ($1,$2,$3,$4,$5,$6)`, [
+    data.tenantId, data.taskId, data.action, data.riskClass, policy.decision, policy.reason
   ]);
 
   if (policy.decision === "DENY") {
