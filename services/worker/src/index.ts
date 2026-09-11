@@ -10,6 +10,47 @@ boss.on("error", (error) => console.error("pg-boss", error));
 await boss.start();
 await boss.createQueue("agesoma.execute");
 
+type QueuedTask = {
+  id: string;
+  tenant_id: string;
+  action_type: string;
+  risk_class: "R0" | "R1" | "R2" | "R3" | "R4";
+  reversible: boolean;
+  external: boolean;
+  expected_value_cents: string | number;
+  expected_cost_cents: string | number;
+  expected_loss_cents: string | number;
+  confidence: string | number;
+  payload: Record<string, unknown>;
+};
+
+async function dispatchQueuedTasks() {
+  const tasks = await sql<QueuedTask>(`
+    select id, tenant_id, action_type, risk_class, reversible, external,
+      expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
+    from tasks
+    where status='queued' and action_type is not null
+    order by created_at asc
+    limit 25
+  `);
+
+  for (const task of tasks) {
+    await boss.send("agesoma.execute", {
+      taskId: task.id,
+      tenantId: task.tenant_id,
+      action: task.action_type,
+      riskClass: task.risk_class,
+      reversible: task.reversible,
+      external: task.external,
+      expectedValueCents: Number(task.expected_value_cents),
+      expectedCostCents: Number(task.expected_cost_cents),
+      expectedLossCents: Number(task.expected_loss_cents),
+      confidence: Number(task.confidence),
+      payload: task.payload
+    }, { singletonKey: task.id, retryLimit: 3, retryDelay: 5 });
+  }
+}
+
 await boss.work("agesoma.execute", async ([job]) => {
   const data = job.data as {
     taskId: string;
@@ -66,5 +107,10 @@ await boss.work("agesoma.execute", async ([job]) => {
     throw error;
   }
 });
+
+await dispatchQueuedTasks();
+setInterval(() => {
+  dispatchQueuedTasks().catch((error) => console.error("AGESOMA dispatcher", error));
+}, 5_000).unref();
 
 console.log("AGESOMA worker listening on agesoma.execute");
