@@ -1,4 +1,4 @@
-name: AGESOMA CI
+name: InstantWork CI
 
 on:
   push:
