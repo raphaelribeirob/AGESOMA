@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: agesoma
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - agesoma_postgres:/var/lib/postgresql/data
+
+volumes:
+  agesoma_postgres:

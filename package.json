@@ -1,0 +1,19 @@
+{
+  "name": "agesoma",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @agesoma/web",
+    "build": "npm run build --workspace @agesoma/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "worker": "npm run dev --workspace @agesoma/worker"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
