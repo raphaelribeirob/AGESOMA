@@ -17,6 +17,8 @@ jobs:
           node-version: 24
       - run: npm install
       - run: npm run typecheck
+      - name: Test request router
+        run: node --test packages/core/test/request-router.test.mjs
       - name: Build web app
         run: npm run build --workspace @agesoma/web
       - name: Mirror Next.js output to Vercel project root
