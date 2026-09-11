@@ -1,6 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
+const MIN_SECRET_LENGTH = 32;
+
 function safeEqual(a: string, b: string) {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
@@ -12,10 +14,17 @@ function bearer(req: Request) {
   return authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
 }
 
+function usableSecret(value: string | undefined) {
+  return Boolean(value && value.length >= MIN_SECRET_LENGTH && !value.toLowerCase().includes("replace"));
+}
+
 export function requireInternalApi(req: Request) {
   const expected = process.env.AGESOMA_INTERNAL_API_TOKEN;
   const token = bearer(req);
-  if (!expected || !token || !safeEqual(token, expected)) {
+  if (!usableSecret(expected)) {
+    return NextResponse.json({ error: "Security configuration unavailable" }, { status: 503 });
+  }
+  if (!token || !safeEqual(token, expected!)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return null;
@@ -24,7 +33,10 @@ export function requireInternalApi(req: Request) {
 export function requireOutcomeVerifier(req: Request) {
   const expected = process.env.OUTCOME_VERIFIER_TOKEN;
   const token = req.headers.get("x-agesoma-verifier-token") ?? "";
-  if (!expected || !token || !safeEqual(token, expected)) {
+  if (!usableSecret(expected)) {
+    return NextResponse.json({ error: "Security configuration unavailable" }, { status: 503 });
+  }
+  if (!token || !safeEqual(token, expected!)) {
     return NextResponse.json({ error: "Unauthorized verifier" }, { status: 401 });
   }
   return null;
