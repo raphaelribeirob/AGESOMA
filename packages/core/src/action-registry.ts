@@ -58,7 +58,7 @@ export function getActionPolicy(type: string): ActionPolicy | null {
 }
 
 export function assertActionPayloadSize(policy: ActionPolicy, payload: Record<string, unknown>) {
-  const bytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
+  const bytes = new TextEncoder().encode(JSON.stringify(payload)).byteLength;
   if (bytes > policy.maxPayloadBytes) {
     throw new Error(`Payload exceeds ${policy.maxPayloadBytes} bytes for ${policy.type}`);
   }
