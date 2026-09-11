@@ -6,7 +6,12 @@ let pool: InstanceType<typeof Pool> | undefined;
 function db() {
   if (!pool) {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
-    pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
+    const schema = process.env.AGESOMA_DB_SCHEMA ?? "agesoma_p0";
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+      options: `-c search_path=${schema},public`
+    });
   }
   return pool;
 }
