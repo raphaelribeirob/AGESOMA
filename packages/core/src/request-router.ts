@@ -1,5 +1,6 @@
 export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
+export type WatchCadence = "15m" | "1h" | "6h" | "1d" | "7d";
 
 export type RequestPlan = {
   title: string;
@@ -10,6 +11,8 @@ export type RequestPlan = {
   operation: "discover" | "prepare" | "act" | "commit";
   resource: string | null;
   requiresApproval: boolean;
+  watch: boolean;
+  cadence: WatchCadence | null;
   steps: string[];
 };
 
@@ -70,27 +73,43 @@ function inferMode(text: string): RequestMode {
   return "observe";
 }
 
-function planSteps(mode: RequestMode) {
+function inferWatch(text: string): { watch: boolean; cadence: WatchCadence | null } {
+  const watch = includesAny(text, [
+    "monitore", "monitorar", "monitorando", "acompanhe", "acompanhar", "acompanhando",
+    "fique de olho", "continuamente", "continue observando", "continue acompanhando",
+    "todo dia", "todos os dias", "diariamente", "toda hora", "a cada hora",
+    "toda semana", "semanalmente", "sempre que"
+  ]);
+  if (!watch) return { watch: false, cadence: null };
+  if (includesAny(text, ["a cada 15 minutos", "cada 15 minutos", "15 min"])) return { watch: true, cadence: "15m" };
+  if (includesAny(text, ["toda hora", "a cada hora", "de hora em hora"])) return { watch: true, cadence: "1h" };
+  if (includesAny(text, ["todo dia", "todos os dias", "diariamente", "diario", "diária", "diaria"])) return { watch: true, cadence: "1d" };
+  if (includesAny(text, ["toda semana", "semanalmente", "semanal"])) return { watch: true, cadence: "7d" };
+  return { watch: true, cadence: "6h" };
+}
+
+function planSteps(mode: RequestMode, watch: boolean) {
+  const recurring = watch ? " Manter observação recorrente na cadência solicitada." : "";
   if (mode === "commit") return [
     "Confirmar o alvo, valor, termos e escopo exatos do compromisso.",
     "Submeter a capability concreta à política e à aprovação do dono.",
-    "Executar somente o compromisso aprovado e registrar evidência."
+    `Executar somente o compromisso aprovado e registrar evidência.${recurring}`
   ];
   if (mode === "act") return [
     "Reunir o contexto autorizado necessário para a ação.",
     "Resolver destinatário, recurso e parâmetros concretos.",
     "Passar pela política/aprovação aplicável antes do efeito externo.",
-    "Executar e registrar evidência do resultado."
+    `Executar e registrar evidência do resultado.${recurring}`
   ];
   if (mode === "work") return [
     "Reunir o contexto autorizado necessário.",
     "Produzir o trabalho de forma reversível.",
-    "Entregar o artifact ou resultado preparado para revisão/uso."
+    `Entregar o artifact ou resultado preparado para revisão/uso.${recurring}`
   ];
   return [
     "Entender o contexto e as fontes autorizadas relevantes.",
     "Observar e reunir evidência sem criar efeitos externos.",
-    "Retornar achados e propor o próximo trabalho somente se houver base real."
+    `Retornar achados e propor o próximo trabalho somente se houver base real.${recurring}`
   ];
 }
 
@@ -107,6 +126,7 @@ export function routeBusinessRequest(request: string): RequestPlan {
 
   const text = normalizeText(originalRequest);
   const mode = inferMode(text);
+  const monitoring = inferWatch(text);
   const action = mode === "commit"
     ? "business.commit"
     : mode === "act"
@@ -124,6 +144,8 @@ export function routeBusinessRequest(request: string): RequestPlan {
     operation: mode === "observe" ? "discover" : mode === "work" ? "prepare" : mode,
     resource: inferResource(text),
     requiresApproval: mode === "act" || mode === "commit",
-    steps: planSteps(mode)
+    watch: monitoring.watch,
+    cadence: monitoring.cadence,
+    steps: planSteps(mode, monitoring.watch)
   };
 }
