@@ -1,20 +1,32 @@
+const opportunities = [
+  {
+    title: "23 vendas podem ser recuperadas",
+    detail: "Esses contatos qualificados ficaram sem resposta e ainda têm potencial comercial.",
+    value: "R$ 18,4 mil potencial",
+    action: "Pronto para agir"
+  },
+  {
+    title: "12 clientes faltaram à reunião",
+    detail: "Posso tentar remarcar sem alterar suas condições comerciais.",
+    value: "12 oportunidades",
+    action: "Pode ser automático"
+  }
+];
+
 const work = [
   {
     title: "Recuperar vendas paradas",
-    detail: "23 contatos qualificados ficaram sem resposta. 8 podem ser retomados dentro das regras que você já aprovou.",
+    detail: "8 contatos estão sendo retomados dentro das regras já aprovadas.",
     status: "Trabalhando"
   },
   {
-    title: "Preciso da sua decisão",
-    detail: "2 propostas só continuam se você autorizar uma mudança nas condições comerciais.",
-    status: "Aguardando você"
-  },
-  {
-    title: "Dinheiro deixado na mesa",
-    detail: "12 clientes faltaram à reunião e podem ser reativados sem mudar sua política comercial.",
-    status: "Oportunidade"
+    title: "Revisar propostas paradas",
+    detail: "2 propostas precisam da sua decisão antes de continuar.",
+    status: "Precisa de você"
   }
 ];
+
+const nav = ["Início", "Pedir", "Oportunidades", "Trabalhos", "Resultados", "Aprovações", "Conexões"];
 
 export default function Home() {
   return (
@@ -24,8 +36,20 @@ export default function Home() {
         <div className="pill">MODO ROI</div>
       </div>
 
-      <div className="eyebrow">Resultado da semana</div>
-      <h1>O que a AGESOMA fez — e quanto isso valeu para o seu negócio.</h1>
+      <nav className="nav" aria-label="Navegação principal">
+        {nav.map((item, index) => (
+          <span className={index === 0 ? "navItem active" : "navItem"} key={item}>{item}</span>
+        ))}
+      </nav>
+
+      <section className="hero">
+        <div className="eyebrow">Sua empresa, em movimento</div>
+        <h1>O que mudou no seu negócio enquanto a AGESOMA trabalhou.</h1>
+        <div className="askBox">
+          <span>O que você precisa resolver?</span>
+          <strong>Diga o resultado. Eu cuido do trabalho.</strong>
+        </div>
+      </section>
 
       <section className="grid">
         <div className="card">
@@ -50,8 +74,30 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section split">
+        <div>
+          <div className="eyebrow">Oportunidades encontradas</div>
+          <h2>Eu encontrei trabalho que pode valer dinheiro.</h2>
+        </div>
+        <div className="stack">
+          {opportunities.map((item) => (
+            <article className="opportunity" key={item.title}>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.detail}</p>
+              </div>
+              <div className="opportunityMeta">
+                <span>{item.value}</span>
+                <span className="status">{item.action}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="section">
         <div className="eyebrow">Trabalho em andamento</div>
+        <h2>Continuo trabalhando mesmo quando você fecha o app.</h2>
         {work.map((item) => (
           <div className="row" key={item.title}>
             <strong>{item.title}</strong>
@@ -59,6 +105,19 @@ export default function Home() {
             <span className="status">{item.status}</span>
           </div>
         ))}
+      </section>
+
+      <section className="section artifact">
+        <div>
+          <div className="eyebrow">Último resultado</div>
+          <h2>Resultado pronto para abrir.</h2>
+          <p>Quando um trabalho termina, a AGESOMA entrega o resultado em uma visão própria — com evidência, custo e próximo passo.</p>
+        </div>
+        <div className="artifactCard">
+          <span className="label">Relatório de recuperação comercial</span>
+          <strong>Nenhum resultado comprovado ainda</strong>
+          <span>A primeira venda, reunião ou mudança confirmada aparecerá aqui.</span>
+        </div>
       </section>
     </main>
   );
