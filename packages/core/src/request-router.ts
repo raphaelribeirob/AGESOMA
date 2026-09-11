@@ -27,7 +27,7 @@ function includesAny(text: string, terms: string[]) {
 }
 
 function inferDomain(text: string): RequestDomain {
-  if (includesAny(text, ["venda", "lead", "cliente potencial", "proposta", "pipeline", "crm", "comercial", "prospect"])) return "sales";
+  if (includesAny(text, ["venda", "vender", "vendendo", "lead", "cliente potencial", "proposta", "pipeline", "crm", "comercial", "prospect"])) return "sales";
   if (includesAny(text, ["atendimento", "suporte", "cliente", "reclamacao", "chamado", "responder clientes", "whatsapp"])) return "service";
   if (includesAny(text, ["pagar", "pagamento", "cobranca", "financeiro", "fatura", "nota fiscal", "pix", "custo", "receita", "margem"])) return "finance";
   if (includesAny(text, ["operacao", "processo", "estoque", "fornecedor", "planilha", "arquivo", "tarefa", "rotina"])) return "operations";
