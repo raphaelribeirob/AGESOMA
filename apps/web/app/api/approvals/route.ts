@@ -24,6 +24,6 @@ export async function POST(req: Request) {
     returning id
   `, [input.tenantId, input.taskId, input.actionClass, input.expiresAt ?? null]);
 
-  await sql(`update tasks set status='queued', updated_at=now() where id=$1 and tenant_id=$2`, [input.taskId, input.tenantId]);
+  await sql(`update tasks set status='queued', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [input.taskId, input.tenantId]);
   return NextResponse.json({ grantId: grant.id, taskStatus: "queued" }, { status: 201 });
 }
