@@ -11,6 +11,9 @@
   "dependencies": {
     "@agesoma/core": "0.1.0",
     "@agesoma/db": "0.1.0",
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@fontsource-variable/space-grotesk": "5.3.0",
     "next": "16.3.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
