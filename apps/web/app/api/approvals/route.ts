@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { sql } from "@agesoma/db";
+import { tenantSql } from "@agesoma/db";
 import { requireInternalApi, requireJson } from "../../../lib/security";
 
 const schema = z.object({
@@ -24,13 +24,14 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid approval request" }, { status: 400 });
   const input = parsed.data;
 
-  const [task] = await sql<{
+  const [task] = await tenantSql<{
     id: string;
     status: string;
     tenant_id: string;
     action_type: string;
     payload: Record<string, unknown>;
   }>(
+    input.tenantId,
     `select id, status, tenant_id, action_type, payload from tasks where id=$1 and tenant_id=$2 limit 1`,
     [input.taskId, input.tenantId]
   );
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   const nonce = randomUUID();
 
-  const [grant] = await sql<{ id: string }>(`
+  const [grant] = await tenantSql<{ id: string }>(input.tenantId, `
     insert into approval_grants (
       tenant_id, task_id, action_class, scope, scope_hash, approved_by, nonce, expires_at
     ) values ($1,$2,$3,$4::jsonb,$5,$6,$7,$8)
@@ -61,7 +62,8 @@ export async function POST(req: Request) {
     expiresAt
   ]);
 
-  await sql(
+  await tenantSql(
+    input.tenantId,
     `update tasks set status='queued', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`,
     [input.taskId, input.tenantId]
   );
