@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <main>
       <div className="topbar">
-        <div className="brand">AGESOMA</div>
+        <div className="brand">InstantWork</div>
         <div className="pill">MODO ROI</div>
       </div>
 
@@ -44,53 +44,27 @@ export default function Home() {
 
       <section className="hero">
         <div className="eyebrow">Sua empresa, em movimento</div>
-        <h1>O que mudou no seu negócio enquanto a AGESOMA trabalhou.</h1>
+        <h1>O que mudou no seu negócio enquanto o InstantWork trabalhou.</h1>
         <div className="askBox">
           <span>O que você precisa resolver?</span>
           <strong>Diga o resultado. Eu cuido do trabalho.</strong>
-          <a href="/onboarding">Configurar minha empresa →</a>
         </div>
       </section>
 
       <section className="grid">
-        <div className="card">
-          <div className="label">Dinheiro recuperado</div>
-          <div className="metric">R$ 0</div>
-          <div className="label">entra aqui somente quando houver prova do resultado</div>
-        </div>
-        <div className="card">
-          <div className="label">Custo do trabalho</div>
-          <div className="metric">R$ 0</div>
-          <div className="label">quanto custou realizar o trabalho desta semana</div>
-        </div>
-        <div className="card">
-          <div className="label">Retorno líquido</div>
-          <div className="metric">—</div>
-          <div className="label">dinheiro recuperado menos o custo do trabalho</div>
-        </div>
-        <div className="card">
-          <div className="label">Precisa de você</div>
-          <div className="metric">2</div>
-          <div className="label">decisões que a AGESOMA não toma sem sua autorização</div>
-        </div>
+        <div className="card"><div className="label">Dinheiro recuperado</div><div className="metric">R$ 0</div><div className="label">entra aqui somente quando houver prova do resultado</div></div>
+        <div className="card"><div className="label">Custo do trabalho</div><div className="metric">R$ 0</div><div className="label">quanto custou realizar o trabalho desta semana</div></div>
+        <div className="card"><div className="label">Retorno líquido</div><div className="metric">—</div><div className="label">dinheiro recuperado menos o custo do trabalho</div></div>
+        <div className="card"><div className="label">Precisa de você</div><div className="metric">2</div><div className="label">decisões que o InstantWork não toma sem sua autorização</div></div>
       </section>
 
       <section className="section split">
-        <div>
-          <div className="eyebrow">Oportunidades encontradas</div>
-          <h2>Eu encontrei trabalho que pode valer dinheiro.</h2>
-        </div>
+        <div><div className="eyebrow">Oportunidades encontradas</div><h2>Eu encontrei trabalho que pode valer dinheiro.</h2></div>
         <div className="stack">
           {opportunities.map((item) => (
             <article className="opportunity" key={item.title}>
-              <div>
-                <strong>{item.title}</strong>
-                <p>{item.detail}</p>
-              </div>
-              <div className="opportunityMeta">
-                <span>{item.value}</span>
-                <span className="status">{item.action}</span>
-              </div>
+              <div><strong>{item.title}</strong><p>{item.detail}</p></div>
+              <div className="opportunityMeta"><span>{item.value}</span><span className="status">{item.action}</span></div>
             </article>
           ))}
         </div>
@@ -101,24 +75,14 @@ export default function Home() {
         <h2>Continuo trabalhando mesmo quando você fecha o app.</h2>
         {work.map((item) => (
           <div className="row" key={item.title}>
-            <strong>{item.title}</strong>
-            <span>{item.detail}</span>
-            <span className="status">{item.status}</span>
+            <strong>{item.title}</strong><span>{item.detail}</span><span className="status">{item.status}</span>
           </div>
         ))}
       </section>
 
       <section className="section artifact">
-        <div>
-          <div className="eyebrow">Último resultado</div>
-          <h2>Resultado pronto para abrir.</h2>
-          <p>Quando um trabalho termina, a AGESOMA entrega o resultado em uma visão própria — com evidência, custo e próximo passo.</p>
-        </div>
-        <div className="artifactCard">
-          <span className="label">Relatório de recuperação comercial</span>
-          <strong>Nenhum resultado comprovado ainda</strong>
-          <span>A primeira venda, reunião ou mudança confirmada aparecerá aqui.</span>
-        </div>
+        <div><div className="eyebrow">Último resultado</div><h2>Resultado pronto para abrir.</h2><p>Quando um trabalho termina, o InstantWork entrega o resultado em uma visão própria — com evidência, custo e próximo passo.</p></div>
+        <div className="artifactCard"><span className="label">Relatório de recuperação comercial</span><strong>Nenhum resultado comprovado ainda</strong><span>A primeira venda, reunião ou mudança confirmada aparecerá aqui.</span></div>
       </section>
     </main>
   );
