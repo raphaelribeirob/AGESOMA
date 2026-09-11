@@ -1,6 +1,8 @@
 # AGESOMA
 
-Autonomous Business Operator for SMEs.
+Service-as-a-Software for SMEs: customers buy completed work and verified business outcomes, not agent tooling.
+
+Public communication is governed by `docs/COMMUNICATION_SYSTEM.md`. Technical vocabulary below is internal architecture language, not the customer-facing value proposition.
 
 P0 principle: **the workflow is the product, Sentinel is the authority, Hermes is the executor, and the verified outcome is the unit of value.**
 
