@@ -15,21 +15,22 @@ export async function GET(req: Request) {
     checks.database = { ok: false, detail: "database unavailable" };
   }
 
-  const baseUrl = process.env.HERMES_BASE_URL?.replace(/\/$/, "");
-  const token = process.env.HERMES_SERVICE_TOKEN;
-  if (!baseUrl || !token) {
-    checks.hermes = { ok: false, detail: "not configured" };
-  } else {
-    try {
-      const response = await fetch(`${baseUrl}/health`, {
-        headers: { authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(5_000),
-        cache: "no-store"
-      });
-      checks.hermes = { ok: response.ok };
-    } catch {
-      checks.hermes = { ok: false, detail: "unreachable" };
-    }
+  try {
+    const [heartbeat] = await sql<{ last_seen_at: Date | string; hermes_configured: boolean }>(`
+      select last_seen_at, coalesce((metadata->>'hermesConfigured')::boolean, false) as hermes_configured
+      from runtime_heartbeats
+      where service='agesoma-worker'
+      limit 1
+    `);
+
+    const lastSeen = heartbeat ? new Date(heartbeat.last_seen_at).getTime() : 0;
+    const fresh = lastSeen > 0 && Date.now() - lastSeen <= 90_000;
+    checks.worker = {
+      ok: Boolean(heartbeat && fresh && heartbeat.hermes_configured),
+      detail: heartbeat ? (fresh ? "active" : "stale") : "not seen"
+    };
+  } catch {
+    checks.worker = { ok: false, detail: "heartbeat unavailable" };
   }
 
   const ok = Object.values(checks).every((check) => check.ok);
