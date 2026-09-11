@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     command: ["gateway", "run"]
     environment:
+      HERMES_HOME: /opt/data
       API_SERVER_ENABLED: "true"
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
@@ -11,16 +12,40 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NOUS_API_KEY: ${NOUS_API_KEY:-}
+      WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID:-}
+      WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
+      WHATSAPP_CLOUD_APP_SECRET: ${WHATSAPP_CLOUD_APP_SECRET:-}
+      WHATSAPP_CLOUD_VERIFY_TOKEN: ${WHATSAPP_CLOUD_VERIFY_TOKEN:-}
+      WHATSAPP_CLOUD_APP_ID: ${WHATSAPP_CLOUD_APP_ID:-}
+      WHATSAPP_CLOUD_WABA_ID: ${WHATSAPP_CLOUD_WABA_ID:-}
+      WHATSAPP_CLOUD_HOME_CHANNEL: ${WHATSAPP_CLOUD_HOME_CHANNEL:-}
+      WHATSAPP_CLOUD_ALLOWED_USERS: ${WHATSAPP_CLOUD_ALLOWED_USERS:-}
+      WHATSAPP_CLOUD_ALLOW_ALL_USERS: ${WHATSAPP_CLOUD_ALLOW_ALL_USERS:-false}
+      WHATSAPP_CLOUD_DM_POLICY: ${WHATSAPP_CLOUD_DM_POLICY:-allowlist}
+      WHATSAPP_CLOUD_ALLOW_FROM: ${WHATSAPP_CLOUD_ALLOW_FROM:-}
+      WHATSAPP_CLOUD_WEBHOOK_HOST: "0.0.0.0"
+      WHATSAPP_CLOUD_WEBHOOK_PORT: "8090"
+      WHATSAPP_CLOUD_WEBHOOK_PATH: "/whatsapp/webhook"
     volumes:
       - hermes_data:/opt/data
     expose:
       - "8642"
+      - "8090"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health')"]
       interval: 15s
       timeout: 5s
       retries: 8
       start_period: 30s
+
+  whatsapp-tunnel:
+    image: cloudflare/cloudflared:2026.9.0
+    restart: unless-stopped
+    profiles: ["whatsapp-cloud"]
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN}"]
+    depends_on:
+      hermes:
+        condition: service_healthy
 
   worker:
     build:
