@@ -14,6 +14,6 @@
     "worker": "npm run dev --workspace @agesoma/worker"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "24.x"
   }
 }
