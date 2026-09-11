@@ -40,7 +40,7 @@ export default function Home() {
     <main className="productShell">
       <header className="topbar">
         <div className="brand">InstantWork</div>
-        <div className="pill">MODO ROI</div>
+        <div className="pill">VALOR COMPROVADO</div>
       </header>
 
       <nav className="nav" aria-label="Navegação principal">
@@ -53,7 +53,7 @@ export default function Home() {
         <div className="heroCopy">
           <div className="eyebrow">Operação empresarial com inteligência</div>
           <h1>Sua próxima operação começa por um resultado.</h1>
-          <p className="heroLead">Configure a empresa, conecte os sistemas autorizados e diga o que precisa acontecer. O InstantWork observa, trabalha e só mostra ROI quando houver evidência real.</p>
+          <p className="heroLead">Configure a empresa, conecte os sistemas autorizados e diga o que precisa acontecer. O InstantWork observa, trabalha e só mostra valor quando houver evidência real.</p>
           <div className="heroActions">
             <a className="primaryCta" href="/onboarding">Configurar minha empresa</a>
             <span className="heroTruth">Nenhum resultado comprovado ainda.</span>
@@ -85,13 +85,13 @@ export default function Home() {
 
       <section className="roiBand">
         <div>
-          <span className="eyebrow">Modo ROI</span>
-          <h2>Valor só aparece quando puder ser provado.</h2>
+          <span className="eyebrow">Impacto comprovado</span>
+          <h2>O valor aparece quando puder ser provado.</h2>
         </div>
         <div className="roiTruth">
           <span className="monoLabel">RESULTADO VERIFICADO</span>
           <strong>—</strong>
-          <p>A primeira venda, reunião, economia ou mudança confirmada cria o primeiro registro econômico.</p>
+          <p>A primeira venda, reunião, economia ou mudança confirmada cria o primeiro registro de valor.</p>
         </div>
       </section>
 
@@ -101,7 +101,7 @@ export default function Home() {
           <h2>Trabalho concluído vira prova, não uma mensagem perdida no chat.</h2>
         </div>
         <div className="artifactCard workspaceCard">
-          <span className="workspaceLabel">Último artifact</span>
+          <span className="workspaceLabel">Último resultado</span>
           <strong>Nenhum resultado comprovado ainda</strong>
           <p>Quando houver execução real, esta visão reúne evidência, custo, impacto e próximo passo.</p>
         </div>
