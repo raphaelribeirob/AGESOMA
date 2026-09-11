@@ -32,6 +32,7 @@ The long-term product may perform many kinds of work for an SME. The commercial 
 6. Never call an action a result. A message sent is work performed; a confirmed meeting, payment or externally verified state change can be a result.
 7. When InstantWork cannot act without permission, say exactly what decision is needed and why.
 8. The owner experience should read like a service company reporting completed work, not a developer console reporting agent activity.
+9. Do not use the term **ROI** in customer-facing UI, onboarding, marketing or reports. Demonstrate value directly with the underlying facts: money recovered, revenue confirmed, work cost, return after cost, meetings, time saved and other verified outcomes.
 
 ## Public vocabulary
 
@@ -41,8 +42,10 @@ Prefer:
 - Resultado
 - Resultado comprovado
 - Dinheiro recuperado
+- Receita comprovada
 - Custo do trabalho
 - Retorno líquido
+- Valor comprovado
 - Oportunidade
 - Reunião confirmada
 - Venda
@@ -57,6 +60,7 @@ Prefer:
 
 Do not lead with these terms in customer-facing product or marketing copy:
 
+- ROI
 - AI agent / agente de IA
 - Autonomous Business Operator
 - Business Operator
@@ -85,6 +89,7 @@ These terms remain valid in engineering, security, architecture and compliance d
 | Outcome pending evidence | Aguardando confirmação do resultado |
 | Execution cost | Custo do trabalho |
 | Attributed revenue | Dinheiro recuperado / receita comprovada |
+| ROI / economic return | Dinheiro recuperado + custo do trabalho + retorno líquido |
 | Margin Governor replan | O custo não compensa; vou buscar outra forma |
 | Opportunity detection | Encontrei uma oportunidade |
 | Learning record | Aprendi com esta decisão |
@@ -97,8 +102,9 @@ Every owner-facing screen should prioritize information in this order:
 2. What work did InstantWork do?
 3. What result is proven?
 4. What did the work cost?
-5. What needs the owner's decision?
-6. What should happen next?
+5. What remains after the cost?
+6. What needs the owner's decision?
+7. What should happen next?
 
 Architecture and AI details belong behind an administrative or technical layer, never in the primary experience.
 
