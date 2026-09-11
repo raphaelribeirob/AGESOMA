@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "npm run build --workspace @agesoma/web",
-  "outputDirectory": "apps/web/.next"
+  "buildCommand": "npm run build --workspace @agesoma/web && rm -rf .next && cp -R apps/web/.next .next",
+  "outputDirectory": ".next"
 }
