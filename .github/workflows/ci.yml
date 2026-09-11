@@ -17,4 +17,11 @@ jobs:
           node-version: 24
       - run: npm install
       - run: npm run typecheck
-      - run: npm run build
+      - name: Build web app
+        run: npm run build --workspace @agesoma/web
+      - name: Mirror Next.js output to Vercel project root
+        run: |
+          rm -rf .next
+          cp -R apps/web/.next .next
+          test -f .next/routes-manifest.json
+          test -f .next/build-manifest.json
