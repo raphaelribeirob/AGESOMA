@@ -22,6 +22,12 @@ type CreatedRequest = {
   task_status: string;
 };
 
+type BusinessMemory = {
+  lesson_type: string;
+  content: Record<string, unknown>;
+  created_at: string;
+};
+
 export async function POST(req: Request) {
   const unauthorized = requireInternalApi(req);
   if (unauthorized) return unauthorized;
@@ -49,6 +55,20 @@ export async function POST(req: Request) {
   const policy = getActionPolicy(plan.action);
   if (!policy) return NextResponse.json({ error: "Planner produced an unsupported action" }, { status: 500 });
 
+  const memories = await tenantSql<BusinessMemory>(input.tenantId, `
+    select lesson_type, content, created_at
+    from learning_records
+    where tenant_id=$1
+    order by created_at desc
+    limit 8
+  `, [input.tenantId]);
+
+  const businessMemory = memories.map((memory) => ({
+    type: memory.lesson_type,
+    content: memory.content,
+    createdAt: memory.created_at
+  }));
+
   const taskStatus = plan.requiresApproval ? "awaiting_approval" : "queued";
   const planJson = JSON.stringify(plan);
   const payload = JSON.stringify({
@@ -56,7 +76,8 @@ export async function POST(req: Request) {
     destination: null,
     operation: plan.operation,
     resource: plan.resource,
-    requestPlan: plan
+    requestPlan: plan,
+    businessMemory
   });
 
   const [created] = await tenantSql<CreatedRequest>(input.tenantId, `
@@ -68,7 +89,8 @@ export async function POST(req: Request) {
       insert into workflows (tenant_id, key, version, status, config)
       select $1, 'request-' || replace(id::text, '-', ''), 1, 'active', jsonb_build_object(
         'source', 'natural_request',
-        'plan', $6::jsonb
+        'plan', $6::jsonb,
+        'memory_count', $17::int
       )
       from new_goal
       returning id
@@ -101,7 +123,8 @@ export async function POST(req: Request) {
     input.expectedCostCents ?? 0,
     input.expectedLossCents ?? 0,
     input.confidence ?? 0,
-    payload
+    payload,
+    businessMemory.length
   ]);
 
   return NextResponse.json({
@@ -110,6 +133,7 @@ export async function POST(req: Request) {
     taskId: created.task_id,
     taskStatus: created.task_status,
     plan,
+    memoryCount: businessMemory.length,
     economics: {
       status: input.expectedValueCents === undefined ? "unknown" : "provided",
       expectedValueCents: input.expectedValueCents ?? null,
