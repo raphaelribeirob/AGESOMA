@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { computeOutcomeEconomics } from "@agesoma/core";
+import { buildOutcomeLearning, computeOutcomeEconomics } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
 import { requireJson, requireOutcomeVerifier } from "../../../lib/security";
 
@@ -64,6 +64,26 @@ export async function POST(req: Request) {
     economics.grossMarginBps, input.attributionConfidence, input.evidenceSource,
     input.verifiedAt, JSON.stringify(input.evidence)
   ]);
+
+  const learning = buildOutcomeLearning({
+    outcomeId: row.id,
+    outcomeType: input.outcomeType,
+    outcomeValueCents: input.outcomeValueCents,
+    attributedRevenueCents: input.attributedRevenueCents,
+    modelCostCents: input.modelCostCents,
+    apiCostCents: input.apiCostCents,
+    messagingCostCents: input.messagingCostCents,
+    browserCostCents: input.browserCostCents,
+    humanCostCents: input.humanCostCents,
+    attributionConfidence: input.attributionConfidence,
+    evidenceSource: input.evidenceSource,
+    verifiedAt: input.verifiedAt
+  });
+
+  await tenantSql(input.tenantId, `
+    insert into learning_records (tenant_id, workflow_id, task_id, lesson_type, content)
+    values ($1,$2,$3,'verified_outcome',$4::jsonb)
+  `, [input.tenantId, input.workflowId ?? null, input.taskId ?? null, JSON.stringify(learning)]);
 
   return NextResponse.json({ id: row.id, economics, verified: true }, { status: 201 });
 }
