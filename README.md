@@ -4,6 +4,18 @@ Service-as-a-Software for SMEs: customers buy completed work and verified busine
 
 Public communication is governed by `docs/COMMUNICATION_SYSTEM.md`. Technical vocabulary below is internal architecture language, not the customer-facing value proposition.
 
+## Product operating model
+
+AGESOMA adapts the persistent-agent model to a small business:
+
+`observe -> find opportunity -> propose work -> approve when needed -> work in background -> deliver result -> verify value -> calculate ROI -> learn -> observe again`
+
+The owner-facing product is organized around seven surfaces:
+
+`Início | Pedir | Oportunidades | Trabalhos | Resultados | Aprovações | Conexões`
+
+Conversation is the easiest way to delegate work, but results should become business views with evidence, cost, ROI and next steps rather than remaining trapped in chat.
+
 P0 principle: **the workflow is the product, Sentinel is the authority, Hermes is the executor, and the verified outcome is the unit of value.**
 
 ## P0 stack
