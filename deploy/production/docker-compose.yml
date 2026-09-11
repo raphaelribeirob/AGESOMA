@@ -16,6 +16,12 @@ services:
       - hermes_data:/opt/data
     expose:
       - "8642"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
 
   worker:
     build:
@@ -32,7 +38,8 @@ services:
       AGESOMA_MIN_NET_VALUE_CENTS: ${AGESOMA_MIN_NET_VALUE_CENTS:-100}
       AGESOMA_MAX_TASK_COST_CENTS: ${AGESOMA_MAX_TASK_COST_CENTS:-500}
     depends_on:
-      - hermes
+      hermes:
+        condition: service_healthy
 
   gateway:
     image: caddy:2-alpine
@@ -47,7 +54,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - hermes
+      hermes:
+        condition: service_healthy
 
 volumes:
   hermes_data:
