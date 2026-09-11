@@ -32,12 +32,22 @@ create table if not exists tasks (
   tenant_id uuid not null references tenants(id) on delete cascade,
   workflow_id uuid references workflows(id) on delete set null,
   status text not null default 'queued',
+  action_type text,
   risk_class text not null default 'R1',
+  reversible boolean not null default false,
+  external boolean not null default true,
   expected_value_cents bigint not null default 0,
   expected_cost_cents bigint not null default 0,
+  expected_loss_cents bigint not null default 0,
+  confidence numeric(5,4) not null default 0,
   payload jsonb not null default '{}'::jsonb,
+  execution_started_at timestamptz,
+  execution_finished_at timestamptz,
+  execution_result jsonb,
+  failure_reason text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (status in ('queued','awaiting_approval','running','completed','failed','denied'))
 );
 
 create table if not exists approval_grants (
@@ -47,6 +57,7 @@ create table if not exists approval_grants (
   action_class text not null,
   scope jsonb not null default '{}'::jsonb,
   expires_at timestamptz,
+  revoked_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -77,6 +88,8 @@ create table if not exists outcome_events (
   net_value_cents bigint not null default 0,
   gross_margin_bps int not null default 0,
   attribution_confidence numeric(5,4) not null default 0,
+  evidence_source text not null,
+  verified_at timestamptz not null,
   evidence jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -94,3 +107,4 @@ create table if not exists learning_records (
 
 create index if not exists outcome_events_tenant_created_idx on outcome_events (tenant_id, created_at desc);
 create index if not exists tasks_tenant_status_idx on tasks (tenant_id, status);
+create index if not exists approval_grants_task_idx on approval_grants (task_id, expires_at desc);
