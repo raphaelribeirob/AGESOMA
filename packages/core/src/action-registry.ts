@@ -9,6 +9,34 @@ export type ActionPolicy = {
 };
 
 const ACTIONS: Record<string, ActionPolicy> = {
+  "business.observe": {
+    type: "business.observe",
+    riskClass: "R0",
+    reversible: true,
+    external: true,
+    maxPayloadBytes: 32_768
+  },
+  "business.work": {
+    type: "business.work",
+    riskClass: "R1",
+    reversible: true,
+    external: false,
+    maxPayloadBytes: 32_768
+  },
+  "business.act": {
+    type: "business.act",
+    riskClass: "R2",
+    reversible: false,
+    external: true,
+    maxPayloadBytes: 32_768
+  },
+  "business.commit": {
+    type: "business.commit",
+    riskClass: "R3",
+    reversible: false,
+    external: true,
+    maxPayloadBytes: 16_384
+  },
   "crm.read_leads": {
     type: "crm.read_leads",
     riskClass: "R0",
