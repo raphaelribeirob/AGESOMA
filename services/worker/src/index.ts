@@ -1,5 +1,5 @@
 import { PgBoss } from "pg-boss";
-import { evaluateMargin, evaluateSentinel } from "@agesoma/core";
+import { evaluateMargin, evaluateSentinel, getActionPolicy } from "@agesoma/core";
 import { sql } from "@agesoma/db";
 import { executeWithHermes } from "./hermes";
 
@@ -73,7 +73,7 @@ await boss.work("agesoma.execute", async ([job]) => {
   const grants = await sql<{ id: string }>(`
     select id from approval_grants
     where tenant_id=$1 and task_id=$2 and action_class=$3
-      and revoked_at is null and (expires_at is null or expires_at > now())
+      and revoked_at is null and consumed_at is null and expires_at > now()
     order by created_at desc limit 1
   `, [data.tenantId, data.taskId, data.action]);
 
@@ -87,7 +87,7 @@ await boss.work("agesoma.execute", async ([job]) => {
     return { status: "denied", reason: policy.reason };
   }
   if (policy.decision === "REVIEW") {
-    await sql(`update tasks set status='awaiting_approval', updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
+    await sql(`update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
     return { status: "awaiting_approval", reason: policy.reason };
   }
 
@@ -97,10 +97,33 @@ await boss.work("agesoma.execute", async ([job]) => {
     return { status: "replan", reason: margin.reason };
   }
 
+  const registeredAction = getActionPolicy(data.action);
+  let grantRef: string | undefined;
+  if (registeredAction?.riskClass === "R2" || registeredAction?.riskClass === "R3") {
+    const grantId = grants[0]?.id;
+    if (!grantId) {
+      await sql(`update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
+      return { status: "awaiting_approval", reason: "Approval grant missing" };
+    }
+
+    const consumed = await sql<{ id: string }>(`
+      update approval_grants set consumed_at=now()
+      where id=$1 and tenant_id=$2 and task_id=$3 and action_class=$4
+        and revoked_at is null and consumed_at is null and expires_at > now()
+      returning id
+    `, [grantId, data.tenantId, data.taskId, data.action]);
+
+    if (!consumed[0]) {
+      await sql(`update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
+      return { status: "awaiting_approval", reason: "Approval grant expired or already consumed" };
+    }
+    grantRef = consumed[0].id;
+  }
+
   await sql(`update tasks set status='running', execution_started_at=now(), failure_reason=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
 
   try {
-    const result = await executeWithHermes({ taskId: data.taskId, tenantId: data.tenantId, action: data.action, payload: data.payload, grantRef: grants[0]?.id });
+    const result = await executeWithHermes({ taskId: data.taskId, tenantId: data.tenantId, action: data.action, payload: data.payload, grantRef });
     await sql(`update tasks set status='completed', execution_finished_at=now(), execution_result=$3::jsonb, updated_at=now() where id=$1 and tenant_id=$2`, [
       data.taskId, data.tenantId, JSON.stringify(result)
     ]);
