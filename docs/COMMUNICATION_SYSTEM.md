@@ -1,12 +1,12 @@
-# AGESOMA Communication System
+# InstantWork Communication System
 
-AGESOMA is built as Service-as-a-Software: the customer buys work and verified business outcomes, not an AI tool.
+InstantWork is built as Service-as-a-Software: the customer buys work and verified business outcomes, not an AI tool.
 
 ## Canonical promise
 
-**pt-BR:** Diga o resultado que precisa. A AGESOMA faz o trabalho.
+**pt-BR:** Diga o resultado que precisa. O InstantWork faz o trabalho.
 
-**en:** Tell us the outcome you need. AGESOMA does the work.
+**en:** Tell us the outcome you need. InstantWork does the work.
 
 Supporting proof line:
 
@@ -18,7 +18,7 @@ Supporting proof line:
 
 **pt-BR:** Recupere vendas que sua empresa está deixando para trás.
 
-AGESOMA identifies qualified opportunities that stopped moving, follows up within approved business rules, helps move them to a meeting or sale, and only counts value when the result has evidence.
+InstantWork identifies qualified opportunities that stopped moving, follows up within approved business rules, helps move them to a meeting or sale, and only counts value when the result has evidence.
 
 The long-term product may perform many kinds of work for an SME. The commercial entry point should remain concrete and measurable until the first workflow is proven.
 
@@ -27,10 +27,10 @@ The long-term product may perform many kinds of work for an SME. The commercial 
 1. Sell the work, never the machinery.
 2. Lead with the business result, then the work completed, then proof and cost.
 3. Do not require the owner to understand AI, agents, models, orchestration or architecture.
-4. Describe autonomy through behavior: what AGESOMA can do, when it needs approval, and what it proved.
+4. Describe autonomy through behavior: what InstantWork can do, when it needs approval, and what it proved.
 5. Prefer money, meetings, sales, customers, time saved, cost and return over technical metrics.
 6. Never call an action a result. A message sent is work performed; a confirmed meeting, payment or externally verified state change can be a result.
-7. When AGESOMA cannot act without permission, say exactly what decision is needed and why.
+7. When InstantWork cannot act without permission, say exactly what decision is needed and why.
 8. The owner experience should read like a service company reporting completed work, not a developer console reporting agent activity.
 
 ## Public vocabulary
@@ -94,7 +94,7 @@ These terms remain valid in engineering, security, architecture and compliance d
 Every owner-facing screen should prioritize information in this order:
 
 1. What changed for the business?
-2. What work did AGESOMA do?
+2. What work did InstantWork do?
 3. What result is proven?
 4. What did the work cost?
 5. What needs the owner's decision?
@@ -106,7 +106,7 @@ Architecture and AI details belong behind an administrative or technical layer, 
 
 Headline direction:
 
-**O que a AGESOMA fez — e quanto isso valeu para o seu negócio.**
+**O que o InstantWork fez — e quanto isso valeu para o seu negócio.**
 
 Primary operating prompt direction:
 
@@ -126,12 +126,12 @@ Then show the agreed business contract in plain language:
 
 ## Pricing-language principle
 
-Do not position AGESOMA as software sold per seat. A low-cost subscription may provide access, but value must be measured around work performed and verified outcomes. Pricing experiments should make the relationship between work, cost and business value increasingly visible.
+Do not position InstantWork as software sold per seat. A low-cost subscription may provide access, but value must be measured around work performed and verified outcomes. Pricing experiments should make the relationship between work, cost and business value increasingly visible.
 
 ## Sequoia alignment test
 
 Before shipping public copy, ask:
 
-> If every reference to AI, agents and software disappeared, would a small-business owner still immediately understand what work AGESOMA performs and why it is worth paying for?
+> If every reference to AI, agents and software disappeared, would a small-business owner still immediately understand what work InstantWork performs and why it is worth paying for?
 
 If the answer is no, rewrite the copy.
