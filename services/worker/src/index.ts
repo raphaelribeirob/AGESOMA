@@ -10,6 +10,19 @@ boss.on("error", (error) => console.error("pg-boss", error));
 await boss.start();
 await boss.createQueue("agesoma.execute");
 
+const instanceId = process.env.HOSTNAME ?? `worker-${process.pid}`;
+
+async function reportHeartbeat() {
+  await sql(`
+    insert into runtime_heartbeats (service, instance_id, metadata, last_seen_at)
+    values ('agesoma-worker', $1, $2::jsonb, now())
+    on conflict (service) do update
+      set instance_id=excluded.instance_id,
+          metadata=excluded.metadata,
+          last_seen_at=excluded.last_seen_at
+  `, [instanceId, JSON.stringify({ hermesConfigured: Boolean(process.env.HERMES_BASE_URL && process.env.HERMES_SERVICE_TOKEN) })]);
+}
+
 type QueuedTask = {
   id: string;
   tenant_id: string;
@@ -135,7 +148,11 @@ await boss.work("agesoma.execute", async ([job]) => {
   }
 });
 
+await reportHeartbeat();
 await dispatchQueuedTasks();
+setInterval(() => {
+  reportHeartbeat().catch((error) => console.error("AGESOMA heartbeat", error));
+}, 30_000).unref();
 setInterval(() => {
   dispatchQueuedTasks().catch((error) => console.error("AGESOMA dispatcher", error));
 }, 5_000).unref();
