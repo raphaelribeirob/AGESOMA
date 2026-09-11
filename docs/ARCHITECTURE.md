@@ -1,12 +1,12 @@
-# AGESOMA P0 Architecture
+# InstantWork P0 Architecture
 
 ## Boundary rule
 
 The LLM/execution plane is never its own authorization authority.
 
-AGESOMA is an **authorized universal business operator**: it may discover and use any website, application, API or computer interface needed to complete a business outcome when that resource is public or the SME has explicitly authorized access. Freedom is destination-agnostic; control is based on impact.
+InstantWork is an **authorized universal business operator**: it may discover and use any website, application, API or computer interface needed to complete a business outcome when that resource is public or the SME has explicitly authorized access. Freedom is destination-agnostic; control is based on impact.
 
-AGESOMA must never bypass authentication or access controls, obtain credentials it was not given, cross tenant boundaries, escalate privileges, or turn a read-only permission into a consequential action.
+InstantWork must never bypass authentication or access controls, obtain credentials it was not given, cross tenant boundaries, escalate privileges, or turn a read-only permission into a consequential action.
 
 ```text
 Owner intent / business event
@@ -32,7 +32,7 @@ C-Trace + LearningRecord + ROI Mode
 
 ## Universal operator model
 
-The owner should not need to pre-register every website or application AGESOMA may need during a task. The task grants an outcome and an impact envelope; inside that envelope the execution layer may discover the route needed to finish the work.
+The owner should not need to pre-register every website or application InstantWork may need during a task. The task grants an outcome and an impact envelope; inside that envelope the execution layer may discover the route needed to finish the work.
 
 The canonical access levels are:
 
@@ -41,13 +41,13 @@ The canonical access levels are:
 - **Act / `business.act` / R2:** create external side effects such as sending messages, updating external systems or booking meetings. These are controlled by Sentinel and the owner's policy/grants.
 - **Commit / `business.commit` / R3:** spend money, change commercial terms, alter authentication/security settings, publish irreversible changes or create material obligations. These always require explicit scoped authority and may be denied by policy.
 
-The destination does not determine the permission. The impact does. AGESOMA may therefore discover a new site or tool during execution without requiring that destination to be hard-coded in the product, provided the resource is public or the SME has authorized access and the action stays inside the approved impact envelope.
+A destination may be discovered dynamically, but every consequential execution must remain inside the exact approved capability scope. Discovery is broad; authorization is specific.
 
 ## Tenant Work Cell
 
 Each SME must have a logically isolated work cell containing its sessions, files, memory, connector scopes and execution state. Compute may be shared for cost efficiency, but tenant context and credentials may not be shared.
 
-Credentials remain outside model context whenever possible. Hermes receives the minimum execution authority needed for the active task, while AGESOMA/Sentinel remain the authorization authority.
+Credentials remain outside model context whenever possible. Hermes receives the minimum execution authority needed for the active task, while InstantWork/Sentinel remain the authorization authority.
 
 An authenticated browser profile belongs to exactly one Tenant Work Cell. Reusable cookies, sessions and connected accounts must never be shared across businesses.
 
@@ -55,17 +55,17 @@ An authenticated browser profile belongs to exactly one Tenant Work Cell. Reusab
 
 The execution runtime should expose three routes, all private to the work cell:
 
-1. **Browser automation** for arbitrary web applications. Prefer a low-cost local CDP/headless browser as the default; Hermes supports browser automation and external CDP endpoints.
+1. **Browser automation** for arbitrary web applications.
 2. **Computer use** when a workflow cannot be completed through browser/API primitives and requires a GUI application.
 3. **Sandbox terminal** for files, transformation, code and local automation. It must not provide host-level or cross-tenant privilege.
 
-Browser/computer/terminal availability is a runtime capability, not customer-facing product complexity. The owner asks for a business result; AGESOMA chooses the route.
+Browser/computer/terminal availability is a runtime capability, not customer-facing product complexity. The owner asks for a business result; InstantWork chooses the route.
 
 ## Why Hermes is separate
 
-Hermes is treated as an execution substrate. AGESOMA owns tenant isolation, permission policy, economic limits, outcome attribution, learning records and the owner experience. Credentials are not stored in agent context.
+Hermes is treated as an execution substrate. InstantWork owns tenant isolation, permission policy, economic limits, outcome attribution, learning records and the owner experience. Credentials are not stored in agent context.
 
-Hermes already supports browser automation, computer-use and terminal-based execution. AGESOMA exposes that operational freedom through the Tenant Work Cell rather than turning every destination into a bespoke integration.
+Hermes provides browser automation, computer-use and terminal-based execution. InstantWork exposes that operational freedom through the Tenant Work Cell rather than turning every destination into a bespoke integration.
 
 ## Muse-for-SME operating loop
 
