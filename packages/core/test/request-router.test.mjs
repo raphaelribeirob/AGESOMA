@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { evaluateMargin } from "../src/margin-governor.ts";
 import { routeBusinessRequest } from "../src/request-router.ts";
 
 test("broad sales goal starts with observation", () => {
@@ -37,4 +38,28 @@ test("research request remains read-only", () => {
   const plan = routeBusinessRequest("Pesquise meus concorrentes e encontre oportunidades");
   assert.equal(plan.action, "business.observe");
   assert.equal(plan.requiresApproval, false);
+});
+
+test("bounded read-only discovery can run before value is known", () => {
+  const result = evaluateMargin({
+    action: "business.observe",
+    riskClass: "R0",
+    expectedValueCents: 0,
+    expectedCostCents: 0,
+    expectedLossCents: 0,
+    confidence: 0
+  });
+  assert.equal(result.decision, "EXECUTE");
+});
+
+test("unpriced external action still cannot bypass economics", () => {
+  const result = evaluateMargin({
+    action: "business.act",
+    riskClass: "R2",
+    expectedValueCents: 0,
+    expectedCostCents: 0,
+    expectedLossCents: 0,
+    confidence: 0
+  });
+  assert.equal(result.decision, "REPLAN");
 });
