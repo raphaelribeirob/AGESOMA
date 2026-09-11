@@ -1,5 +1,12 @@
+import { createHash } from "node:crypto";
 import { PgBoss } from "pg-boss";
-import { evaluateMargin, evaluateSentinel, getActionPolicy } from "@agesoma/core";
+import {
+  buildCapabilityScope,
+  evaluateMargin,
+  evaluateSentinel,
+  getActionPolicy,
+  serializeCapabilityScope
+} from "@agesoma/core";
 import { sql } from "@agesoma/db";
 import { executeWithHermes } from "./hermes";
 
@@ -50,16 +57,7 @@ async function dispatchQueuedTasks() {
   for (const task of tasks) {
     const jobId = await boss.send("agesoma.execute", {
       taskId: task.id,
-      tenantId: task.tenant_id,
-      action: task.action_type,
-      riskClass: task.risk_class,
-      reversible: task.reversible,
-      external: task.external,
-      expectedValueCents: Number(task.expected_value_cents),
-      expectedCostCents: Number(task.expected_cost_cents),
-      expectedLossCents: Number(task.expected_loss_cents),
-      confidence: Number(task.confidence),
-      payload: task.payload
+      tenantId: task.tenant_id
     }, { singletonKey: task.id, retryLimit: 3, retryDelay: 5 });
 
     if (jobId) {
@@ -69,26 +67,41 @@ async function dispatchQueuedTasks() {
 }
 
 await boss.work("agesoma.execute", async ([job]) => {
-  const data = job.data as {
-    taskId: string;
-    tenantId: string;
-    action: string;
-    riskClass: "R0" | "R1" | "R2" | "R3" | "R4";
-    reversible: boolean;
-    external: boolean;
-    expectedValueCents: number;
-    expectedCostCents: number;
-    expectedLossCents: number;
-    confidence: number;
-    payload: Record<string, unknown>;
+  const queued = job.data as { taskId: string; tenantId: string };
+
+  const [task] = await sql<QueuedTask>(`
+    select id, tenant_id, action_type, risk_class, reversible, external,
+      expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
+    from tasks
+    where id=$1 and tenant_id=$2 and status='queued'
+    limit 1
+  `, [queued.taskId, queued.tenantId]);
+
+  if (!task) return { status: "stale", reason: "Task is no longer queued" };
+
+  const data = {
+    taskId: task.id,
+    tenantId: task.tenant_id,
+    action: task.action_type,
+    riskClass: task.risk_class,
+    reversible: task.reversible,
+    external: task.external,
+    expectedValueCents: Number(task.expected_value_cents),
+    expectedCostCents: Number(task.expected_cost_cents),
+    expectedLossCents: Number(task.expected_loss_cents),
+    confidence: Number(task.confidence),
+    payload: task.payload
   };
+
+  const capabilityScope = buildCapabilityScope({ taskId: data.taskId, action: data.action, payload: data.payload });
+  const capabilityHash = createHash("sha256").update(serializeCapabilityScope(capabilityScope)).digest("hex");
 
   const grants = await sql<{ id: string }>(`
     select id from approval_grants
-    where tenant_id=$1 and task_id=$2 and action_class=$3
+    where tenant_id=$1 and task_id=$2 and action_class=$3 and scope_hash=$4
       and revoked_at is null and consumed_at is null and expires_at > now()
     order by created_at desc limit 1
-  `, [data.tenantId, data.taskId, data.action]);
+  `, [data.tenantId, data.taskId, data.action, capabilityHash]);
 
   const policy = evaluateSentinel({ ...data, type: data.action, hasScopedGrant: grants.length > 0 });
   await sql(`insert into policy_decisions (tenant_id, task_id, action_class, risk_class, decision, reason) values ($1,$2,$3,$4,$5,$6)`, [
@@ -116,19 +129,19 @@ await boss.work("agesoma.execute", async ([job]) => {
     const grantId = grants[0]?.id;
     if (!grantId) {
       await sql(`update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
-      return { status: "awaiting_approval", reason: "Approval grant missing" };
+      return { status: "awaiting_approval", reason: "Exact approval grant missing" };
     }
 
     const consumed = await sql<{ id: string }>(`
       update approval_grants set consumed_at=now()
-      where id=$1 and tenant_id=$2 and task_id=$3 and action_class=$4
+      where id=$1 and tenant_id=$2 and task_id=$3 and action_class=$4 and scope_hash=$5
         and revoked_at is null and consumed_at is null and expires_at > now()
       returning id
-    `, [grantId, data.tenantId, data.taskId, data.action]);
+    `, [grantId, data.tenantId, data.taskId, data.action, capabilityHash]);
 
     if (!consumed[0]) {
       await sql(`update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
-      return { status: "awaiting_approval", reason: "Approval grant expired or already consumed" };
+      return { status: "awaiting_approval", reason: "Approval grant expired, consumed or scope changed" };
     }
     grantRef = consumed[0].id;
   }
@@ -151,10 +164,10 @@ await boss.work("agesoma.execute", async ([job]) => {
 await reportHeartbeat();
 await dispatchQueuedTasks();
 setInterval(() => {
-  reportHeartbeat().catch((error) => console.error("AGESOMA heartbeat", error));
+  reportHeartbeat().catch((error) => console.error("InstantWork heartbeat", error));
 }, 30_000).unref();
 setInterval(() => {
-  dispatchQueuedTasks().catch((error) => console.error("AGESOMA dispatcher", error));
+  dispatchQueuedTasks().catch((error) => console.error("InstantWork dispatcher", error));
 }, 5_000).unref();
 
-console.log("AGESOMA worker listening on agesoma.execute");
+console.log("InstantWork worker listening on agesoma.execute");
