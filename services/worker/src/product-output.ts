@@ -32,19 +32,23 @@ function cents(value: unknown, ceiling: number) {
 }
 
 async function persistResolvedAction(task: ProductTask, output: Record<string, unknown>) {
-  if (task.payload.requiresResolution !== true) return;
-
-  const requestedAction = text(task.payload.requestedAction);
-  if (requestedAction !== "business.act" && requestedAction !== "business.commit") return;
+  // Only an owner-originated job may turn planning into an approval request. Watchers can
+  // discover opportunities, but they cannot manufacture consequential work on their own.
+  if (task.payload.ownerRequested !== true) return;
 
   const proposed = record(output.proposedAction);
   if (!proposed) return;
 
   const action = text(proposed.action);
+  if (action !== "business.act" && action !== "business.commit") return;
+
+  const requestedAction = text(task.payload.requestedAction);
+  if ((requestedAction === "business.act" || requestedAction === "business.commit") && action !== requestedAction) return;
+
   const destination = text(proposed.destination);
   const operation = text(proposed.operation);
   const resource = text(proposed.resource);
-  if (action !== requestedAction || !destination || !operation || !resource) return;
+  if (!destination || !operation || !resource) return;
 
   const policy = getActionPolicy(action);
   if (!policy || (policy.riskClass !== "R2" && policy.riskClass !== "R3")) return;
