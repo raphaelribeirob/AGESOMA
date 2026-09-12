@@ -4,6 +4,7 @@ import "@fontsource-variable/geist/wght.css";
 import "@fontsource-variable/geist-mono/wght.css";
 import "./globals.css";
 import "./riverthree-fonts.css";
+import "./riverthree-v418.css";
 
 export const metadata: Metadata = {
   title: "InstantWork",
