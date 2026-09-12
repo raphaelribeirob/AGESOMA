@@ -1,4 +1,4 @@
-name: InstantWork CI
+name: AGESOMA CI
 
 on:
   push:
@@ -21,6 +21,10 @@ jobs:
         run: node --test packages/core/test/request-router.test.mjs
       - name: Enforce RiverThree product package
         run: |
+          grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
+          grep -q 'name: "AGESOMA"' apps/web/lib/riverthree-product.ts
+          grep -q 'wordmark: "/agesoma-wordmark.jpeg"' apps/web/lib/riverthree-product.ts
+          test -f apps/web/public/agesoma-wordmark.jpeg
           grep -q 'onboardingMode: "businessConsumerized"' apps/web/lib/riverthree-product.ts
           grep -q 'intelligenceOrb: "contextual"' apps/web/lib/riverthree-product.ts
           grep -q 'genZ: "subtle"' apps/web/lib/riverthree-product.ts
@@ -35,8 +39,8 @@ jobs:
             echo "Internal design or architecture language must never appear in public product UI"
             exit 1
           fi
-          if grep -R -n -E '\bROI\b' apps/web/app; then
-            echo "Public InstantWork UI must demonstrate value without the ROI label"
+          if grep -R -n -E '\bROI\b|InstantWork' apps/web/app; then
+            echo "Public AGESOMA UI must use AGESOMA identity and demonstrate value without legacy labels"
             exit 1
           fi
       - name: Enforce independent outcome verification
