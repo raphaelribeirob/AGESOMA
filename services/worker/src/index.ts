@@ -181,6 +181,27 @@ await boss.work("agesoma.execute", async ([job]) => {
 
   const capabilityScope = buildCapabilityScope({ taskId: data.taskId, action: data.action, payload: data.payload });
   const capabilityHash = createHash("sha256").update(serializeCapabilityScope(capabilityScope)).digest("hex");
+  const registeredAction = getActionPolicy(data.action);
+
+  if (!registeredAction) {
+    await sql(`update tasks set status='denied', failure_reason='Unknown action', updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
+    return { status: "denied", reason: "Unknown action" };
+  }
+
+  const consequential = registeredAction.riskClass === "R2" || registeredAction.riskClass === "R3";
+  const incompleteScope = consequential && (!capabilityScope.destination || !capabilityScope.operation || !capabilityScope.resource);
+  const missingCommitAmount = registeredAction.riskClass === "R3" && capabilityScope.amountCents === null;
+  if (incompleteScope || missingCommitAmount) {
+    const reason = missingCommitAmount
+      ? "Consequential commitment is missing an explicit amount"
+      : "Consequential capability is unresolved";
+    await sql(`insert into policy_decisions (tenant_id, task_id, action_class, risk_class, decision, reason, metadata) values ($1,$2,$3,$4,'DENY',$5,$6::jsonb)`, [
+      data.tenantId, data.taskId, data.action, data.riskClass, reason,
+      JSON.stringify({ capabilityHash, destination: capabilityScope.destination, operation: capabilityScope.operation, resource: capabilityScope.resource })
+    ]);
+    await sql(`update tasks set status='denied', failure_reason=$3, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId, reason]);
+    return { status: "denied", reason };
+  }
 
   const grants = await sql<{ id: string }>(`
     select id from approval_grants
@@ -198,7 +219,7 @@ await boss.work("agesoma.execute", async ([job]) => {
 
   if (autonomy.resolution.decision === "DENY") {
     await sql(`insert into policy_decisions (tenant_id, task_id, action_class, risk_class, decision, reason, metadata) values ($1,$2,$3,$4,'DENY','Owner autonomy rule denies this action',$5::jsonb)`, [
-      data.tenantId, data.taskId, data.action, data.riskClass, JSON.stringify({ autonomyRuleId: autonomy.resolution.ruleId })
+      data.tenantId, data.taskId, data.action, data.riskClass, JSON.stringify({ autonomyRuleId: autonomy.resolution.ruleId, capabilityHash })
     ]);
     await sql(`update tasks set status='denied', failure_reason='Owner autonomy rule denies this action', updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
     return { status: "denied", reason: "Owner autonomy rule denies this action" };
@@ -208,7 +229,13 @@ await boss.work("agesoma.execute", async ([job]) => {
   const policy = evaluateSentinel({ ...data, type: data.action, hasScopedGrant: hasAuthority });
   await sql(`insert into policy_decisions (tenant_id, task_id, action_class, risk_class, decision, reason, metadata) values ($1,$2,$3,$4,$5,$6,$7::jsonb)`, [
     data.tenantId, data.taskId, data.action, data.riskClass, policy.decision, policy.reason,
-    JSON.stringify({ autonomyRuleId: autonomy.resolution.ruleId })
+    JSON.stringify({
+      autonomyRuleId: autonomy.resolution.ruleId,
+      capabilityHash,
+      destination: capabilityScope.destination,
+      operation: capabilityScope.operation,
+      resource: capabilityScope.resource
+    })
   ]);
 
   if (policy.decision === "DENY") {
@@ -226,9 +253,8 @@ await boss.work("agesoma.execute", async ([job]) => {
     return { status: "replan", reason: margin.reason };
   }
 
-  const registeredAction = getActionPolicy(data.action);
   let grantRef: string | undefined;
-  if (registeredAction?.riskClass === "R2" || registeredAction?.riskClass === "R3") {
+  if (registeredAction.riskClass === "R2" || registeredAction.riskClass === "R3") {
     if (autonomy.resolution.decision === "ALLOW" && autonomy.resolution.ruleId) {
       grantRef = `autonomy:${autonomy.resolution.ruleId}`;
     } else {
@@ -251,6 +277,18 @@ await boss.work("agesoma.execute", async ([job]) => {
       }
       grantRef = consumed[0].id;
     }
+  }
+
+  if (data.external) {
+    await sql(`insert into egress_decisions (tenant_id, task_id, destination, operation, action_class, decision, reason, capability_hash) values ($1,$2,$3,$4,$5,'ALLOW',$6,$7)`, [
+      data.tenantId,
+      data.taskId,
+      capabilityScope.destination ?? "authorized-read",
+      capabilityScope.operation,
+      data.action,
+      grantRef ? `Sentinel allowed execution with scoped authority ${grantRef}` : policy.reason,
+      capabilityHash
+    ]);
   }
 
   await sql(`update tasks set status='running', execution_started_at=now(), failure_reason=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
