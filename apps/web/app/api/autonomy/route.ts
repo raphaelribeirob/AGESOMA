@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildCapabilityScope } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
-import { requireInternalApi, requireJson } from "../../../lib/security";
+import { requireInternalApi, requireJson, requireTenantActor } from "../../../lib/security";
 
 const schema = z.object({
   tenantId: z.string().uuid(),
@@ -16,14 +16,11 @@ export async function POST(req: Request) {
   const wrongType = requireJson(req);
   if (wrongType) return wrongType;
 
-  const actorId = req.headers.get("x-agesoma-actor-id")?.trim();
-  if (!actorId || actorId.length > 128) {
-    return NextResponse.json({ error: "Authenticated actor is required" }, { status: 400 });
-  }
-
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid autonomy request" }, { status: 400 });
   const input = parsed.data;
+  const actor = await requireTenantActor(req, input.tenantId);
+  if (actor.error || !actor.actorId) return actor.error!;
 
   const [task] = await tenantSql<{
     id: string;
@@ -45,7 +42,7 @@ export async function POST(req: Request) {
       decision, max_amount_cents, approved_by
     ) values ($1,$2,$3,$4,$5,$6,$7,$8)
     returning id
-  `, [input.tenantId, task.action_type, scope.destination, scope.operation, scope.resource, ruleDecision, scope.amountCents, actorId]);
+  `, [input.tenantId, task.action_type, scope.destination, scope.operation, scope.resource, ruleDecision, scope.amountCents, actor.actorId]);
 
   if (input.decision === "allow") {
     await tenantSql(input.tenantId, `update tasks set status='queued', dispatched_at=null, updated_at=now() where id=$1 and tenant_id=$2`, [task.id, input.tenantId]);
