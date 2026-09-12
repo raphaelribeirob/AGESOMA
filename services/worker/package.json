@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "brain": "tsx src/brain-tenant.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
