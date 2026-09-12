@@ -1,3 +1,4 @@
+import { getActionPolicy } from "@agesoma/core";
 import { sql } from "@agesoma/db";
 
 export type ProductTask = {
@@ -22,6 +23,90 @@ function text(value: unknown) {
 
 function number(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function cents(value: unknown, ceiling: number) {
+  const numeric = number(value);
+  if (numeric === null) return 0;
+  return Math.max(0, Math.min(ceiling, Math.trunc(numeric)));
+}
+
+async function persistResolvedAction(task: ProductTask, output: Record<string, unknown>) {
+  if (task.payload.requiresResolution !== true) return;
+
+  const requestedAction = text(task.payload.requestedAction);
+  if (requestedAction !== "business.act" && requestedAction !== "business.commit") return;
+
+  const proposed = record(output.proposedAction);
+  if (!proposed) return;
+
+  const action = text(proposed.action);
+  const destination = text(proposed.destination);
+  const operation = text(proposed.operation);
+  const resource = text(proposed.resource);
+  if (action !== requestedAction || !destination || !operation || !resource) return;
+
+  const policy = getActionPolicy(action);
+  if (!policy || (policy.riskClass !== "R2" && policy.riskClass !== "R3")) return;
+
+  const amountCents = proposed.amountCents === undefined
+    ? null
+    : cents(proposed.amountCents, 1_000_000_000);
+  if (action === "business.commit" && amountCents === null) return;
+
+  const existing = await sql<{ id: string }>(`
+    select id from tasks
+    where tenant_id=$1
+      and payload->>'parentTaskId'=$2
+      and action_type=$3
+      and status not in ('failed','denied')
+    limit 1
+  `, [task.tenant_id, task.id, action]);
+  if (existing[0]) return;
+
+  const parameters = record(proposed.parameters) ?? {};
+  const expectedValueCents = cents(proposed.expectedValueCents, 1_000_000_000);
+  const expectedCostCents = cents(proposed.expectedCostCents, 100_000_000);
+  const expectedLossCents = cents(proposed.expectedLossCents, 1_000_000_000);
+  const confidence = Math.max(0, Math.min(1, number(proposed.confidence) ?? 0));
+
+  const payload = {
+    objective: text(task.payload.objective) ?? "Complete the resolved business action.",
+    destination,
+    operation,
+    resource,
+    amountCents,
+    parameters,
+    parentTaskId: task.id,
+    requestedBy: text(task.payload.requestedBy),
+    ownerRequested: true,
+    resolvedByHermes: true,
+    resolutionEvidence: record(proposed.evidence) ?? {},
+    proposedSummary: text(proposed.summary),
+    outputContract: {
+      artifact: "Return evidence of the exact action completed.",
+      outcome: "Do not declare economic outcome verified. Provider-backed verification is separate."
+    }
+  };
+
+  await sql(`
+    insert into tasks (
+      tenant_id, workflow_id, status, action_type, risk_class, reversible, external,
+      expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
+    ) values ($1,$2,'awaiting_approval',$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)
+  `, [
+    task.tenant_id,
+    task.workflow_id,
+    policy.type,
+    policy.riskClass,
+    policy.reversible,
+    policy.external,
+    expectedValueCents,
+    expectedCostCents,
+    expectedLossCents,
+    confidence,
+    JSON.stringify(payload)
+  ]);
 }
 
 export async function persistProductOutput(task: ProductTask, result: HermesResult) {
@@ -57,27 +142,10 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
     ]);
   }
 
-  const outcome = record(output.outcome);
-  if (outcome?.verified === true && task.workflow_id) {
-    const evidenceSource = text(outcome.evidenceSource);
-    if (evidenceSource) {
-      const revenue = Math.max(0, Math.trunc(number(outcome.attributedRevenueCents) ?? 0));
-      const cost = Math.max(0, Math.trunc(number(outcome.totalCostCents) ?? 0));
-      await sql(`insert into outcome_events (tenant_id, workflow_id, task_id, outcome_type, outcome_value_cents, attributed_revenue_cents, total_cost_cents, net_value_cents, attribution_confidence, evidence_source, verified_at, evidence) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now(),$11::jsonb)`, [
-        task.tenant_id,
-        task.workflow_id,
-        task.id,
-        text(outcome.type) ?? "verified_change",
-        Math.max(0, Math.trunc(number(outcome.valueCents) ?? revenue)),
-        revenue,
-        cost,
-        revenue - cost,
-        Math.max(0, Math.min(1, number(outcome.confidence) ?? 0)),
-        evidenceSource,
-        JSON.stringify(record(outcome.evidence) ?? evidence)
-      ]);
-    }
-  }
+  // Hermes may report an outcome claim, but the executor is never allowed to verify its
+  // own business impact. The full claim remains inside the artifact above. Only the
+  // provider-backed /api/outcomes verifier may create outcome_events.
+  await persistResolvedAction(task, output);
 
   const recipe = record(output.toolRecipe);
   const recipeName = text(recipe?.name);
