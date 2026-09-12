@@ -7,19 +7,21 @@
 - [x] Persistent Watchers schema available for event/schedule/watch loops.
 - [x] Persistent Work Cell registry available per tenant.
 - [ ] One authenticated user can be bound to exactly one authorized tenant membership.
-- [ ] RLS is enabled and forced for every tenant-owned production table.
-- [ ] Sentinel blocks R4 and requires review for consequential work.
-- [ ] Exact approval capability is enforced at execution time: task + action + destination + operation + resource + parameters/value.
-- [ ] Approval grants are short-lived, one-time and fail closed on any scope change.
-- [ ] Every Hermes network egress passes through an InstantWork-controlled policy boundary.
-- [ ] Real provider credentials remain outside model context and are injected only after authorization.
-- [ ] Each tenant has isolated browser/session/files/memory state inside its Work Cell.
-- [ ] Margin Governor uses server-derived or server-bounded economics.
-- [ ] `agesoma.execute` compatibility queue survives worker restart.
-- [x] Hermes is designed to run outside the web process and without public ingress.
+- [ ] RLS is enabled and forced for every tenant-owned production table. RLS policies exist; `FORCE ROW LEVEL SECURITY` is still required before multi-tenant production.
+- [x] Sentinel blocks R4 and requires review for consequential work.
+- [x] Consequential requests resolve a concrete capability before approval; approval is bound to task + action + destination + operation + resource + full payload hash.
+- [x] Approval grants are short-lived, one-time and fail closed on scope change.
+- [ ] Every Hermes network egress passes through an InstantWork-controlled system-level policy boundary.
+- [ ] Real provider credentials remain outside the executor-visible environment and are injected only after authorization.
+- [ ] Each tenant has physically isolated browser/session/files/memory state inside its Work Cell. Namespaces exist; runtime isolation still needs enforcement.
+- [ ] Margin Governor uses only server-derived or server-bounded economics.
+- [x] `agesoma.execute` uses pg-boss durable storage and idempotent task dispatch keys.
+- [x] Hermes runs outside the web process and without public API ingress.
 - [ ] At least one Watcher generates a real opportunity from an authorized source without a user prompt.
-- [ ] Every successful workflow produces an OutcomeEvent with execution cost and attribution evidence.
-- [ ] Every consequential action has C-Trace/policy metadata.
+- [ ] Every successful workflow produces a provider-verified OutcomeEvent with execution cost and attribution evidence.
+- [ ] Every consequential action has complete C-Trace/egress metadata.
+- [x] Hermes/executor output cannot directly write verified economic outcomes; verification is a separate provider-backed boundary.
+- [x] A safe observe/work run may surface a concrete R2/R3 proposed action, but the side effect is created as a separate approval task rather than executed by the planning run.
 
 ## P0 — activation
 
@@ -28,7 +30,7 @@
 - [ ] User connects one real business source during activation.
 - [ ] First real opportunity is discovered from connected business data.
 - [ ] First approval can be reviewed from a server-generated canonical action view.
-- [ ] First workflow completes end-to-end: opportunity -> approval/policy -> execution -> response -> meeting/sale -> evidence -> ROI.
+- [ ] First workflow completes end-to-end: opportunity -> approval/policy -> execution -> response -> meeting/sale -> evidence -> verified business value.
 
 ## P1 gate before platform expansion
 
