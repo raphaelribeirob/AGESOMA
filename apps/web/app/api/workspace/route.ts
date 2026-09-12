@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { tenantSql } from "@agesoma/db";
-import { requireInternalApi } from "../../../lib/security";
+import { requireInternalApi, requireTenantActor } from "../../../lib/security";
 
 const querySchema = z.object({ tenantId: z.string().uuid() });
 
@@ -13,6 +13,8 @@ export async function GET(req: Request) {
   const parsed = querySchema.safeParse({ tenantId: url.searchParams.get("tenantId") });
   if (!parsed.success) return NextResponse.json({ error: "Invalid tenant" }, { status: 400 });
   const { tenantId } = parsed.data;
+  const actor = await requireTenantActor(req, tenantId);
+  if (actor.error) return actor.error;
 
   const [opportunities, tasks, artifacts, approvals] = await Promise.all([
     tenantSql(tenantId, `select id, title, summary, confidence, created_at from opportunities where tenant_id=$1 and status='open' order by created_at desc limit 8`, [tenantId]),
@@ -21,11 +23,5 @@ export async function GET(req: Request) {
     tenantSql(tenantId, `select id, action_type, payload, created_at from tasks where tenant_id=$1 and status='awaiting_approval' order by created_at desc limit 8`, [tenantId])
   ]);
 
-  return NextResponse.json({
-    opportunities,
-    tasks,
-    artifacts,
-    approvals,
-    needsOwner: approvals.length > 0
-  });
+  return NextResponse.json({ opportunities, tasks, artifacts, approvals, needsOwner: approvals.length > 0 });
 }
