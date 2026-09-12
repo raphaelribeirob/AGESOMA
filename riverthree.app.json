@@ -2,38 +2,41 @@
   "contract": {
     "name": "RiverThree App Shell",
     "version": "1.0.0",
-    "designContractVersion": "4.11.0"
+    "designContractVersion": "4.18.0"
   },
   "product": {
     "id": "agesoma",
-    "name": "Agesoma",
+    "name": "AGESOMA",
     "category": "Business",
     "audience": "SMB owners",
     "onboardingMode": "businessConsumerized"
   },
-  "identity": {"intelligenceOrb": "contextual"},
+  "identity": {
+    "wordmark": "/agesoma-wordmark.jpeg",
+    "intelligenceOrb": "contextual"
+  },
   "promise": {
-    "headline": "Put your business to work with agents.",
-    "outcome": "A simple operating layer that observes, recommends and executes.",
-    "firstValueDefinition": "Complete the first useful workflow or deliverable for the business."
+    "headline": "Diga o que precisa. A AGESOMA cuida do trabalho.",
+    "outcome": "Transformar pedidos de negócio em trabalho executado, decisões claras e resultados comprovados.",
+    "firstValueDefinition": "Preparar ou executar o primeiro trabalho útil com evidência, sem exigir que o cliente aprenda a operar IA."
   },
   "onboarding": {
     "steps": [
       {"id":"welcome","type":"welcome","required":true},
       {"id":"business_goal","type":"single","required":true},
-      {"id":"company_context","type":"single","required":true},
-      {"id":"channels","type":"multi","required":false},
-      {"id":"desired_outcome","type":"single","required":true},
-      {"id":"roi_preview","type":"result","required":true},
+      {"id":"company_context","type":"text","required":true},
+      {"id":"channels_optional","type":"single","required":false},
+      {"id":"desired_outcome","type":"text","required":true},
+      {"id":"workflow_roi_preview","type":"result","required":true},
       {"id":"connect_tools","type":"connection","required":false},
       {"id":"first_execution","type":"firstAction","required":true}
     ]
   },
   "permissions": {"notifications":"just-in-time"},
-  "result": {"generationRequired":true,"previewBeforePaywall":true,"loadingMustRepresentRealWork":true},
-  "account": {"timing":"before-save","providers":["google","email"],"guestMode":false},
-  "monetization": {"model":"subscription","paywall":"soft","plans":["monthly"],"restoreRequiredWhereApplicable":false},
-  "home": {"primaryOutcome":"Business state + ROI this week","nextBestAction":"Approve or run the next action","supportingMetricsMax":4},
+  "result": {"generationRequired":false,"previewBeforePaywall":true,"loadingMustRepresentRealWork":true},
+  "account": {"timing":"after-first-value","providers":["neon-better-auth"],"guestMode":false},
+  "monetization": {"model":"subscription","paywall":"none"},
+  "home": {"primaryOutcome":"business_state_and_verified_impact","nextBestAction":"approve_or_run_next_action","supportingMetricsMax":3},
   "runtime": {"loading":true,"empty":true,"error":true,"offline":true,"permissionDenied":true,"subscriptionState":true},
   "analytics": {"activationEvent":"first_business_workflow_succeeded","commonEvents":true}
 }
