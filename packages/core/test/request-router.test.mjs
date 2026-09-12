@@ -66,6 +66,19 @@ test("unpriced external action still cannot bypass economics", () => {
   assert.equal(result.decision, "REPLAN");
 });
 
+test("explicit user-origin external action may run after policy approval within cost ceiling", () => {
+  const result = evaluateMargin({
+    action: "business.act",
+    riskClass: "R2",
+    expectedValueCents: 0,
+    expectedCostCents: 0,
+    expectedLossCents: 0,
+    confidence: 0,
+    payload: { ownerRequested: true }
+  });
+  assert.equal(result.decision, "EXECUTE");
+});
+
 test("verified outcome learning stores useful economics without raw evidence", () => {
   const learning = buildOutcomeLearning({
     outcomeId: "outcome-1",
