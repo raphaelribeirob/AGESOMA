@@ -17,8 +17,33 @@ jobs:
           node-version: 24
       - run: npm install
       - run: npm run typecheck
-      - name: Test request router
+      - name: Test core behavior
         run: node --test packages/core/test/request-router.test.mjs
+      - name: Enforce independent outcome verification
+        run: |
+          if grep -q "insert into outcome_events" services/worker/src/product-output.ts; then
+            echo "Executor output must not write verified outcomes directly"
+            exit 1
+          fi
+          grep -q "requireOutcomeVerifier" apps/web/app/api/outcomes/route.ts
+      - name: Enforce resolve-before-approval
+        run: |
+          grep -q 'executionAction = plan.requiresApproval ? "business.work" : plan.action' apps/web/app/api/requests/route.ts
+          grep -q 'Consequential action is not fully resolved' apps/web/app/api/approvals/route.ts
+          grep -q 'Consequential capability is unresolved' services/worker/src/index.ts
+          grep -q 'scope_hash' apps/web/app/api/approvals/route.ts
+      - name: Enforce customer channel restriction
+        run: |
+          grep -q 'platform_toolsets' deploy/production/hermes-config.yaml
+          grep -q 'whatsapp:' deploy/production/hermes-config.yaml
+          if grep -A3 'whatsapp:' deploy/production/hermes-config.yaml | grep -Eq 'terminal|code_execution'; then
+            echo "Customer WhatsApp must not expose terminal/code execution"
+            exit 1
+          fi
+      - name: Enforce tenant isolation migration
+        run: |
+          grep -q 'force row level security' packages/db/migrations/0006_tenant_isolation.sql
+          grep -q 'grant usage on schema agesoma_p0 to authenticated' packages/db/migrations/0006_tenant_isolation.sql
       - name: Build web app
         run: npm run build --workspace @agesoma/web
       - name: Mirror Next.js output to Vercel project root
