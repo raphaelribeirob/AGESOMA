@@ -35,6 +35,7 @@ services:
       WHATSAPP_CLOUD_WEBHOOK_PATH: "/whatsapp/webhook"
     volumes:
       - hermes_data:/opt/data
+      - ./hermes-config.yaml:/opt/data/config.yaml:ro
     expose:
       - "8642"
       - "8090"
