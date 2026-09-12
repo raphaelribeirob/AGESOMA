@@ -27,8 +27,8 @@ export const instantWorkPackage = {
   },
   identity: {
     intelligenceOrb: "contextual" as const,
-    displayFont: "Space Grotesk",
-    uiFont: "Geist Sans",
+    displayFont: "Space Grotesk Variable",
+    uiFont: "Geist Sans Variable",
     technicalFont: "Geist Mono"
   },
   expression: {
@@ -42,9 +42,9 @@ export const instantWorkPackage = {
     motionPersonality: "contextual" as const
   },
   promise: {
-    headline: "Diga o resultado. O InstantWork cuida do trabalho.",
+    headline: "Diga o que precisa. O InstantWork cuida do trabalho.",
     outcome: "Transformar pedidos de negócio em trabalho executado, decisões claras e resultados comprovados.",
-    firstValueDefinition: "Um primeiro trabalho útil é preparado ou executado com evidência e sem expor agentes, prompts ou infraestrutura."
+    firstValueDefinition: "O primeiro trabalho útil é preparado ou executado com evidência, sem exigir que o cliente aprenda a operar IA."
   },
   onboarding: {
     progressModel: "fixedKnownPath" as const,
@@ -52,11 +52,11 @@ export const instantWorkPackage = {
       { id: "welcome", type: "welcome", required: true, advanceMode: "explicit" },
       { id: "business_goal", type: "single", required: true, advanceMode: "auto" },
       { id: "company_context", type: "text", required: true, advanceMode: "explicit" },
+      { id: "channels_optional", type: "single", required: false, advanceMode: "auto" },
       { id: "desired_outcome", type: "text", required: true, advanceMode: "explicit" },
-      { id: "work_style", type: "single", required: true, advanceMode: "auto" },
-      { id: "workflow_value_preview", type: "result", required: true, advanceMode: "explicit" },
-      { id: "connect_tools", type: "connection", required: true, advanceMode: "explicit" },
-      { id: "first_action", type: "firstAction", required: true, advanceMode: "explicit" }
+      { id: "workflow_roi_preview", type: "result", required: true, advanceMode: "explicit" },
+      { id: "connect_tools", type: "connection", required: false, advanceMode: "explicit" },
+      { id: "first_execution", type: "firstAction", required: true, advanceMode: "explicit" }
     ] satisfies RiverThreeStep[]
   },
   permissions: {
@@ -86,7 +86,7 @@ export const instantWorkPackage = {
     model: "subscription" as const,
     paywall: "none" as const,
     paywallHeroProof: "personalizedResult" as const,
-    note: "Billing remains disabled in the shell until a real entitlement boundary is wired."
+    note: "Billing remains disabled until a real entitlement boundary is wired."
   },
   home: {
     mode: "actionAgent" as RiverThreeHomeMode,
