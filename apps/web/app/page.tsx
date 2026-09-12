@@ -1,8 +1,17 @@
 import { tenantSql } from "@agesoma/db";
+import { instantWorkPackage } from "../lib/riverthree-product";
 
 export const dynamic = "force-dynamic";
 
-const nav = ["Início", "Pedir", "Oportunidades", "Trabalhos", "Resultados", "Aprovações", "Conexões"];
+const nav = [
+  ["Início", "#inicio"],
+  ["Pedir", "/onboarding"],
+  ["Oportunidades", "#oportunidades"],
+  ["Trabalhos", "#trabalhos"],
+  ["Resultados", "#resultados"],
+  ["Aprovações", "#aprovacoes"],
+  ["Conexões", "/onboarding"]
+] as const;
 
 type Task = { id: string; status: string; action_type: string; payload: Record<string, unknown>; updated_at: string };
 type Opportunity = { id: string; title: string; summary: string; confidence: string | number; created_at: string };
@@ -33,20 +42,13 @@ function objective(payload: Record<string, unknown>) {
   return typeof payload.objective === "string" ? payload.objective : "Trabalho em andamento";
 }
 
-function IntelligenceOrb({ active }: { active: boolean }) {
+function IntelligenceOrb() {
   return (
-    <aside className="orbStage" aria-label="Estado do InstantWork">
-      <div className="orbMaterial" aria-hidden="true">
-        <span className="orbLobe orbLobeA" />
-        <span className="orbLobe orbLobeB" />
-        <span className="orbGrain" />
-      </div>
-      <div className="orbMeta">
-        <span className="monoLabel">{active ? "TRABALHANDO" : "DISPONÍVEL"}</span>
-        <strong>{active ? "Há trabalho em andamento" : "Pronto para trabalhar"}</strong>
-        <p>Você explica o resultado. O InstantWork cuida da execução e pede sua decisão quando houver consequência externa.</p>
-      </div>
-    </aside>
+    <div className="orbMaterial r3OrbCompact" aria-label="InstantWork trabalhando">
+      <span className="orbLobe orbLobeA" />
+      <span className="orbLobe orbLobeB" />
+      <span className="orbGrain" />
+    </div>
   );
 }
 
@@ -57,64 +59,140 @@ export default async function Home() {
   const opportunities = workspace?.opportunities ?? [];
   const lastArtifact = workspace?.artifacts?.[0];
   const outcomes = workspace?.outcomes;
+  const running = activeTasks.find((task) => task.status === "running");
+  const firstApproval = approvals[0];
+  const firstOpportunity = opportunities[0];
+  const verifiedCount = Number(outcomes?.verified_count ?? 0);
+
+  const primaryState = firstApproval
+    ? {
+        eyebrow: "Precisa de você",
+        title: `${approvals.length} decisão${approvals.length === 1 ? "" : "ões"} pronta${approvals.length === 1 ? "" : "s"} para revisar`,
+        body: objective(firstApproval.payload),
+        action: "Revisar decisão",
+        href: "#aprovacoes"
+      }
+    : running
+      ? {
+          eyebrow: "Trabalhando agora",
+          title: "O InstantWork está executando um trabalho.",
+          body: objective(running.payload),
+          action: "Ver andamento",
+          href: "#trabalhos"
+        }
+      : firstOpportunity
+        ? {
+            eyebrow: "Oportunidade encontrada",
+            title: firstOpportunity.title,
+            body: firstOpportunity.summary,
+            action: "Ver oportunidade",
+            href: "#oportunidades"
+          }
+        : verifiedCount
+          ? {
+              eyebrow: "Resultado confirmado",
+              title: `${money(outcomes?.net_value_cents)} de impacto líquido comprovado`,
+              body: "O valor exibido vem apenas de resultados com evidência verificada.",
+              action: "Ver resultados",
+              href: "#resultados"
+            }
+          : {
+              eyebrow: "Pronto para trabalhar",
+              title: "O que precisa mudar no seu negócio?",
+              body: "Peça como pediria a alguém da sua equipe. Sem agentes, prompts ou configurações técnicas.",
+              action: "Pedir um trabalho",
+              href: "/onboarding"
+            };
 
   return (
-    <main className="productShell">
-      <header className="topbar"><div className="brand">InstantWork</div></header>
+    <main className="productShell" id="inicio" data-r3-package={instantWorkPackage.product.onboardingMode}>
+      <header className="topbar">
+        <div className="brand">InstantWork</div>
+        <span className="r3SystemMark">RIVERTHREE</span>
+      </header>
 
       <nav className="nav" aria-label="Navegação principal">
-        {nav.map((item, index) => <span className={index === 0 ? "navItem active" : "navItem"} key={item}>{item}</span>)}
+        {nav.map(([label, href], index) => <a className={index === 0 ? "navItem active" : "navItem"} href={href} key={label}>{label}</a>)}
       </nav>
 
-      <section className="hero heroIntent">
-        <div className="heroCopy">
-          <div className="eyebrow">Seu trabalho, resolvido</div>
-          <h1>O que precisa mudar no seu negócio?</h1>
-          <p className="heroLead">Peça como pediria a alguém da sua equipe. O produto não expõe agentes, prompts ou infraestrutura.</p>
+      <section className="r3ActionHero">
+        <div className="r3ActionHeroCopy">
+          <div className="eyebrow">{primaryState.eyebrow}</div>
+          <h1>{primaryState.title}</h1>
+          <p className="heroLead">{primaryState.body}</p>
           <div className="heroActions">
-            <a className="primaryCta" href="/onboarding">Pedir um trabalho</a>
-            <span className="heroTruth">Ações externas são resolvidas primeiro e só depois aparecem para sua autorização.</span>
+            <a className="primaryCta" href={primaryState.href}>{primaryState.action}</a>
+            <span className="heroTruth">O InstantWork executa o reversível e pede sua decisão apenas quando há consequência real.</span>
           </div>
         </div>
-        <IntelligenceOrb active={activeTasks.some((task) => task.status === "running")} />
+        {running ? (
+          <aside className="r3LiveIntelligence">
+            <IntelligenceOrb />
+            <div>
+              <span className="monoLabel">INTELIGÊNCIA ATIVA</span>
+              <strong>Trabalhando</strong>
+              <p>O Orb aparece porque há execução real em andamento.</p>
+            </div>
+          </aside>
+        ) : (
+          <aside className="r3QuietMaterial" aria-label="Estado do InstantWork">
+            <span className="monoLabel">ESTADO</span>
+            <strong>{workspace ? "Observando o negócio" : "Alpha ainda não ligada a um Work Cell"}</strong>
+            <p>{workspace ? "Sem animação de IA quando nenhuma inteligência está ativa." : "A interface permanece vazia em vez de inventar atividade."}</p>
+          </aside>
+        )}
       </section>
 
-      <section className="workspaceSection">
-        <div className="sectionIntro">
-          <div className="eyebrow">Agora</div>
-          <h2>Só o que importa.</h2>
-          <p>{workspace ? "Estado real do seu Work Cell." : "Configure INSTANTWORK_DEFAULT_TENANT_ID para ligar esta alpha a um Work Cell real."}</p>
+      <section className="r3NextBestAction">
+        <span className="workspaceLabel">Próxima melhor ação</span>
+        <div>
+          <strong>{firstApproval ? "Revisar a ação externa já resolvida" : firstOpportunity ? "Transformar a oportunidade em trabalho" : running ? "Acompanhar o trabalho sem interromper" : "Descrever o primeiro resultado que precisa"}</strong>
+          <p>{firstApproval ? "Destino, operação, recurso e parâmetros já foram resolvidos antes da aprovação." : firstOpportunity ? "A oportunidade tem evidência; você decide se deve virar execução." : running ? "O trabalho segue em segundo plano. Você só será interrompido se surgir uma decisão consequencial." : "Comece pelo resultado, não pela configuração de uma automação."}</p>
         </div>
+        <a href={firstApproval ? "#aprovacoes" : firstOpportunity ? "#oportunidades" : running ? "#trabalhos" : "/onboarding"}>Abrir →</a>
+      </section>
 
+      <section className="r3MetricStrip" aria-label="Estado resumido">
+        <div><span>Trabalhando</span><strong>{activeTasks.length}</strong></div>
+        <div><span>Precisa de você</span><strong>{approvals.length}</strong></div>
+        <div><span>Oportunidades</span><strong>{opportunities.length}</strong></div>
+      </section>
+
+      <section className="workspaceSection" id="trabalhos">
+        <div className="sectionIntro">
+          <div className="eyebrow">Atividade</div>
+          <h2>O trabalho fica legível.</h2>
+          <p>{workspace ? "Estado real do Work Cell, sem números demonstrativos." : "Configure o tenant da alpha para carregar o estado real."}</p>
+        </div>
         <div className="workspaceStack">
           <article className="workspaceRow">
-            <span className="workspaceLabel">Trabalhando</span>
-            <div><strong>{activeTasks.length ? `${activeTasks.length} trabalho(s) ativo(s)` : "Nada em andamento"}</strong><p>{activeTasks[0] ? objective(activeTasks[0].payload) : "Um novo pedido aparece aqui quando entrar na fila."}</p></div>
+            <span className="workspaceLabel">Trabalhos</span>
+            <div><strong>{activeTasks.length ? `${activeTasks.length} ativo${activeTasks.length === 1 ? "" : "s"}` : "Nada em andamento"}</strong><p>{activeTasks[0] ? objective(activeTasks[0].payload) : "Um pedido aparece aqui quando entra na fila."}</p></div>
             <span className="quietStatus">{activeTasks[0]?.status ?? "—"}</span>
           </article>
-          <article className="workspaceRow">
-            <span className="workspaceLabel">Precisa de você</span>
-            <div><strong>{approvals.length ? `${approvals.length} decisão(ões)` : "Nenhuma decisão pendente"}</strong><p>{approvals[0] ? objective(approvals[0].payload) : "O InstantWork só interrompe quando uma consequência precisa da sua autorização."}</p></div>
+          <article className="workspaceRow" id="aprovacoes">
+            <span className="workspaceLabel">Aprovações</span>
+            <div><strong>{approvals.length ? `${approvals.length} pendente${approvals.length === 1 ? "" : "s"}` : "Nenhuma decisão pendente"}</strong><p>{firstApproval ? objective(firstApproval.payload) : "Aprovações só aparecem depois que a ação externa foi resolvida em escopo concreto."}</p></div>
             <span className="quietStatus">{approvals.length || "—"}</span>
           </article>
-          <article className="workspaceRow">
+          <article className="workspaceRow" id="oportunidades">
             <span className="workspaceLabel">Oportunidades</span>
-            <div><strong>{opportunities.length ? opportunities[0].title : "Nenhuma oportunidade confirmada"}</strong><p>{opportunities[0]?.summary ?? "Watchers colocam aqui apenas oportunidades acompanhadas de evidência."}</p></div>
+            <div><strong>{firstOpportunity?.title ?? "Nenhuma oportunidade confirmada"}</strong><p>{firstOpportunity?.summary ?? "Watchers colocam aqui somente oportunidades acompanhadas de evidência."}</p></div>
             <span className="quietStatus">{opportunities.length || "—"}</span>
           </article>
         </div>
       </section>
 
-      <section className="resultSection">
+      <section className="resultSection" id="resultados">
         <div>
-          <div className="eyebrow">Valor comprovado</div>
-          <h2>{Number(outcomes?.verified_count ?? 0) ? `${money(outcomes?.net_value_cents)} líquidos confirmados` : "Ainda sem resultado econômico verificado."}</h2>
+          <div className="eyebrow">Impacto comprovado</div>
+          <h2>{verifiedCount ? `${money(outcomes?.net_value_cents)} líquidos confirmados` : "Ainda sem resultado econômico verificado."}</h2>
           <p>Receita atribuída: {money(outcomes?.attributed_revenue_cents)} · custo registrado: {money(outcomes?.total_cost_cents)}.</p>
         </div>
         <div className="artifactCard workspaceCard">
           <span className="workspaceLabel">Último resultado</span>
-          <strong>{lastArtifact?.title ?? "Nenhum resultado concluído ainda"}</strong>
-          <p>{lastArtifact ? "O artefato permanece ligado à tarefa e à evidência que o produziu." : "Quando houver execução real, o trabalho concluído aparece aqui."}</p>
+          <strong>{lastArtifact?.title ?? "Nenhum trabalho concluído ainda"}</strong>
+          <p>{lastArtifact ? "O resultado permanece ligado à tarefa e à evidência que o produziu." : "Quando houver execução real, o entregável aparece aqui."}</p>
         </div>
       </section>
     </main>
