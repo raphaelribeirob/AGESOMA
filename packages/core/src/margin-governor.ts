@@ -5,6 +5,7 @@ export interface MarginInput {
   confidence: number;
   action?: string;
   riskClass?: "R0" | "R1" | "R2" | "R3" | "R4";
+  userRequested?: boolean;
 }
 
 export interface MarginConfig {
@@ -30,24 +31,19 @@ export function evaluateMargin(input: MarginInput, config: MarginConfig = {}): M
   const boundedDiscovery = input.action === "business.observe" && input.riskClass === "R0";
   if (boundedDiscovery && input.expectedValueCents === 0 && input.expectedLossCents === 0) {
     if (input.expectedCostCents > maxDiscoveryCost) {
-      return {
-        decision: "REVIEW",
-        expectedNetValueCents,
-        riskAdjustedValueCents,
-        reason: "Discovery cost exceeds the configured observation ceiling."
-      };
+      return { decision: "REVIEW", expectedNetValueCents, riskAdjustedValueCents, reason: "Discovery cost exceeds the configured observation ceiling." };
     }
-    return {
-      decision: "EXECUTE",
-      expectedNetValueCents,
-      riskAdjustedValueCents,
-      reason: "Bounded read-only discovery may run before business value is known."
-    };
+    return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "Bounded read-only discovery may run before business value is known." };
   }
 
   if (input.expectedCostCents > maxCost) {
     return { decision: "REVIEW", expectedNetValueCents, riskAdjustedValueCents, reason: "Expected task cost exceeds the configured P0 ceiling." };
   }
+
+  if (input.userRequested === true && (input.riskClass === "R2" || input.riskClass === "R3")) {
+    return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "User-requested consequential work is within the execution cost ceiling." };
+  }
+
   if (riskAdjustedValueCents < minimum) {
     return { decision: "REPLAN", expectedNetValueCents, riskAdjustedValueCents, reason: "Risk-adjusted net value is below the economic execution threshold." };
   }
