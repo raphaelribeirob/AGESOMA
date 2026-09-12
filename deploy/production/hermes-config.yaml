@@ -1,0 +1,10 @@
+# InstantWork production Hermes policy.
+# Worker-initiated API runs keep the default execution surface; untrusted messaging
+# platforms receive only the minimum toolsets needed for customer service.
+platform_toolsets:
+  whatsapp:
+    - web
+
+# Do not globally disable execution tools: the isolated worker execution plane uses
+# them for owner-authorized work. Platform-specific restriction above prevents
+# customer WhatsApp messages from inheriting the broad hermes-whatsapp preset.
