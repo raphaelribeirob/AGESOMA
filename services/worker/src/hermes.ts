@@ -33,10 +33,10 @@ function envelopeInstructions(action: string) {
     return "You may choose any authorized route, site, application or local working method needed to prepare the result. Keep work reversible and do not create external commitments or communications.";
   }
   if (action === "business.act") {
-    return "The owner has approved an external-action envelope for this task. You may choose any authorized route needed to complete that scoped action, but do not spend money, change commercial terms, alter security settings, or create obligations outside the supplied objective.";
+    return "The owner has approved an external-action envelope for this task. Execute only the destination, operation, resource and parameters supplied in the approved payload. Do not spend money, change commercial terms, alter security settings, or create obligations outside that exact capability.";
   }
   if (action === "business.commit") {
-    return "This task carries explicit consequential authority. Execute only the exact approved commitment described in the input. Do not expand its scope, amount, destination, recipients or permissions.";
+    return "This task carries explicit consequential authority. Execute only the exact approved commitment described in the input. Do not expand its scope, amount, destination, recipients, parameters or permissions.";
   }
   return "Execute only the scoped business action supplied in input. You may choose the authorized route needed to finish it, but do not broaden its business impact.";
 }
@@ -51,6 +51,9 @@ function planningInstructions(action: string) {
       : "Do not delegate the consequential external effect of this task; keep external authority in the parent run.",
     "Delegated work must never send customer-facing messages, spend money, change commercial terms, alter permissions or create obligations.",
     "Treat prior business memory as context, not as proof; verify time-sensitive facts again when they matter.",
+    canDelegate
+      ? "If the owner objective ultimately requires an external or consequential side effect, do not perform it in this run. Return proposedAction with action business.act or business.commit, a concrete destination, operation, resource, parameters, a concise summary, supporting evidence identifiers, confidence, expected cost/value when reasonably estimable, and amountCents for any commitment."
+      : "The supplied payload is the approved capability boundary. Never infer a broader destination, recipient, amount, operation, resource or parameter set.",
     "Return a concise structured result containing: plan, completed work, evidence identifiers, blockers, whether more authority is required, and the next useful action if one exists."
   ].join(" ");
 }
@@ -68,7 +71,11 @@ export async function executeWithHermes(mission: HermesMission) {
     headers: headers(token, mission),
     body: JSON.stringify({
       session_id: `instantwork-${mission.taskId}`,
-      input: JSON.stringify({ action: mission.action, payload: mission.payload }),
+      input: JSON.stringify({
+        action: mission.action,
+        payload: mission.payload,
+        authorization: { grantRef: mission.grantRef ?? null }
+      }),
       instructions: [
         "You are the InstantWork execution substrate, not the authorization authority.",
         "Operate only on public resources or resources the business has already authorized.",
@@ -76,8 +83,8 @@ export async function executeWithHermes(mission: HermesMission) {
         "Never seek, expose or reuse credentials outside the connected business context.",
         planningInstructions(mission.action),
         envelopeInstructions(mission.action),
-        "If completing the objective would require a higher-impact action than the current envelope permits, stop and return requires_approval with a concise description of the needed authority.",
-        "Return concise evidence-backed output; do not claim a result that has not been observed or externally verified."
+        "If completing the objective would require a higher-impact action than the current envelope permits, stop and return the concrete proposedAction rather than creating the side effect.",
+        "Return concise evidence-backed output; do not claim a business outcome verified unless a separate verifier has supplied that fact in the input."
       ].join(" ")
     }),
     signal: AbortSignal.timeout(15_000)
