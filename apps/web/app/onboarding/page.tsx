@@ -173,7 +173,7 @@ export default function OnboardingPage() {
     return {
       eyebrow: "Pronto",
       title: "Seu primeiro pedido está preparado.",
-      body: "Ao entrar, você verá somente o estado do trabalho, o que precisa da sua atenção e o próximo passo útil.",
+      body: "Nada foi executado ainda. Ao entrar, você verá o estado do trabalho, o que precisa da sua atenção e o próximo passo útil.",
       surface: "success"
     };
   })();
@@ -186,7 +186,7 @@ export default function OnboardingPage() {
         <span className="progressText">{index + 1}/{steps.length}</span>
       </div>
 
-      <section className="onboardingStage">
+      <section className="onboardingCard">
         <div className="onboardingCopy">
           {step.id === "welcome" ? <div className="agesomaWelcomeBrand"><img src={agesomaPackage.identity.wordmark} alt="AGESOMA" /></div> : null}
           {screen.eyebrow ? <div className="eyebrow">{screen.eyebrow}</div> : null}
@@ -195,11 +195,10 @@ export default function OnboardingPage() {
         </div>
 
         {step.id === "welcome" ? (
-          <div className="welcomeMaterial" aria-hidden="true">
-            <div className="welcomeGrain" />
-            <span className="welcomeLine welcomeLineA">peça.</span>
-            <span className="welcomeLine welcomeLineB">acompanhe.</span>
-            <span className="welcomeLine welcomeLineC">decida só quando importa.</span>
+          <div className="r3WelcomeMaterial" aria-hidden="true">
+            <span>peça.</span>
+            <span>acompanhe.</span>
+            <span>decida só quando importa.</span>
           </div>
         ) : null}
 
@@ -208,7 +207,7 @@ export default function OnboardingPage() {
             {goalChoices.map((choice) => {
               const active = draft.goal === choice.value;
               return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("goal", choice.value)}>
-                <span className="choiceMark">{active ? "✓" : ""}</span>
+                <span className="choiceCheck">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
               </button>;
             })}
@@ -220,11 +219,11 @@ export default function OnboardingPage() {
         ) : null}
 
         {step.id === "channels_optional" ? (
-          <div className="choiceGrid compactChoices">
+          <div className="choiceGrid">
             {channelChoices.map((choice) => {
               const active = draft.currentChannel === choice.value;
               return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("currentChannel", choice.value)}>
-                <span className="choiceMark">{active ? "✓" : ""}</span>
+                <span className="choiceCheck">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong></span>
               </button>;
             })}
@@ -232,12 +231,12 @@ export default function OnboardingPage() {
         ) : null}
 
         {step.id === "desired_outcome" ? (
-          <textarea className="onboardingTextarea requestInput" aria-label="Descreva o primeiro pedido" placeholder="Ex.: Tenho clientes que pediram orçamento e ninguém respondeu. Quero recuperar essas conversas." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
+          <textarea className="onboardingTextarea" aria-label="Descreva o primeiro pedido" placeholder="Ex.: Tenho clientes que pediram orçamento e ninguém respondeu. Quero recuperar essas conversas." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
         ) : null}
 
         {step.id === "workflow_roi_preview" ? (
-          <div className="resultPreview">
-            <div className="resultHero">
+          <div className="r3ResultPreview">
+            <div className="previewHero">
               <span className="monoLabel">PRIMEIRO PASSO</span>
               <strong>{preview.firstWork}</strong>
               <p>Começar pela menor ação útil, observar o que acontece e trazer para você apenas decisões com consequência real.</p>
@@ -251,11 +250,11 @@ export default function OnboardingPage() {
         ) : null}
 
         {step.id === "connect_tools" ? (
-          <div className="choiceGrid connectionChoices">
+          <div className="choiceGrid">
             {sourceChoices.map((choice) => {
               const active = draft.source === choice.value;
               return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => update("source", choice.value)}>
-                <span className="choiceMark">{active ? "✓" : ""}</span>
+                <span className="choiceCheck">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
               </button>;
             })}
@@ -263,7 +262,7 @@ export default function OnboardingPage() {
         ) : null}
 
         {step.id === "first_execution" ? (
-          <div className="firstActionCard">
+          <div className="r3FirstAction">
             <div><span className="monoLabel">PRIORIDADE</span><strong>{preview.priority}</strong></div>
             <div><span className="monoLabel">PRIMEIRO PEDIDO</span><strong>{preview.firstWork}</strong></div>
             <div><span className="monoLabel">FONTE</span><strong>{labelFor(draft.source, sourceChoices, "Conectar quando precisar")}</strong></div>
@@ -272,10 +271,10 @@ export default function OnboardingPage() {
 
         {!isAutoStep ? (
           <div className="onboardingActions">
-            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "connect_tools" ? "Continuar" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
+            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
             {step.id === "connect_tools" ? <span className="privacyNote">Nenhuma conta é acessada nesta tela.</span> : null}
           </div>
-        ) : <span className="autoAdvanceNote">Avança após sua escolha.</span>}
+        ) : null}
       </section>
     </main>
   );
