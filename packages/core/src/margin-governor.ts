@@ -6,6 +6,7 @@ export interface MarginInput {
   action?: string;
   riskClass?: "R0" | "R1" | "R2" | "R3" | "R4";
   userRequested?: boolean;
+  payload?: Record<string, unknown>;
 }
 
 export interface MarginConfig {
@@ -27,6 +28,7 @@ export function evaluateMargin(input: MarginInput, config: MarginConfig = {}): M
   const maxDiscoveryCost = config.maxDiscoveryCostCents ?? 100;
   const expectedNetValueCents = input.expectedValueCents - input.expectedCostCents - input.expectedLossCents;
   const riskAdjustedValueCents = Math.round(expectedNetValueCents * input.confidence);
+  const userRequested = input.userRequested === true || input.payload?.ownerRequested === true;
 
   const boundedDiscovery = input.action === "business.observe" && input.riskClass === "R0";
   if (boundedDiscovery && input.expectedValueCents === 0 && input.expectedLossCents === 0) {
@@ -40,7 +42,7 @@ export function evaluateMargin(input: MarginInput, config: MarginConfig = {}): M
     return { decision: "REVIEW", expectedNetValueCents, riskAdjustedValueCents, reason: "Expected task cost exceeds the configured P0 ceiling." };
   }
 
-  if (input.userRequested === true && (input.riskClass === "R2" || input.riskClass === "R3")) {
+  if (userRequested && (input.riskClass === "R2" || input.riskClass === "R3")) {
     return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "User-requested consequential work is within the execution cost ceiling." };
   }
 
