@@ -20,8 +20,8 @@ function headers(token: string, mission: HermesMission) {
   return {
     "content-type": "application/json",
     authorization: `Bearer ${token}`,
-    "idempotency-key": `agesoma-${mission.taskId}`,
-    "x-hermes-session-key": `agesoma:tenant:${mission.tenantId}`
+    "idempotency-key": `instantwork-${mission.taskId}`,
+    "x-hermes-session-key": `instantwork:tenant:${mission.tenantId}`
   };
 }
 
@@ -41,6 +41,20 @@ function envelopeInstructions(action: string) {
   return "Execute only the scoped business action supplied in input. You may choose the authorized route needed to finish it, but do not broaden its business impact.";
 }
 
+function planningInstructions(action: string) {
+  const canDelegate = action === "business.observe" || action === "business.work";
+  return [
+    "Before using tools, derive a short execution plan from the objective, requestPlan and businessMemory in the input.",
+    "Re-plan when evidence invalidates an assumption instead of forcing the original route.",
+    canDelegate
+      ? "For genuinely parallel research, analysis or reversible preparation, you may use delegate_task with at most three bounded leaf subtasks and then synthesize their results."
+      : "Do not delegate the consequential external effect of this task; keep external authority in the parent run.",
+    "Delegated work must never send customer-facing messages, spend money, change commercial terms, alter permissions or create obligations.",
+    "Treat prior business memory as context, not as proof; verify time-sensitive facts again when they matter.",
+    "Return a concise structured result containing: plan, completed work, evidence identifiers, blockers, whether more authority is required, and the next useful action if one exists."
+  ].join(" ");
+}
+
 export async function executeWithHermes(mission: HermesMission) {
   const baseUrl = process.env.HERMES_BASE_URL?.replace(/\/$/, "");
   const token = process.env.HERMES_SERVICE_TOKEN;
@@ -53,15 +67,17 @@ export async function executeWithHermes(mission: HermesMission) {
     method: "POST",
     headers: headers(token, mission),
     body: JSON.stringify({
+      session_id: `instantwork-${mission.taskId}`,
       input: JSON.stringify({ action: mission.action, payload: mission.payload }),
       instructions: [
-        "You are the AGESOMA execution substrate, not the authorization authority.",
+        "You are the InstantWork execution substrate, not the authorization authority.",
         "Operate only on public resources or resources the business has already authorized.",
         "Never bypass authentication, access controls, tenant boundaries or security protections.",
         "Never seek, expose or reuse credentials outside the connected business context.",
+        planningInstructions(mission.action),
         envelopeInstructions(mission.action),
         "If completing the objective would require a higher-impact action than the current envelope permits, stop and return requires_approval with a concise description of the needed authority.",
-        "Return a concise execution result with evidence identifiers when available."
+        "Return concise evidence-backed output; do not claim a result that has not been observed or externally verified."
       ].join(" ")
     }),
     signal: AbortSignal.timeout(15_000)
