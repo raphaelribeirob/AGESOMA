@@ -16,12 +16,37 @@ export async function GET(req: Request) {
   const actor = await requireTenantActor(req, tenantId);
   if (actor.error) return actor.error;
 
-  const [opportunities, tasks, artifacts, approvals] = await Promise.all([
+  const [opportunities, tasks, artifacts, approvals, businessStates, interventions] = await Promise.all([
     tenantSql(tenantId, `select id, title, summary, confidence, created_at from opportunities where tenant_id=$1 and status='open' order by created_at desc limit 8`, [tenantId]),
     tenantSql(tenantId, `select id, status, action_type, payload, created_at, updated_at from tasks where tenant_id=$1 and status in ('queued','running','failed') order by updated_at desc limit 8`, [tenantId]),
     tenantSql(tenantId, `select id, task_id, kind, title, content, evidence, created_at from artifacts where tenant_id=$1 order by created_at desc limit 8`, [tenantId]),
-    tenantSql(tenantId, `select id, action_type, payload, created_at from tasks where tenant_id=$1 and status='awaiting_approval' order by created_at desc limit 8`, [tenantId])
+    tenantSql(tenantId, `select id, action_type, payload, created_at from tasks where tenant_id=$1 and status='awaiting_approval' order by created_at desc limit 8`, [tenantId]),
+    tenantSql(tenantId, `
+      select distinct on (domain)
+        id, domain, health, health_score, confidence, primary_constraint,
+        signal_count, worsening_signals, improving_signals, observed_at
+      from business_state_snapshots
+      where tenant_id=$1
+      order by domain, observed_at desc
+    `, [tenantId]),
+    tenantSql(tenantId, `
+      select id, domain, title, action_type, resource, priority_score, confidence,
+             requires_approval, rationale, proposed_payload, status, created_at
+      from intervention_decisions
+      where tenant_id=$1 and status='proposed'
+      order by priority_score desc, created_at desc
+      limit 8
+    `, [tenantId])
   ]);
 
-  return NextResponse.json({ opportunities, tasks, artifacts, approvals, needsOwner: approvals.length > 0 });
+  return NextResponse.json({
+    opportunities,
+    tasks,
+    artifacts,
+    approvals,
+    businessStates,
+    interventions,
+    nextBestIntervention: interventions[0] ?? null,
+    needsOwner: approvals.length > 0
+  });
 }
