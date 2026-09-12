@@ -9,7 +9,7 @@ type Draft = {
   request: string;
   goal: string;
   companyContext: string;
-  preference: string;
+  currentChannel: string;
   source: string;
 };
 
@@ -17,37 +17,35 @@ const initialDraft: Draft = {
   request: "",
   goal: "",
   companyContext: "",
-  preference: "",
+  currentChannel: "",
   source: ""
 };
 
 const goalChoices: Choice[] = [
-  { label: "Vender mais", value: "sales", detail: "Encontrar e avançar oportunidades comerciais." },
-  { label: "Atender melhor", value: "service", detail: "Responder, acompanhar e não perder clientes." },
-  { label: "Organizar a operação", value: "operations", detail: "Reduzir ruído, atrasos e tarefas esquecidas." },
+  { label: "Vender mais", value: "sales", detail: "Avançar oportunidades e recuperar conversas." },
+  { label: "Atender melhor", value: "service", detail: "Responder mais rápido e acompanhar clientes." },
+  { label: "Organizar a operação", value: "operations", detail: "Reduzir atrasos, ruído e tarefas esquecidas." },
   { label: "Ganhar tempo", value: "automation", detail: "Tirar trabalho repetitivo da equipe." }
 ];
 
-const workChoices: Choice[] = [
-  { label: "Me mostrar primeiro", value: "show", detail: "Prepare o trabalho e me mostre antes de qualquer ação externa." },
-  { label: "Fazer o simples sozinho", value: "simple", detail: "Cuide do reversível e me chame quando uma decisão realmente importar." },
-  { label: "Seguir minhas regras", value: "rules", detail: "Trabalhe sozinho dentro das regras que eu definir." }
+const channelChoices: Choice[] = [
+  { label: "WhatsApp", value: "whatsapp" },
+  { label: "E-mail", value: "email" },
+  { label: "Planilhas e arquivos", value: "files" },
+  { label: "CRM ou sistema", value: "crm" },
+  { label: "Ainda não sei", value: "unknown" }
 ];
 
 const sourceChoices: Choice[] = [
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "E-mail", value: "email" },
-  { label: "Planilha ou arquivo", value: "files" },
-  { label: "CRM ou sistema da empresa", value: "crm" },
-  { label: "Outro lugar", value: "other" }
+  { label: "WhatsApp", value: "whatsapp", detail: "Conversas, atendimento e acompanhamento." },
+  { label: "E-mail", value: "email", detail: "Caixa de entrada e comunicação com clientes." },
+  { label: "Planilhas e arquivos", value: "files", detail: "Listas, documentos e materiais do negócio." },
+  { label: "CRM ou sistema", value: "crm", detail: "Dados e rotinas que já vivem em outra ferramenta." },
+  { label: "Depois", value: "later", detail: "Entrar primeiro e conectar somente quando for necessário." }
 ];
 
-function goalLabel(value: string) {
-  return goalChoices.find((choice) => choice.value === value)?.label ?? "Seu objetivo";
-}
-
-function sourceLabel(value: string) {
-  return sourceChoices.find((choice) => choice.value === value)?.label ?? "fonte principal";
+function labelFor(value: string, choices: Choice[], fallback: string) {
+  return choices.find((choice) => choice.value === value)?.label ?? fallback;
 }
 
 export default function OnboardingPage() {
@@ -64,7 +62,7 @@ export default function OnboardingPage() {
         setDraft({ ...initialDraft, ...JSON.parse(saved) });
         return;
       } catch {
-        // Malformed local state is ignored so the user can continue safely.
+        // Ignore malformed local state and let the user start cleanly.
       }
     }
     const request = sessionStorage.getItem("instantwork:first-request");
@@ -72,14 +70,14 @@ export default function OnboardingPage() {
   }, []);
 
   const preview = useMemo(() => ({
-    priority: goalLabel(draft.goal),
-    firstWork: draft.request.trim() || "Definir o primeiro trabalho",
-    context: draft.companyContext.trim() || "Entender a rotina atual",
-    source: draft.source ? sourceLabel(draft.source) : "Conectar a fonte somente quando necessário"
+    priority: labelFor(draft.goal, goalChoices, "Sua prioridade"),
+    firstWork: draft.request.trim() || "Seu primeiro pedido",
+    context: draft.companyContext.trim() || "Seu negócio",
+    channel: labelFor(draft.currentChannel, channelChoices, "Onde o trabalho acontece hoje")
   }), [draft]);
 
   const progress = Math.round(((index + 1) / steps.length) * 100);
-  const isAutoStep = step.id === "business_goal" || step.id === "work_style";
+  const isAutoStep = step.id === "business_goal" || step.id === "channels_optional";
 
   function persist(nextDraft: Draft) {
     sessionStorage.setItem("instantwork:onboarding", JSON.stringify(nextDraft));
@@ -94,7 +92,7 @@ export default function OnboardingPage() {
     });
   }
 
-  function selectAndAdvance(key: "goal" | "preference", value: string) {
+  function selectAndAdvance(key: "goal" | "currentChannel", value: string) {
     setDraft((current) => {
       const nextDraft = { ...current, [key]: value };
       persist(nextDraft);
@@ -106,7 +104,6 @@ export default function OnboardingPage() {
   function canContinue() {
     if (step.id === "company_context") return draft.companyContext.trim().length >= 3;
     if (step.id === "desired_outcome") return draft.request.trim().length >= 3;
-    if (step.id === "connect_tools") return Boolean(draft.source);
     return true;
   }
 
@@ -119,8 +116,8 @@ export default function OnboardingPage() {
     }
     sessionStorage.setItem("instantwork:prepared-request", JSON.stringify({
       ...draft,
-      package: instantWorkPackage.product.id,
-      onboardingMode: instantWorkPackage.product.onboardingMode,
+      product: instantWorkPackage.product.id,
+      activationState: "prepared_not_executed",
       preparedAt: new Date().toISOString()
     }));
     router.push("/");
@@ -129,63 +126,63 @@ export default function OnboardingPage() {
   const screen = (() => {
     if (step.id === "welcome") return {
       eyebrow: "InstantWork",
-      title: instantWorkPackage.promise.headline,
-      body: "Sem agentes, prompts ou configurações para aprender. Você começa pelo resultado que precisa no negócio.",
+      title: "Diga o que precisa. O trabalho começa daqui.",
+      body: "Você fala do negócio. O InstantWork organiza o próximo passo e mantém você no controle quando uma decisão realmente importa.",
       surface: "welcome"
     };
     if (step.id === "business_goal") return {
-      eyebrow: "Seu objetivo",
+      eyebrow: "Prioridade",
       title: "O que mais importa agora?",
-      body: "Escolha uma prioridade. Você pode mudar isso depois em linguagem normal.",
+      body: "Escolha uma coisa. O restante pode esperar.",
       surface: "plain"
     };
     if (step.id === "company_context") return {
       eyebrow: "Seu negócio",
-      title: "Como esse trabalho acontece hoje?",
-      body: "Explique a rotina em uma frase. Não descreva tecnologia; descreva o que sua equipe faz.",
+      title: "Como a operação funciona hoje?",
+      body: "Uma frase basta. Conte o que sua equipe faz, não como a tecnologia funciona.",
+      surface: "plain"
+    };
+    if (step.id === "channels_optional") return {
+      eyebrow: "Rotina",
+      title: "Onde o trabalho acontece mais?",
+      body: "Isso ajuda a montar um primeiro passo que faça sentido para sua realidade.",
       surface: "plain"
     };
     if (step.id === "desired_outcome") return {
-      eyebrow: "Primeiro trabalho",
+      eyebrow: "Primeiro pedido",
       title: "O que você quer tirar da sua frente?",
-      body: "Peça como pediria a alguém da sua equipe. O InstantWork transforma isso em trabalho seguro e observável.",
+      body: "Escreva como falaria com alguém da sua equipe.",
       surface: "plain"
     };
-    if (step.id === "work_style") return {
-      eyebrow: "Autonomia",
-      title: "Como você quer que eu trabalhe?",
-      body: "O reversível pode andar sozinho. Consequências externas continuam sob seu controle.",
-      surface: "plain"
-    };
-    if (step.id === "workflow_value_preview") return {
-      eyebrow: "Seu primeiro fluxo",
-      title: "Entendi o que deve acontecer primeiro.",
-      body: "Este preview mostra como suas respostas mudaram o trabalho proposto. Nada externo foi executado.",
+    if (step.id === "workflow_roi_preview") return {
+      eyebrow: "Seu primeiro plano",
+      title: "Eu começaria por aqui.",
+      body: "A proposta abaixo usa o que você acabou de contar. Nada externo foi feito ainda.",
       surface: "resultPreview"
     };
     if (step.id === "connect_tools") return {
-      eyebrow: "Conexão",
-      title: "Onde esse trabalho acontece?",
-      body: "Escolha a fonte principal. A conexão real só será pedida no momento em que for necessária.",
+      eyebrow: "Começar",
+      title: "Onde devo trabalhar primeiro?",
+      body: "Escolha uma fonte ou deixe para depois. A autorização real só aparece quando for necessária.",
       surface: "plain"
     };
     return {
       eyebrow: "Pronto",
-      title: "Seu InstantWork está preparado.",
-      body: "Na Home, o estado do negócio vem primeiro; depois aparece apenas a próxima ação útil ou uma decisão que realmente precise de você.",
+      title: "Seu primeiro pedido está preparado.",
+      body: "Ao entrar, você verá somente o estado do trabalho, o que precisa da sua atenção e o próximo passo útil.",
       surface: "success"
     };
   })();
 
   return (
     <main className={`onboardingShell r3Surface-${screen.surface}`}>
-      <div className="onboardingTop r3ProgressHeader">
+      <div className="r3ProgressHeader onboardingTop">
         <button className="backButton" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} aria-label="Voltar">←</button>
         <div className="progressTrack" aria-label={`Progresso ${progress}%`}><div className="progressFill" style={{ width: `${progress}%` }} /></div>
         <span className="progressText">{index + 1}/{steps.length}</span>
       </div>
 
-      <section className="onboardingCard">
+      <section className="onboardingStage">
         <div className="onboardingCopy">
           <div className="eyebrow">{screen.eyebrow}</div>
           <h1 className="onboardingTitle">{screen.title}</h1>
@@ -193,8 +190,11 @@ export default function OnboardingPage() {
         </div>
 
         {step.id === "welcome" ? (
-          <div className="r3WelcomeMaterial" aria-hidden="true">
-            <span>Você pede.</span><span>O trabalho acontece.</span><span>O resultado fica comprovado.</span>
+          <div className="welcomeMaterial" aria-hidden="true">
+            <div className="welcomeGrain" />
+            <span className="welcomeLine welcomeLineA">peça.</span>
+            <span className="welcomeLine welcomeLineB">acompanhe.</span>
+            <span className="welcomeLine welcomeLineC">decida só quando importa.</span>
           </div>
         ) : null}
 
@@ -203,7 +203,7 @@ export default function OnboardingPage() {
             {goalChoices.map((choice) => {
               const active = draft.goal === choice.value;
               return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("goal", choice.value)}>
-                <span className="choiceCheck">{active ? "✓" : ""}</span>
+                <span className="choiceMark">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
               </button>;
             })}
@@ -211,64 +211,64 @@ export default function OnboardingPage() {
         ) : null}
 
         {step.id === "company_context" ? (
-          <textarea className="onboardingTextarea" aria-label="Como o trabalho acontece hoje" placeholder="Ex.: Os pedidos chegam pelo WhatsApp, minha equipe responde quando consegue e anota os interessados em uma planilha." value={draft.companyContext} onChange={(event) => update("companyContext", event.target.value)} rows={5} autoFocus />
+          <textarea className="onboardingTextarea" aria-label="Como sua operação funciona hoje" placeholder="Ex.: Somos uma empresa de consórcio com quatro vendedores. Os clientes chegam pelo WhatsApp e a equipe acompanha tudo em planilhas." value={draft.companyContext} onChange={(event) => update("companyContext", event.target.value)} rows={5} autoFocus />
         ) : null}
 
-        {step.id === "desired_outcome" ? (
-          <textarea className="onboardingTextarea" aria-label="Descreva o primeiro trabalho" placeholder="Ex.: Tenho clientes que pediram orçamento e ninguém respondeu. Quero recuperar essas conversas." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
-        ) : null}
-
-        {step.id === "work_style" ? (
-          <div className="choiceGrid">
-            {workChoices.map((choice) => {
-              const active = draft.preference === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("preference", choice.value)}>
-                <span className="choiceCheck">{active ? "✓" : ""}</span>
-                <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
-              </button>;
-            })}
-          </div>
-        ) : null}
-
-        {step.id === "workflow_value_preview" ? (
-          <div className="r3ResultPreview">
-            <div className="previewHero">
-              <span className="monoLabel">PRIMEIRO TRABALHO PROPOSTO</span>
-              <strong>{preview.firstWork}</strong>
-              <p>Começar pelo menor passo seguro que produza evidência. Se houver efeito externo, o InstantWork resolve o destino e a ação exatos antes de pedir sua autorização.</p>
-            </div>
-            <div className="personalizationEvidence">
-              <div><span>Prioridade</span><strong>{preview.priority}</strong></div>
-              <div><span>Contexto considerado</span><strong>{preview.context}</strong></div>
-              <div><span>Seu controle</span><strong>{draft.preference === "show" ? "Mostrar antes" : draft.preference === "rules" ? "Seguir regras definidas" : "Fazer o reversível sozinho"}</strong></div>
-            </div>
-          </div>
-        ) : null}
-
-        {step.id === "connect_tools" ? (
-          <div className="choiceGrid">
-            {sourceChoices.map((choice) => {
-              const active = draft.source === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => update("source", choice.value)}>
-                <span className="choiceCheck">{active ? "✓" : ""}</span>
+        {step.id === "channels_optional" ? (
+          <div className="choiceGrid compactChoices">
+            {channelChoices.map((choice) => {
+              const active = draft.currentChannel === choice.value;
+              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("currentChannel", choice.value)}>
+                <span className="choiceMark">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong></span>
               </button>;
             })}
           </div>
         ) : null}
 
-        {step.id === "first_action" ? (
-          <div className="r3FirstAction">
+        {step.id === "desired_outcome" ? (
+          <textarea className="onboardingTextarea requestInput" aria-label="Descreva o primeiro pedido" placeholder="Ex.: Tenho clientes que pediram orçamento e ninguém respondeu. Quero recuperar essas conversas." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
+        ) : null}
+
+        {step.id === "workflow_roi_preview" ? (
+          <div className="resultPreview">
+            <div className="resultHero">
+              <span className="monoLabel">PRIMEIRO PASSO</span>
+              <strong>{preview.firstWork}</strong>
+              <p>Começar pela menor ação útil, observar o que acontece e trazer para você apenas decisões com consequência real.</p>
+            </div>
+            <div className="personalizationEvidence">
+              <div><span>Prioridade</span><strong>{preview.priority}</strong></div>
+              <div><span>Seu contexto</span><strong>{preview.context}</strong></div>
+              <div><span>Rotina principal</span><strong>{preview.channel}</strong></div>
+            </div>
+          </div>
+        ) : null}
+
+        {step.id === "connect_tools" ? (
+          <div className="choiceGrid connectionChoices">
+            {sourceChoices.map((choice) => {
+              const active = draft.source === choice.value;
+              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => update("source", choice.value)}>
+                <span className="choiceMark">{active ? "✓" : ""}</span>
+                <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
+              </button>;
+            })}
+          </div>
+        ) : null}
+
+        {step.id === "first_execution" ? (
+          <div className="firstActionCard">
             <div><span className="monoLabel">PRIORIDADE</span><strong>{preview.priority}</strong></div>
-            <div><span className="monoLabel">FONTE PRINCIPAL</span><strong>{preview.source}</strong></div>
-            <div><span className="monoLabel">PRÓXIMO PASSO</span><strong>Revisar e iniciar o primeiro trabalho</strong></div>
+            <div><span className="monoLabel">PRIMEIRO PEDIDO</span><strong>{preview.firstWork}</strong></div>
+            <div><span className="monoLabel">FONTE</span><strong>{labelFor(draft.source, sourceChoices, "Conectar quando precisar")}</strong></div>
           </div>
         ) : null}
 
         {!isAutoStep ? (
           <div className="onboardingActions">
-            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_action" ? "Entrar no InstantWork" : step.id === "connect_tools" ? "Usar esta fonte" : "Continuar"}</button>
-            <span className="privacyNote">Progresso real, permissões no momento de uso e nenhuma ação externa sem escopo claro.</span>
+            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir InstantWork" : step.id === "connect_tools" ? "Continuar" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
+            {step.id === "connect_tools" ? <span className="privacyNote">Nenhuma conta é acessada nesta tela.</span> : null}
           </div>
         ) : <span className="autoAdvanceNote">Avança após sua escolha.</span>}
       </section>
