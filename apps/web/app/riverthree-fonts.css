@@ -5,18 +5,18 @@
 .brand,
 h1,
 h2,
-.orbMeta strong,
-.roiTruth strong,
+.r3QuietMaterial strong,
+.r3LiveIntelligence strong,
+.r3MetricStrip strong,
 .workspaceCard strong,
-.magicDemo strong,
-.planHeader strong,
-.offerCard > div > strong {
+.r3WelcomeMaterial span,
+.previewHero strong {
   font-family: "Space Grotesk Variable", "Geist Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 .monoLabel,
 .progressText,
-.demoTruth strong,
-.planHeader span {
+.r3SystemMark,
+.quietStatus {
   font-family: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
