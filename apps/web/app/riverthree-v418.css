@@ -1,0 +1,60 @@
+/* RiverThree Design Contract 4.18.0 — InstantWork
+   businessConsumerized => Gen Z subtle (5–10%).
+   Ordinary workspace chrome stays neutral. Cultural material is restricted to
+   welcome, result preview, success and real intelligence moments. */
+
+:root {
+  --r3-v418-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' seed='73' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* v4.15/v4.18: the circular vessel is stable. Internal material may react. */
+.orbMaterial {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Subtle cultural grain only on approved expressive surfaces. */
+.r3Surface-welcome,
+.r3Surface-resultPreview,
+.r3Surface-success {
+  isolation: isolate;
+}
+
+.r3Surface-welcome::after,
+.r3Surface-resultPreview::after,
+.r3Surface-success::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--r3-v418-noise);
+  background-size: 180px 180px;
+  opacity: .014;
+  mix-blend-mode: multiply;
+}
+
+.r3Surface-welcome > *,
+.r3Surface-resultPreview > *,
+.r3Surface-success > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Intelligence objects carry stronger tactile identity than workspace chrome. */
+.orbGrain {
+  opacity: .10;
+}
+
+/* Progress and operational chrome remain flat and deterministic. */
+.progressFill {
+  background: var(--ink) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbMaterial,
+  .orbLobe {
+    animation: none !important;
+    transform: none !important;
+  }
+}
