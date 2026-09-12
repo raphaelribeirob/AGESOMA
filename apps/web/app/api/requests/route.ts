@@ -52,8 +52,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unable to route business request" }, { status: 400 });
   }
 
-  const policy = getActionPolicy(plan.action);
-  if (!policy) return NextResponse.json({ error: "Planner produced an unsupported action" }, { status: 500 });
+  const intendedPolicy = getActionPolicy(plan.action);
+  if (!intendedPolicy) return NextResponse.json({ error: "Planner produced an unsupported action" }, { status: 500 });
+
+  // Consequential work is never approved while destination/parameters are unresolved.
+  // First run a reversible resolution task. Hermes may inspect authorized context and
+  // return one canonical proposedAction. Only that concrete capability can be approved.
+  const executionAction = plan.requiresApproval ? "business.work" : plan.action;
+  const executionPolicy = getActionPolicy(executionAction);
+  if (!executionPolicy) return NextResponse.json({ error: "Resolution action is unsupported" }, { status: 500 });
 
   const memories = await tenantSql<BusinessMemory>(input.tenantId, `
     select lesson_type, content, created_at
@@ -69,20 +76,26 @@ export async function POST(req: Request) {
     createdAt: memory.created_at
   }));
 
-  const taskStatus = plan.requiresApproval ? "awaiting_approval" : "queued";
+  const taskStatus = "queued";
   const planJson = JSON.stringify(plan);
   const payload = JSON.stringify({
     objective: plan.originalRequest,
     destination: null,
-    operation: plan.operation,
+    operation: plan.requiresApproval ? "resolve_capability" : plan.operation,
     resource: plan.resource,
     requestPlan: plan,
+    requestedAction: plan.action,
+    requiresResolution: plan.requiresApproval,
     businessMemory,
     requestedBy: actor.actorId,
+    ownerRequested: true,
     outputContract: {
       artifact: "Return a result artifact suited to the business job.",
       opportunities: "Return evidence-backed opportunities only when discovered.",
-      outcome: "Only mark an outcome verified when external evidence exists.",
+      proposedAction: plan.requiresApproval
+        ? "Resolve exactly one concrete consequential action. Return action, destination, operation, resource, parameters and amountCents when relevant. Do not execute the side effect."
+        : "Do not invent a consequential action unless the objective actually requires one.",
+      outcome: "Outcome claims are unverified until a separate provider-backed verifier confirms them.",
       toolRecipe: "Reusable reversible tool sequences may be proposed as draft recipes only."
     }
   });
@@ -111,7 +124,9 @@ export async function POST(req: Request) {
       select $1, 'request-' || replace(id::text, '-', ''), 1, 'active', jsonb_build_object(
         'source', 'natural_request',
         'plan', $6::jsonb,
-        'memory_count', $17::int
+        'memory_count', $17::int,
+        'intended_action', $20::text,
+        'resolution_required', $18::boolean
       )
       from new_goal
       returning id
@@ -137,10 +152,10 @@ export async function POST(req: Request) {
     input.horizonDays ?? null,
     planJson,
     taskStatus,
-    policy.type,
-    policy.riskClass,
-    policy.reversible,
-    policy.external,
+    executionPolicy.type,
+    executionPolicy.riskClass,
+    executionPolicy.reversible,
+    executionPolicy.external,
     input.expectedValueCents ?? 0,
     input.expectedCostCents ?? 0,
     input.expectedLossCents ?? 0,
@@ -148,7 +163,8 @@ export async function POST(req: Request) {
     payload,
     businessMemory.length,
     plan.watch,
-    plan.cadence
+    plan.cadence,
+    intendedPolicy.type
   ]);
 
   return NextResponse.json({
@@ -158,6 +174,8 @@ export async function POST(req: Request) {
     taskStatus: created.task_status,
     watcherId: created.watcher_id,
     plan,
+    executionAction,
+    resolutionRequired: plan.requiresApproval,
     memoryCount: businessMemory.length,
     economics: {
       status: input.expectedValueCents === undefined ? "unknown" : "provided",
