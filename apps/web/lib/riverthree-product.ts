@@ -18,6 +18,7 @@ export type RiverThreeStep = {
 
 export const instantWorkPackage = {
   authority: "RIVERTHREE_DESIGN.md",
+  designContractVersion: "4.18.0",
   product: {
     id: "instantwork",
     name: "InstantWork",
