@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getActionPolicy, routeBusinessRequest } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
-import { requireInternalApi, requireJson } from "../../../lib/security";
+import { requireInternalApi, requireJson, requireTenantActor } from "../../../lib/security";
 
 const schema = z.object({
   tenantId: z.string().uuid(),
@@ -39,12 +39,11 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid business request" }, { status: 400 });
   const input = parsed.data;
 
-  const [tenant] = await tenantSql<{ id: string }>(
-    input.tenantId,
-    `select id from tenants where id=$1 limit 1`,
-    [input.tenantId]
-  );
+  const [tenant] = await tenantSql<{ id: string }>(input.tenantId, `select id from tenants where id=$1 limit 1`, [input.tenantId]);
   if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+
+  const actor = await requireTenantActor(req, input.tenantId);
+  if (actor.error) return actor.error;
 
   let plan;
   try {
@@ -78,7 +77,14 @@ export async function POST(req: Request) {
     operation: plan.operation,
     resource: plan.resource,
     requestPlan: plan,
-    businessMemory
+    businessMemory,
+    requestedBy: actor.actorId,
+    outputContract: {
+      artifact: "Return a result artifact suited to the business job.",
+      opportunities: "Return evidence-backed opportunities only when discovered.",
+      outcome: "Only mark an outcome verified when external evidence exists.",
+      toolRecipe: "Reusable reversible tool sequences may be proposed as draft recipes only."
+    }
   });
 
   const [created] = await tenantSql<CreatedRequest>(input.tenantId, `
