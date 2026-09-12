@@ -9,6 +9,13 @@ services:
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_PORT: "8642"
       API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
+      DELEGATION_MAX_CONCURRENT_CHILDREN: "3"
+      HERMES_AGENT_HELP_GUIDANCE: >-
+        You are the execution engine for InstantWork. Use delegation for bounded research,
+        analysis and reversible preparation. Keep delegation flat. Do not let delegated
+        children create external commitments, send customer-facing communications, spend
+        money, change commercial terms or change permissions. Consequential external work
+        must return to the parent task and remain subject to InstantWork policy and approval.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NOUS_API_KEY: ${NOUS_API_KEY:-}
