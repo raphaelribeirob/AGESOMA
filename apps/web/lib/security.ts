@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { tenantSql } from "@agesoma/db";
 
 const MIN_SECRET_LENGTH = 32;
 
@@ -28,6 +29,25 @@ export function requireInternalApi(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return null;
+}
+
+export async function requireTenantActor(req: Request, tenantId: string) {
+  const actorId = req.headers.get("x-agesoma-actor-id")?.trim();
+  if (!actorId || actorId.length > 128) {
+    return { actorId: null, error: NextResponse.json({ error: "Authenticated actor is required" }, { status: 401 }) };
+  }
+
+  const [membership] = await tenantSql<{ role: string }>(tenantId, `
+    select role from tenant_memberships
+    where tenant_id=$1 and actor_id=$2
+    limit 1
+  `, [tenantId, actorId]);
+
+  if (!membership) {
+    return { actorId: null, error: NextResponse.json({ error: "Actor is not authorized for this business" }, { status: 403 }) };
+  }
+
+  return { actorId, role: membership.role, error: null };
 }
 
 export function requireOutcomeVerifier(req: Request) {

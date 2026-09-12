@@ -1,35 +1,35 @@
-const nav = ["Início", "Pedir", "Oportunidades", "Trabalhos", "Resultados", "Aprovações", "Conexões"];
+const nav = ["Início", "Pedir", "Trabalhos", "Conta"];
 
-const workspaceState = [
+const now = [
   {
-    label: "Oportunidades",
-    title: "Nenhuma oportunidade detectada ainda",
-    detail: "Conecte uma fonte autorizada para o InstantWork começar a observar sinais reais do negócio."
-  },
-  {
-    label: "Trabalhos",
+    label: "Agora",
     title: "Nenhum trabalho em andamento",
-    detail: "Quando uma operação começar, o progresso aparece aqui sem fabricar etapas ou resultados."
+    detail: "Quando você pedir algo, o progresso aparece aqui."
   },
   {
-    label: "Aprovações",
+    label: "Precisa de você",
     title: "Nada esperando sua decisão",
-    detail: "Ações sensíveis aparecem somente quando uma tarefa real exigir sua autorização."
+    detail: "Só interrompo quando uma decisão sua for realmente necessária."
+  },
+  {
+    label: "Desde sua última visita",
+    title: "Nenhuma mudança confirmada ainda",
+    detail: "Resultados, oportunidades e mudanças aparecem aqui quando houver evidência."
   }
 ];
 
 function IntelligenceOrb() {
   return (
-    <aside className="orbStage" aria-label="Operador InstantWork disponível e em repouso">
+    <aside className="orbStage" aria-label="InstantWork disponível">
       <div className="orbMaterial" aria-hidden="true">
         <span className="orbLobe orbLobeA" />
         <span className="orbLobe orbLobeB" />
         <span className="orbGrain" />
       </div>
       <div className="orbMeta">
-        <span className="monoLabel">OPERADOR · IDLE</span>
-        <strong>Disponível</strong>
-        <p>Em repouso até você conectar a empresa ou pedir um trabalho.</p>
+        <span className="monoLabel">DISPONÍVEL</span>
+        <strong>Pronto para trabalhar</strong>
+        <p>Você explica o problema. O InstantWork decide como executar e só pede ajuda quando necessário.</p>
       </div>
     </aside>
   );
@@ -40,7 +40,6 @@ export default function Home() {
     <main className="productShell">
       <header className="topbar">
         <div className="brand">InstantWork</div>
-        <div className="pill">VALOR COMPROVADO</div>
       </header>
 
       <nav className="nav" aria-label="Navegação principal">
@@ -51,12 +50,12 @@ export default function Home() {
 
       <section className="hero heroIntent">
         <div className="heroCopy">
-          <div className="eyebrow">Operação empresarial com inteligência</div>
-          <h1>Sua próxima operação começa por um resultado.</h1>
-          <p className="heroLead">Configure a empresa, conecte os sistemas autorizados e diga o que precisa acontecer. O InstantWork observa, trabalha e só mostra valor quando houver evidência real.</p>
+          <div className="eyebrow">Seu trabalho, resolvido</div>
+          <h1>O que você precisa resolver?</h1>
+          <p className="heroLead">Explique como explicaria para alguém da sua equipe. Sem prompts, agentes ou configurações técnicas.</p>
           <div className="heroActions">
-            <a className="primaryCta" href="/onboarding">Configurar minha empresa</a>
-            <span className="heroTruth">Nenhum resultado comprovado ainda.</span>
+            <a className="primaryCta" href="/onboarding">Pedir um trabalho</a>
+            <span className="heroTruth">Você decide consequências. O InstantWork cuida da implementação.</span>
           </div>
         </div>
         <IntelligenceOrb />
@@ -64,46 +63,34 @@ export default function Home() {
 
       <section className="workspaceSection">
         <div className="sectionIntro">
-          <div className="eyebrow">Agora</div>
-          <h2>O que importa neste momento.</h2>
-          <p>Sem dados inventados. Esta área passa a ganhar prioridade conforme a operação real da empresa cria contexto.</p>
+          <div className="eyebrow">Início</div>
+          <h2>Só o que importa agora.</h2>
+          <p>Oportunidades, aprovações, conexões e resultados aparecem no contexto certo, sem virar menus para configurar.</p>
         </div>
 
         <div className="workspaceStack">
-          {workspaceState.map((item) => (
+          {now.map((item) => (
             <article className="workspaceRow" key={item.label}>
               <span className="workspaceLabel">{item.label}</span>
               <div>
                 <strong>{item.title}</strong>
                 <p>{item.detail}</p>
               </div>
-              <span className="quietStatus">Vazio</span>
+              <span className="quietStatus">—</span>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="roiBand">
-        <div>
-          <span className="eyebrow">Impacto comprovado</span>
-          <h2>O valor aparece quando puder ser provado.</h2>
-        </div>
-        <div className="roiTruth">
-          <span className="monoLabel">RESULTADO VERIFICADO</span>
-          <strong>—</strong>
-          <p>A primeira venda, reunião, economia ou mudança confirmada cria o primeiro registro de valor.</p>
-        </div>
-      </section>
-
       <section className="resultSection">
         <div>
-          <div className="eyebrow">Resultado</div>
-          <h2>Trabalho concluído vira prova, não uma mensagem perdida no chat.</h2>
+          <div className="eyebrow">Trabalho concluído</div>
+          <h2>Resultado vira uma visão útil, não uma mensagem perdida.</h2>
         </div>
         <div className="artifactCard workspaceCard">
           <span className="workspaceLabel">Último resultado</span>
-          <strong>Nenhum resultado comprovado ainda</strong>
-          <p>Quando houver execução real, esta visão reúne evidência, custo, impacto e próximo passo.</p>
+          <strong>Nenhum resultado confirmado ainda</strong>
+          <p>Quando houver execução real, o InstantWork transforma a saída em um artefato adequado ao trabalho e mantém a evidência junto dele.</p>
         </div>
       </section>
     </main>
