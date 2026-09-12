@@ -43,6 +43,25 @@ jobs:
             echo "Public AGESOMA UI must use AGESOMA identity and demonstrate value without legacy labels"
             exit 1
           fi
+      - name: Enforce canonical RiverThree UI bindings
+        run: |
+          grep -q 'className="r3ActionHero"' apps/web/app/page.tsx
+          grep -q 'className="r3QuietMaterial"' apps/web/app/page.tsx
+          grep -q 'className="r3LiveIntelligence"' apps/web/app/page.tsx
+          grep -q 'className="orbMaterial r3OrbCompact"' apps/web/app/page.tsx
+          grep -q 'className="r3NextBestAction"' apps/web/app/page.tsx
+          grep -q 'className="r3MetricStrip"' apps/web/app/page.tsx
+          grep -q 'className="workspaceSection"' apps/web/app/page.tsx
+          grep -q 'className="resultSection"' apps/web/app/page.tsx
+          grep -q 'className="onboardingCard"' apps/web/app/onboarding/page.tsx
+          grep -q 'className="r3WelcomeMaterial"' apps/web/app/onboarding/page.tsx
+          grep -q 'className="choiceCheck"' apps/web/app/onboarding/page.tsx
+          grep -q 'className="r3ResultPreview"' apps/web/app/onboarding/page.tsx
+          grep -q 'className="r3FirstAction"' apps/web/app/onboarding/page.tsx
+          if grep -E -n 'className="(homeHero|quietState|liveIntelligence|nextBestAction|metricStrip|activitySection|activityList|activityRow|resultsSection|resultCard|onboardingStage|welcomeMaterial|choiceMark|firstActionCard|intelligenceOrb)"' apps/web/app/page.tsx apps/web/app/onboarding/page.tsx; then
+            echo "Non-canonical UI bindings detected; RiverThree classes must be used directly"
+            exit 1
+          fi
       - name: Enforce independent outcome verification
         run: |
           if grep -q "insert into outcome_events" services/worker/src/product-output.ts; then
