@@ -28,8 +28,12 @@ function objective(payload: Record<string, unknown>) {
   return typeof payload.objective === "string" ? payload.objective : "Trabalho em andamento";
 }
 
+function BrandWordmark() {
+  return <img src="/agesoma-wordmark.jpeg" alt="AGESOMA" />;
+}
+
 function IntelligenceOrb() {
-  return <div className="intelligenceOrb" aria-label="InstantWork trabalhando"><span className="orbField orbFieldA" /><span className="orbField orbFieldB" /><span className="orbTexture" /></div>;
+  return <div className="intelligenceOrb" aria-label="AGESOMA trabalhando"><span className="orbField orbFieldA" /><span className="orbField orbFieldB" /><span className="orbTexture" /></div>;
 }
 
 export default async function Home() {
@@ -53,7 +57,7 @@ export default async function Home() {
   } : verifiedCount ? {
     eyebrow: "Resultado confirmado", title: `${money(outcomes?.net_value_cents)} de impacto líquido comprovado.`, body: "Só entra aqui o que puder ser confirmado.", action: "Ver resultados", href: "#resultados"
   } : {
-    eyebrow: "InstantWork", title: "O que você quer resolver hoje?", body: "Peça como pediria a alguém da sua equipe. O InstantWork organiza o trabalho e chama você somente quando uma decisão realmente importa.", action: "Pedir algo", href: "/onboarding"
+    eyebrow: "AGESOMA", title: "O que você quer resolver hoje?", body: "Peça como pediria a alguém da sua equipe. A AGESOMA organiza o trabalho e chama você somente quando uma decisão realmente importa.", action: "Pedir algo", href: "/onboarding"
   };
 
   const next = firstApproval ? { title: "Revisar a decisão pendente", body: "Veja o contexto e decida sem precisar administrar a tecnologia por trás.", href: "#decisoes", label: "Revisar" }
@@ -62,7 +66,7 @@ export default async function Home() {
     : { title: "Fazer o primeiro pedido", body: "Comece pelo resultado que quer ver, não pela configuração de uma ferramenta.", href: "/onboarding", label: "Começar" };
 
   return <main className="productShell" id="inicio">
-    <header className="topbar"><a className="brand" href="#inicio">InstantWork</a><a className="topbarAction" href="/onboarding">Pedir algo</a></header>
+    <header className="topbar"><a className="agesomaBrandLink" href="#inicio" aria-label="AGESOMA"><BrandWordmark /></a><a className="topbarAction" href="/onboarding">Pedir algo</a></header>
     <nav className="nav" aria-label="Navegação principal"><a className="navItem active" href="#inicio">Início</a><a className="navItem" href="#atividade">Trabalho</a><a className="navItem" href="#resultados">Resultados</a><a className="navItem" href="#conexoes">Conexões</a></nav>
 
     <section className="homeHero">

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { instantWorkPackage } from "../../lib/riverthree-product";
+import { agesomaPackage } from "../../lib/riverthree-product";
 
 type Choice = { label: string; value: string; detail?: string };
 type Draft = {
@@ -12,6 +12,10 @@ type Draft = {
   currentChannel: string;
   source: string;
 };
+
+const STORAGE_KEY = "agesoma:onboarding";
+const FIRST_REQUEST_KEY = "agesoma:first-request";
+const PREPARED_REQUEST_KEY = "agesoma:prepared-request";
 
 const initialDraft: Draft = {
   request: "",
@@ -52,11 +56,11 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState<Draft>(initialDraft);
-  const steps = instantWorkPackage.onboarding.steps;
+  const steps = agesomaPackage.onboarding.steps;
   const step = steps[index];
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("instantwork:onboarding");
+    const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         setDraft({ ...initialDraft, ...JSON.parse(saved) });
@@ -65,7 +69,7 @@ export default function OnboardingPage() {
         // Ignore malformed local state and let the user start cleanly.
       }
     }
-    const request = sessionStorage.getItem("instantwork:first-request");
+    const request = sessionStorage.getItem(FIRST_REQUEST_KEY);
     if (request) setDraft((current) => ({ ...current, request }));
   }, []);
 
@@ -80,8 +84,8 @@ export default function OnboardingPage() {
   const isAutoStep = step.id === "business_goal" || step.id === "channels_optional";
 
   function persist(nextDraft: Draft) {
-    sessionStorage.setItem("instantwork:onboarding", JSON.stringify(nextDraft));
-    sessionStorage.setItem("instantwork:first-request", nextDraft.request.trim());
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextDraft));
+    sessionStorage.setItem(FIRST_REQUEST_KEY, nextDraft.request.trim());
   }
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -114,9 +118,9 @@ export default function OnboardingPage() {
       setIndex((value) => value + 1);
       return;
     }
-    sessionStorage.setItem("instantwork:prepared-request", JSON.stringify({
+    sessionStorage.setItem(PREPARED_REQUEST_KEY, JSON.stringify({
       ...draft,
-      product: instantWorkPackage.product.id,
+      product: agesomaPackage.product.id,
       activationState: "prepared_not_executed",
       preparedAt: new Date().toISOString()
     }));
@@ -125,9 +129,9 @@ export default function OnboardingPage() {
 
   const screen = (() => {
     if (step.id === "welcome") return {
-      eyebrow: "InstantWork",
+      eyebrow: "",
       title: "Diga o que precisa. O trabalho começa daqui.",
-      body: "Você fala do negócio. O InstantWork organiza o próximo passo e mantém você no controle quando uma decisão realmente importa.",
+      body: "Você fala do negócio. A AGESOMA organiza o próximo passo e mantém você no controle quando uma decisão realmente importa.",
       surface: "welcome"
     };
     if (step.id === "business_goal") return {
@@ -184,7 +188,8 @@ export default function OnboardingPage() {
 
       <section className="onboardingStage">
         <div className="onboardingCopy">
-          <div className="eyebrow">{screen.eyebrow}</div>
+          {step.id === "welcome" ? <div className="agesomaWelcomeBrand"><img src={agesomaPackage.identity.wordmark} alt="AGESOMA" /></div> : null}
+          {screen.eyebrow ? <div className="eyebrow">{screen.eyebrow}</div> : null}
           <h1 className="onboardingTitle">{screen.title}</h1>
           <p className="onboardingBody">{screen.body}</p>
         </div>
@@ -267,7 +272,7 @@ export default function OnboardingPage() {
 
         {!isAutoStep ? (
           <div className="onboardingActions">
-            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir InstantWork" : step.id === "connect_tools" ? "Continuar" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
+            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "connect_tools" ? "Continuar" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
             {step.id === "connect_tools" ? <span className="privacyNote">Nenhuma conta é acessada nesta tela.</span> : null}
           </div>
         ) : <span className="autoAdvanceNote">Avança após sua escolha.</span>}

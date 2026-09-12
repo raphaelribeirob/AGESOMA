@@ -16,17 +16,18 @@ export type RiverThreeStep = {
   advanceMode: RiverThreeAdvanceMode;
 };
 
-export const instantWorkPackage = {
+export const agesomaPackage = {
   authority: "RIVERTHREE_DESIGN.md",
   designContractVersion: "4.18.0",
   product: {
-    id: "instantwork",
-    name: "InstantWork",
+    id: "agesoma",
+    name: "AGESOMA",
     category: "agentic-b2b",
     audience: "small and medium business owners",
     onboardingMode: "businessConsumerized" as RiverThreeOnboardingMode
   },
   identity: {
+    wordmark: "/agesoma-wordmark.jpeg",
     intelligenceOrb: "contextual" as const,
     displayFont: "Space Grotesk Variable",
     uiFont: "Geist Sans Variable",
@@ -43,7 +44,7 @@ export const instantWorkPackage = {
     motionPersonality: "contextual" as const
   },
   promise: {
-    headline: "Diga o que precisa. O InstantWork cuida do trabalho.",
+    headline: "Diga o que precisa. A AGESOMA cuida do trabalho.",
     outcome: "Transformar pedidos de negócio em trabalho executado, decisões claras e resultados comprovados.",
     firstValueDefinition: "O primeiro trabalho útil é preparado ou executado com evidência, sem exigir que o cliente aprenda a operar IA."
   },
@@ -110,5 +111,5 @@ export const instantWorkPackage = {
 } as const;
 
 export function isExpressiveSurface(surface: string) {
-  return (instantWorkPackage.expression.preferredSurfaces as readonly string[]).includes(surface);
+  return (agesomaPackage.expression.preferredSurfaces as readonly string[]).includes(surface);
 }

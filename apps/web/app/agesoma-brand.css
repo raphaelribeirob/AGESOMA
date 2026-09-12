@@ -1,0 +1,44 @@
+/* AGESOMA product identity — placed according to RiverThree identity hierarchy.
+   The wordmark is stable product identity. Intelligence Orb remains state-bound. */
+
+.agesomaBrandLink {
+  display: inline-flex;
+  align-items: center;
+  width: 148px;
+  height: 34px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.agesomaBrandLink img {
+  display: block;
+  width: 148px;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.agesomaWelcomeBrand {
+  display: inline-flex;
+  align-items: center;
+  width: clamp(190px, 36vw, 260px);
+  margin: 0 0 28px;
+}
+
+.agesomaWelcomeBrand img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+@media (max-width: 640px) {
+  .agesomaBrandLink,
+  .agesomaBrandLink img {
+    width: 124px;
+  }
+
+  .agesomaWelcomeBrand {
+    width: min(220px, 62vw);
+    margin-bottom: 22px;
+  }
+}
