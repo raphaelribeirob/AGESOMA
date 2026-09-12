@@ -19,6 +19,20 @@ jobs:
       - run: npm run typecheck
       - name: Test core behavior
         run: node --test packages/core/test/request-router.test.mjs
+      - name: Enforce RiverThree CAL AI package
+        run: |
+          grep -q 'onboardingMode: "businessConsumerized"' apps/web/lib/riverthree-product.ts
+          grep -q 'intelligenceOrb: "contextual"' apps/web/lib/riverthree-product.ts
+          grep -q 'genZ: "subtle"' apps/web/lib/riverthree-product.ts
+          grep -q 'mode: "actionAgent"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "workflow_value_preview"' apps/web/lib/riverthree-product.ts
+          grep -q 'activationEvent: "first_business_workflow_succeeded"' apps/web/lib/riverthree-product.ts
+          grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx
+          grep -q 'running ? (' apps/web/app/page.tsx
+          if grep -R -n -E '\bROI\b' apps/web/app apps/web/lib/riverthree-product.ts; then
+            echo "Public InstantWork UI must demonstrate value without the ROI label"
+            exit 1
+          fi
       - name: Enforce independent outcome verification
         run: |
           if grep -q "insert into outcome_events" services/worker/src/product-output.ts; then
