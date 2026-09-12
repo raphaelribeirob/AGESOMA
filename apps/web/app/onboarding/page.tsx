@@ -1,132 +1,74 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Choice = { label: string; value: string; detail?: string };
-type Step = { eyebrow: string; title: string; body?: string; choices?: Choice[]; multi?: boolean };
+type Step = { eyebrow: string; title: string; body?: string; choices?: Choice[] };
 
 const steps: Step[] = [
   {
-    eyebrow: "InstantWork",
-    title: "Diga o resultado. O InstantWork faz o trabalho.",
-    body: "Configure sua empresa em poucos minutos. No final, você recebe um plano de operação personalizado — com o que o InstantWork pode observar, fazer sozinho e quando precisa de você."
-  },
-  {
-    eyebrow: "Como funciona",
-    title: "Você não ganha mais um software. Você ganha trabalho feito.",
-    body: "Exemplo: o InstantWork encontra vendas esquecidas, entra nos sistemas autorizados, retoma os contatos, agenda reuniões e mostra o retorno comprovado."
-  },
-  {
-    eyebrow: "Seu objetivo",
-    title: "Qual resultado faria mais diferença agora?",
+    eyebrow: "Onde acontece",
+    title: "Onde esse trabalho acontece hoje?",
+    body: "Escolha o lugar principal. Se eu precisar de outra conexão depois, pergunto só naquele momento.",
     choices: [
-      { label: "Vender mais", value: "sales", detail: "Recuperar oportunidades, responder leads e marcar reuniões." },
-      { label: "Atender melhor", value: "service", detail: "Responder clientes, organizar solicitações e reduzir atrasos." },
-      { label: "Organizar a operação", value: "operations", detail: "Tirar tarefas repetitivas do caminho e acompanhar pendências." },
-      { label: "Cuidar do dinheiro", value: "finance", detail: "Acompanhar cobranças, custos, pagamentos e oportunidades de economia." }
+      { label: "WhatsApp", value: "WhatsApp" },
+      { label: "E-mail", value: "e-mail" },
+      { label: "Planilha ou arquivo", value: "planilha ou arquivo" },
+      { label: "CRM ou sistema da empresa", value: "CRM ou sistema da empresa" },
+      { label: "Outro lugar", value: "outro lugar" }
     ]
   },
   {
-    eyebrow: "Seu negócio",
-    title: "Como sua empresa trabalha hoje?",
+    eyebrow: "Como trabalhar",
+    title: "Quando eu encontrar algo, o que você prefere?",
+    body: "Isso pode ser alterado depois em linguagem normal.",
     choices: [
-      { label: "Principalmente WhatsApp", value: "whatsapp" },
-      { label: "WhatsApp + planilhas", value: "sheets" },
-      { label: "CRM / ERP", value: "crm" },
-      { label: "Vários sistemas", value: "multi" }
+      { label: "Me mostrar primeiro", value: "show", detail: "Eu organizo e explico antes de qualquer ação externa." },
+      { label: "Fazer tarefas simples sozinho", value: "simple", detail: "Eu cuido do que for reversível e peço sua decisão quando realmente importar." },
+      { label: "Seguir minhas regras", value: "rules", detail: "Eu trabalho sozinho dentro das regras que você já definiu e paro nas decisões sensíveis." }
     ]
   },
   {
-    eyebrow: "O gargalo",
-    title: "O que mais se perde no dia a dia?",
-    choices: [
-      { label: "Leads e vendas sem resposta", value: "lost-sales" },
-      { label: "Clientes esperando retorno", value: "slow-service" },
-      { label: "Tarefas que ninguém acompanha", value: "tasks" },
-      { label: "Informação espalhada", value: "fragmented" }
-    ]
-  },
-  {
-    eyebrow: "Autonomia",
-    title: "Até onde o InstantWork pode agir sem te interromper?",
-    choices: [
-      { label: "Observar e me recomendar", value: "observe", detail: "Lê, analisa e propõe. Não altera nada fora do InstantWork." },
-      { label: "Fazer trabalho reversível", value: "work", detail: "Organiza, prepara, atualiza e executa tarefas de baixo risco." },
-      { label: "Agir dentro das minhas regras", value: "act", detail: "Pode enviar, atualizar e marcar quando a política já permitir." }
-    ]
-  },
-  {
-    eyebrow: "Conexões",
-    title: "Onde o InstantWork precisa poder trabalhar?",
-    body: "Você conecta as contas depois. Agora escolha os lugares que fazem parte da sua operação.",
-    multi: true,
-    choices: [
-      { label: "WhatsApp", value: "whatsapp" },
-      { label: "E-mail", value: "email" },
-      { label: "Calendário", value: "calendar" },
-      { label: "CRM / ERP", value: "crm" },
-      { label: "Site / painel web", value: "web" },
-      { label: "Planilhas / arquivos", value: "files" }
-    ]
-  },
-  {
-    eyebrow: "Montando sua operação",
-    title: "O InstantWork está definindo onde observar, quando agir e como provar resultado.",
-    body: "Seu plano combina objetivo, contexto, autonomia e sistemas. A regra é simples: liberdade operacional dentro do que sua empresa autorizou; decisões sensíveis continuam com você."
-  },
-  {
-    eyebrow: "Seu plano",
-    title: "Sua primeira operação está pronta para ser conectada.",
-    body: "O InstantWork começa por um resultado mensurável, observa a operação, encontra oportunidades, executa o trabalho autorizado e mostra o que mudou, quanto custou e o retorno líquido."
-  },
-  {
-    eyebrow: "InstantWork Core",
-    title: "Um operador para sua empresa. Sem cobrar por assento.",
-    body: "Acesso à operação, resultados comprovados, oportunidades proativas e execução em sistemas autorizados. Começamos pelo primeiro fluxo e ampliamos conforme o valor aparece."
+    eyebrow: "Pronto",
+    title: "Entendi como começar.",
+    body: "Seu pedido ficou preparado. O InstantWork só vai pedir conexão ou autorização quando o trabalho realmente precisar disso."
   }
 ];
-
-const goalCopy: Record<string, { title: string; work: string }> = {
-  sales: { title: "Recuperação e crescimento comercial", work: "Encontrar oportunidades paradas, retomar contatos e levar até reunião ou venda." },
-  service: { title: "Atendimento e resolução", work: "Encontrar clientes esperando, organizar demandas e conduzir cada caso até resolução." },
-  operations: { title: "Operação contínua", work: "Observar pendências, executar rotinas autorizadas e entregar trabalho concluído." },
-  finance: { title: "Operação financeira", work: "Observar cobranças e custos, preparar ações e provar economia ou receita recuperada." }
-};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string[]>>({});
+  const [request, setRequest] = useState("");
+  const [answers, setAnswers] = useState<Record<number, string>>({});
   const step = steps[index];
-  const selected = answers[index] ?? [];
   const progress = Math.round(((index + 1) / steps.length) * 100);
 
-  const plan = useMemo(() => {
-    const goal = answers[2]?.[0] ?? "sales";
-    return goalCopy[goal] ?? goalCopy.sales;
-  }, [answers]);
+  useEffect(() => {
+    setRequest(sessionStorage.getItem("instantwork:first-request") ?? "");
+  }, []);
 
-  function toggle(value: string) {
-    setAnswers((current) => {
-      const active = current[index] ?? [];
-      const next = step.multi ? active.includes(value) ? active.filter((item) => item !== value) : [...active, value] : [value];
-      return { ...current, [index]: next };
-    });
+  function choose(value: string) {
+    setAnswers((current) => ({ ...current, [index]: value }));
   }
 
   function canContinue() {
-    if (!step.choices) return true;
-    return selected.length > 0;
+    return !step.choices || Boolean(answers[index]);
   }
 
   function next() {
     if (!canContinue()) return;
-    if (index === steps.length - 1) {
-      router.push("/");
+    if (index < steps.length - 1) {
+      setIndex((value) => value + 1);
       return;
     }
-    setIndex((value) => value + 1);
+
+    sessionStorage.setItem("instantwork:prepared-request", JSON.stringify({
+      request: request || "Pedido iniciado",
+      source: answers[0] ?? null,
+      preference: answers[1] ?? null
+    }));
+    router.push("/");
   }
 
   return (
@@ -141,29 +83,33 @@ export default function OnboardingPage() {
         <div className="onboardingCopy">
           <div className="eyebrow">{step.eyebrow}</div>
           <h1 className="onboardingTitle">{step.title}</h1>
+          {request ? <p className="onboardingRequest">“{request}”</p> : null}
           {step.body ? <p className="onboardingBody">{step.body}</p> : null}
         </div>
 
-        {index === 1 ? <div className="magicDemo"><div><span>Encontrado</span><strong>23 leads parados</strong></div><div><span>Trabalho</span><strong>8 retomados</strong></div><div><span>Resultado</span><strong>3 reuniões</strong></div><div><span>Retorno</span><strong>Comprovado</strong></div></div> : null}
-
         {step.choices ? (
-          <div className={step.multi ? "choiceGrid multi" : "choiceGrid"}>
+          <div className="choiceGrid">
             {step.choices.map((choice) => {
-              const active = selected.includes(choice.value);
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => toggle(choice.value)}><span className="choiceCheck">{active ? "✓" : ""}</span><span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span></button>;
+              const active = answers[index] === choice.value;
+              return (
+                <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => choose(choice.value)}>
+                  <span className="choiceCheck">{active ? "✓" : ""}</span>
+                  <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
+                </button>
+              );
             })}
           </div>
-        ) : null}
-
-        {index === 7 ? <div className="buildingPlan"><span>Objetivo definido</span><span>Autonomia calibrada</span><span>Conexões selecionadas</span><span>Valor e custos prontos para medir</span></div> : null}
-
-        {index === 8 ? <div className="planReveal"><div className="planHeader"><span>PRIMEIRO FLUXO</span><strong>{plan.title}</strong></div><div className="planLine"><span>Observar</span><p>Seus sistemas autorizados e sinais de oportunidade.</p></div><div className="planLine"><span>Trabalhar</span><p>{plan.work}</p></div><div className="planLine"><span>Provar</span><p>Resultado, custo do trabalho e retorno líquido, sempre com evidência.</p></div></div> : null}
-
-        {index === 9 ? <div className="offerCard"><div><span className="label">INSTANTWORK CORE</span><strong>US$ 29 <small>/ mês</small></strong></div><ul><li>Operação em background</li><li>Oportunidades proativas</li><li>Conexões com sistemas autorizados</li><li>Aprovação para decisões sensíveis</li><li>Resultado + custo + retorno líquido comprovado</li></ul><p>O checkout ainda não está ativo nesta versão. Ao continuar, você entra no produto sem cobrança.</p></div> : null}
+        ) : (
+          <div className="planReveal">
+            <div className="planLine"><span>Seu pedido</span><p>{request || "Pedido iniciado"}</p></div>
+            <div className="planLine"><span>Onde</span><p>{answers[0] ?? "Pergunto quando for necessário"}</p></div>
+            <div className="planLine"><span>Como</span><p>{answers[1] === "show" ? "Mostrar antes" : answers[1] === "simple" ? "Fazer tarefas simples sozinho" : "Seguir suas regras"}</p></div>
+          </div>
+        )}
 
         <div className="onboardingActions">
-          <button className="primaryButton" onClick={next} disabled={!canContinue()}>{index === 0 ? "Começar" : index === steps.length - 1 ? "Entrar no InstantWork" : "Continuar"}</button>
-          {index === 6 ? <span className="privacyNote">Você só conecta contas quando decidir. Nenhuma senha é solicitada aqui.</span> : null}
+          <button className="primaryButton" onClick={next} disabled={!canContinue()}>{index === steps.length - 1 ? "Continuar" : "Próximo"}</button>
+          <span className="privacyNote">Sem agentes, prompts ou configurações técnicas.</span>
         </div>
       </section>
     </main>
