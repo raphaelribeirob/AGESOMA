@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { evaluateMargin } from "../src/margin-governor.ts";
 import { buildOutcomeLearning } from "../src/outcomes.ts";
+import { buildOwnerAwareContext } from "../src/personalization.ts";
 import { routeBusinessRequest } from "../src/request-router.ts";
 
 test("broad sales goal starts with observation", () => {
@@ -86,4 +87,18 @@ test("verified outcome learning stores useful economics without raw evidence", (
   assert.equal(learning.totalCostCents, 35);
   assert.equal(learning.netValueCents, 49965);
   assert.equal(Object.hasOwn(learning, "evidence"), false);
+});
+
+test("owner-aware context keeps preferences, rules and experience separate", () => {
+  const context = buildOwnerAwareContext([
+    { lesson_type: "owner_preference", content: { preference: "concise updates" }, created_at: "2026-09-11T10:00:00Z" },
+    { lesson_type: "business_rule", content: { rule: "preserve margin" }, created_at: "2026-09-11T09:00:00Z" },
+    { lesson_type: "business_fact", content: { fact: "CRM is source of truth" }, created_at: "2026-09-11T08:00:00Z" },
+    { lesson_type: "verified_outcome", content: { outcome: "meeting_confirmed" }, created_at: "2026-09-11T07:00:00Z" }
+  ]);
+
+  assert.equal(context.owner.length, 1);
+  assert.equal(context.rules.length, 1);
+  assert.equal(context.business.length, 1);
+  assert.equal(context.experience.length, 1);
 });
