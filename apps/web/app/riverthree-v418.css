@@ -13,6 +13,35 @@
   transform: none !important;
 }
 
+.orbLobeA {
+  animation: r3MaterialDriftA 5.8s ease-in-out infinite alternate;
+}
+
+.orbLobeB {
+  animation: r3MaterialDriftB 6.8s ease-in-out infinite alternate;
+}
+
+@keyframes r3MaterialDriftA {
+  from { transform: translate3d(-2%, 1%, 0) scale(.98) rotate(-18deg); }
+  to { transform: translate3d(6%, -4%, 0) scale(1.08) rotate(-10deg); }
+}
+
+@keyframes r3MaterialDriftB {
+  from { transform: translate3d(2%, -3%, 0) scale(1.02) rotate(26deg); }
+  to { transform: translate3d(-5%, 5%, 0) scale(.94) rotate(34deg); }
+}
+
+/* Idle workspace material must remain neutral; blue/cyan belongs to live intelligence. */
+.r3QuietMaterial::before {
+  background: radial-gradient(
+    circle at 32% 30%,
+    rgba(255,255,255,.76),
+    rgba(216,211,205,.30) 38%,
+    rgba(245,243,241,.08) 58%,
+    transparent 72%
+  ) !important;
+}
+
 /* Subtle cultural grain only on approved expressive surfaces. */
 .r3Surface-welcome,
 .r3Surface-resultPreview,
