@@ -1,0 +1,24 @@
+services:
+  worker:
+    container_name: agesoma-control-worker
+    build:
+      context: ../..
+      dockerfile: services/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      AGESOMA_DB_SCHEMA: agesoma_p0
+      HERMES_BASE_URL_TEMPLATE: ${HERMES_BASE_URL_TEMPLATE:-http://hermes-{tenantId}:8642}
+      AGESOMA_ALLOW_SHARED_HERMES: "false"
+      HERMES_SERVICE_TOKEN: ${HERMES_SERVICE_TOKEN}
+      HERMES_RUN_TIMEOUT_MS: ${HERMES_RUN_TIMEOUT_MS:-120000}
+      HERMES_RUN_POLL_MS: ${HERMES_RUN_POLL_MS:-1000}
+      AGESOMA_MIN_NET_VALUE_CENTS: ${AGESOMA_MIN_NET_VALUE_CENTS:-100}
+      AGESOMA_MAX_TASK_COST_CENTS: ${AGESOMA_MAX_TASK_COST_CENTS:-500}
+    networks:
+      - controlled_egress
+
+networks:
+  controlled_egress:
+    name: agesoma-controlled-egress
+    external: true
