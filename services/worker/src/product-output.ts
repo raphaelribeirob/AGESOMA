@@ -31,9 +31,99 @@ function cents(value: unknown, ceiling: number) {
   return Math.max(0, Math.min(ceiling, Math.trunc(numeric)));
 }
 
+async function teamCoordinationAvailable() {
+  const [row] = await sql<{ available: boolean }>(`
+    select to_regclass('agesoma_p0.team_members') is not null
+      and to_regclass('agesoma_p0.work_assignments') is not null as available
+  `);
+  return row?.available === true;
+}
+
+async function persistHumanAssignments(task: ProductTask, output: Record<string, unknown>) {
+  if (task.payload.ownerRequested !== true) return;
+  if (!(await teamCoordinationAvailable())) return;
+
+  const rawAssignments = Array.isArray(output.humanAssignments) ? output.humanAssignments : [];
+  if (!rawAssignments.length) return;
+
+  const allowedTeam = Array.isArray(task.payload.teamContext) ? task.payload.teamContext : [];
+  const allowedIds = new Set(
+    allowedTeam
+      .map((item) => text(record(item)?.id))
+      .filter((id): id is string => Boolean(id))
+  );
+  if (!allowedIds.size) return;
+
+  const policy = getActionPolicy("business.work");
+  if (!policy) return;
+
+  for (const raw of rawAssignments.slice(0, 10)) {
+    const assignment = record(raw);
+    const teamMemberId = text(assignment?.teamMemberId);
+    const title = text(assignment?.title);
+    const reason = text(assignment?.reason) ?? "Atribuído pela AGESOMA a partir da prioridade do dono.";
+    if (!teamMemberId || !title || !allowedIds.has(teamMemberId)) continue;
+
+    const [member] = await sql<{ id: string }>(`
+      select id from team_members
+      where id=$1 and tenant_id=$2 and availability='active'
+      limit 1
+    `, [teamMemberId, task.tenant_id]);
+    if (!member) continue;
+
+    const [existing] = await sql<{ id: string }>(`
+      select t.id
+      from tasks t
+      join work_assignments a on a.task_id=t.id and a.tenant_id=t.tenant_id
+      where t.tenant_id=$1
+        and t.payload->>'parentTaskId'=$2
+        and a.team_member_id=$3
+        and t.payload->>'objective'=$4
+        and a.status not in ('cancelled','completed')
+      limit 1
+    `, [task.tenant_id, task.id, teamMemberId, title]);
+    if (existing) continue;
+
+    const childPayload = {
+      objective: title,
+      parentTaskId: task.id,
+      coordinationOnly: true,
+      ownerRequested: true,
+      requestedBy: text(task.payload.requestedBy),
+      constraints: {
+        reversibleInternalWorkOnly: true,
+        noExternalMessages: true,
+        noSpending: true,
+        noCommercialCommitments: true,
+        noPermissionChanges: true
+      }
+    };
+
+    const [child] = await sql<{ id: string }>(`
+      insert into tasks (
+        tenant_id,workflow_id,status,action_type,risk_class,reversible,external,
+        expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload,dispatched_at
+      ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,0,$7::jsonb,now())
+      returning id
+    `, [
+      task.tenant_id,
+      task.workflow_id,
+      policy.type,
+      policy.riskClass,
+      policy.reversible,
+      policy.external,
+      JSON.stringify(childPayload)
+    ]);
+
+    await sql(`
+      insert into work_assignments (
+        tenant_id,task_id,executor_type,team_member_id,status,reason,assigned_by
+      ) values ($1,$2,'human',$3,'assigned',$4,'agesoma')
+    `, [task.tenant_id, child.id, teamMemberId, reason]);
+  }
+}
+
 async function persistResolvedAction(task: ProductTask, output: Record<string, unknown>) {
-  // Only an owner-originated job may turn planning into an approval request. Watchers can
-  // discover opportunities, but they cannot manufacture consequential work on their own.
   if (task.payload.ownerRequested !== true) return;
 
   const proposed = record(output.proposedAction);
@@ -146,10 +236,16 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
     ]);
   }
 
-  // Hermes may report an outcome claim, but the executor is never allowed to verify its
-  // own business impact. The full claim remains inside the artifact above. Only the
-  // provider-backed /api/outcomes verifier may create outcome_events.
+  await persistHumanAssignments(task, output);
   await persistResolvedAction(task, output);
+
+  if (await teamCoordinationAvailable()) {
+    await sql(`
+      update work_assignments
+      set status='completed',updated_at=now()
+      where tenant_id=$1 and task_id=$2 and executor_type='hermes'
+    `, [task.tenant_id, task.id]);
+  }
 
   const recipe = record(output.toolRecipe);
   const recipeName = text(recipe?.name);
