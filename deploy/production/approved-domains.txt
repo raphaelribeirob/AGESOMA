@@ -1,0 +1,3 @@
+.api.openai.com
+.api.anthropic.com
+.api.nousresearch.com
