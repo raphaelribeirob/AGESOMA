@@ -22,7 +22,7 @@ export const agesomaPackage = {
   product: {
     id: "agesoma",
     name: "AGESOMA",
-    category: "agentic-b2b",
+    category: "smb-operating-intelligence",
     audience: "small and medium business owners",
     onboardingMode: "businessConsumerized" as RiverThreeOnboardingMode
   },
@@ -44,9 +44,9 @@ export const agesomaPackage = {
     motionPersonality: "contextual" as const
   },
   promise: {
-    headline: "Diga o que precisa. A AGESOMA cuida do trabalho.",
-    outcome: "Transformar pedidos de negócio em trabalho executado, decisões claras e resultados comprovados.",
-    firstValueDefinition: "O primeiro trabalho útil é preparado ou executado com evidência, sem exigir que o cliente aprenda a operar IA."
+    headline: "Sua empresa organizada. O trabalho avançando.",
+    outcome: "A AGESOMA entende a empresa, coordena a equipe, usa o HERMES quando o trabalho pode ser executado digitalmente e envolve o dono apenas quando uma decisão é necessária.",
+    firstValueDefinition: "O dono entende imediatamente o que precisa acontecer, quem está responsável e o que a AGESOMA já resolveu sem exigir conhecimento de IA."
   },
   onboarding: {
     progressModel: "fixedKnownPath" as const,
@@ -92,8 +92,8 @@ export const agesomaPackage = {
   },
   home: {
     mode: "actionAgent" as RiverThreeHomeMode,
-    primaryOutcome: "business_state_and_verified_impact",
-    nextBestAction: "approve_or_run_next_action",
+    primaryOutcome: "team_work_state_and_verified_results",
+    nextBestAction: "resolve_blocker_or_delegate_next_work",
     supportingMetricsMax: 3
   },
   runtime: {
