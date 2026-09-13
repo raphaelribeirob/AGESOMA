@@ -1,4 +1,4 @@
-import { resolveVerticalWorkPack, type VerticalWorkPack } from "./vertical-packs";
+import { resolveInternalWorkMethod, type InternalWorkMethod } from "./work-methods.ts";
 
 export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
@@ -16,7 +16,7 @@ export type RequestPlan = {
   watch: boolean;
   cadence: WatchCadence | null;
   steps: string[];
-  verticalWorkPack: VerticalWorkPack | null;
+  workMethod: InternalWorkMethod | null;
 };
 
 function normalizeText(value: string) {
@@ -130,7 +130,7 @@ export function routeBusinessRequest(request: string): RequestPlan {
   const text = normalizeText(originalRequest);
   const mode = inferMode(text);
   const monitoring = inferWatch(text);
-  const verticalWorkPack = resolveVerticalWorkPack(originalRequest);
+  const workMethod = resolveInternalWorkMethod(originalRequest);
   const action = mode === "commit"
     ? "business.commit"
     : mode === "act"
@@ -151,6 +151,6 @@ export function routeBusinessRequest(request: string): RequestPlan {
     watch: monitoring.watch,
     cadence: monitoring.cadence,
     steps: planSteps(mode, monitoring.watch),
-    verticalWorkPack
+    workMethod
   };
 }
