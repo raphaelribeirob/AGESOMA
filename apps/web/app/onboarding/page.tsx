@@ -6,11 +6,11 @@ import { agesomaPackage } from "../../lib/riverthree-product";
 
 type Choice = { label: string; value: string; detail?: string };
 type Draft = {
-  request: string;
-  goal: string;
   companyContext: string;
-  currentChannel: string;
-  source: string;
+  teamSize: string;
+  teamStructure: string;
+  coordinationProblem: string;
+  request: string;
 };
 
 const STORAGE_KEY = "agesoma:onboarding";
@@ -18,38 +18,22 @@ const FIRST_REQUEST_KEY = "agesoma:first-request";
 const PREPARED_REQUEST_KEY = "agesoma:prepared-request";
 
 const initialDraft: Draft = {
-  request: "",
-  goal: "",
   companyContext: "",
-  currentChannel: "",
-  source: ""
+  teamSize: "",
+  teamStructure: "",
+  coordinationProblem: "",
+  request: ""
 };
 
-const goalChoices: Choice[] = [
-  { label: "Vender mais", value: "sales", detail: "Avançar oportunidades e recuperar conversas." },
-  { label: "Atender melhor", value: "service", detail: "Responder mais rápido e acompanhar clientes." },
-  { label: "Organizar a operação", value: "operations", detail: "Reduzir atrasos, ruído e tarefas esquecidas." },
-  { label: "Ganhar tempo", value: "automation", detail: "Tirar trabalho repetitivo da equipe." }
+const problemChoices: Choice[] = [
+  { label: "Ninguém sabe o que é prioridade", value: "priority", detail: "O trabalho muda e a equipe perde foco." },
+  { label: "As coisas ficam paradas", value: "blocked", detail: "Tarefas dependem de cobrança e acompanhamento." },
+  { label: "Algumas pessoas ficam sobrecarregadas", value: "capacity", detail: "A distribuição de trabalho não está clara." },
+  { label: "Eu preciso acompanhar tudo", value: "owner_bottleneck", detail: "A empresa depende demais do dono para andar." }
 ];
 
-const channelChoices: Choice[] = [
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "E-mail", value: "email" },
-  { label: "Planilhas e arquivos", value: "files" },
-  { label: "CRM ou sistema", value: "crm" },
-  { label: "Ainda não sei", value: "unknown" }
-];
-
-const sourceChoices: Choice[] = [
-  { label: "WhatsApp", value: "whatsapp", detail: "Conversas, atendimento e acompanhamento." },
-  { label: "E-mail", value: "email", detail: "Caixa de entrada e comunicação com clientes." },
-  { label: "Planilhas e arquivos", value: "files", detail: "Listas, documentos e materiais do negócio." },
-  { label: "CRM ou sistema", value: "crm", detail: "Dados e rotinas que já vivem em outra ferramenta." },
-  { label: "Depois", value: "later", detail: "Entrar primeiro e conectar somente quando for necessário." }
-];
-
-function labelFor(value: string, choices: Choice[], fallback: string) {
-  return choices.find((choice) => choice.value === value)?.label ?? fallback;
+function problemLabel(value: string) {
+  return problemChoices.find((choice) => choice.value === value)?.label ?? "Coordenação da equipe";
 }
 
 export default function OnboardingPage() {
@@ -66,22 +50,23 @@ export default function OnboardingPage() {
         setDraft({ ...initialDraft, ...JSON.parse(saved) });
         return;
       } catch {
-        // Ignore malformed local state and let the user start cleanly.
+        // Start cleanly when local state is malformed.
       }
     }
     const request = sessionStorage.getItem(FIRST_REQUEST_KEY);
     if (request) setDraft((current) => ({ ...current, request }));
   }, []);
 
-  const preview = useMemo(() => ({
-    priority: labelFor(draft.goal, goalChoices, "Sua prioridade"),
-    firstWork: draft.request.trim() || "Seu primeiro pedido",
-    context: draft.companyContext.trim() || "Seu negócio",
-    channel: labelFor(draft.currentChannel, channelChoices, "Onde o trabalho acontece hoje")
-  }), [draft]);
+  const peoplePreview = useMemo(() => {
+    return draft.teamStructure
+      .split(/\n|;/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [draft.teamStructure]);
 
   const progress = Math.round(((index + 1) / steps.length) * 100);
-  const isAutoStep = step.id === "business_goal" || step.id === "channels_optional";
+  const isAutoStep = step.id === "coordination_problem";
 
   function persist(nextDraft: Draft) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextDraft));
@@ -96,9 +81,9 @@ export default function OnboardingPage() {
     });
   }
 
-  function selectAndAdvance(key: "goal" | "currentChannel", value: string) {
+  function selectProblem(value: string) {
     setDraft((current) => {
-      const nextDraft = { ...current, [key]: value };
+      const nextDraft = { ...current, coordinationProblem: value };
       persist(nextDraft);
       return nextDraft;
     });
@@ -107,6 +92,8 @@ export default function OnboardingPage() {
 
   function canContinue() {
     if (step.id === "company_context") return draft.companyContext.trim().length >= 3;
+    if (step.id === "team_size") return Number(draft.teamSize) >= 1 && Number(draft.teamSize) <= 500;
+    if (step.id === "team_structure") return draft.teamStructure.trim().length >= 3;
     if (step.id === "desired_outcome") return draft.request.trim().length >= 3;
     return true;
   }
@@ -121,7 +108,7 @@ export default function OnboardingPage() {
     sessionStorage.setItem(PREPARED_REQUEST_KEY, JSON.stringify({
       ...draft,
       product: agesomaPackage.product.id,
-      activationState: "prepared_not_executed",
+      activationState: "team_structure_prepared",
       preparedAt: new Date().toISOString()
     }));
     router.push("/");
@@ -130,50 +117,50 @@ export default function OnboardingPage() {
   const screen = (() => {
     if (step.id === "welcome") return {
       eyebrow: "",
-      title: "Diga o que precisa. O trabalho começa daqui.",
-      body: "Você fala do negócio. A AGESOMA organiza o próximo passo e mantém você no controle quando uma decisão realmente importa.",
+      title: "Organize a empresa sem precisar cobrar todo mundo.",
+      body: "A AGESOMA entende quem faz o quê, distribui o trabalho e acompanha o que precisa avançar.",
       surface: "welcome"
     };
-    if (step.id === "business_goal") return {
-      eyebrow: "Prioridade",
-      title: "O que mais importa agora?",
-      body: "Escolha uma coisa. O restante pode esperar.",
-      surface: "plain"
-    };
     if (step.id === "company_context") return {
-      eyebrow: "Seu negócio",
-      title: "Como a operação funciona hoje?",
-      body: "Uma frase basta. Conte o que sua equipe faz, não como a tecnologia funciona.",
+      eyebrow: "Sua empresa",
+      title: "O que sua empresa faz?",
+      body: "Uma frase basta. Isso me dá contexto para entender o trabalho da equipe.",
       surface: "plain"
     };
-    if (step.id === "channels_optional") return {
-      eyebrow: "Rotina",
-      title: "Onde o trabalho acontece mais?",
-      body: "Isso ajuda a montar um primeiro passo que faça sentido para sua realidade.",
+    if (step.id === "team_size") return {
+      eyebrow: "Equipe",
+      title: "Quantas pessoas trabalham com você?",
+      body: "Conte somente quem participa da operação do dia a dia.",
+      surface: "plain"
+    };
+    if (step.id === "team_structure") return {
+      eyebrow: "Responsabilidades",
+      title: "Quem faz o quê?",
+      body: "Escreva nomes e funções de forma simples. Não precisa montar organograma.",
+      surface: "plain"
+    };
+    if (step.id === "coordination_problem") return {
+      eyebrow: "Hoje",
+      title: "Onde a organização mais falha?",
+      body: "Isso define o que eu devo acompanhar primeiro.",
       surface: "plain"
     };
     if (step.id === "desired_outcome") return {
-      eyebrow: "Primeiro pedido",
-      title: "O que você quer tirar da sua frente?",
-      body: "Escreva como falaria com alguém da sua equipe.",
+      eyebrow: "Primeiro trabalho",
+      title: "O que precisa andar agora?",
+      body: "Escreva como falaria com alguém que conhece toda a sua empresa.",
       surface: "plain"
     };
-    if (step.id === "workflow_roi_preview") return {
-      eyebrow: "Seu primeiro plano",
-      title: "Eu começaria por aqui.",
-      body: "A proposta abaixo usa o que você acabou de contar. Nada externo foi feito ainda.",
+    if (step.id === "coordination_preview") return {
+      eyebrow: "Como vou organizar",
+      title: "Um responsável para cada trabalho.",
+      body: "Eu acompanho pessoas, assumo o que puder ser resolvido digitalmente e só chamo você quando for necessário.",
       surface: "resultPreview"
-    };
-    if (step.id === "connect_tools") return {
-      eyebrow: "Começar",
-      title: "Onde devo trabalhar primeiro?",
-      body: "Escolha uma fonte ou deixe para depois. A autorização real só aparece quando for necessária.",
-      surface: "plain"
     };
     return {
       eyebrow: "Pronto",
-      title: "Seu primeiro pedido está preparado.",
-      body: "Nada foi executado ainda. Ao entrar, você verá o estado do trabalho, o que precisa da sua atenção e o próximo passo útil.",
+      title: "A estrutura inicial da sua empresa está preparada.",
+      body: "Ao entrar, você verá equipe, trabalho, bloqueios e resultados em um só lugar. Nenhuma ação externa foi executada nesta etapa.",
       surface: "success"
     };
   })();
@@ -196,83 +183,66 @@ export default function OnboardingPage() {
 
         {step.id === "welcome" ? (
           <div className="r3WelcomeMaterial" aria-hidden="true">
-            <span>peça.</span>
-            <span>acompanhe.</span>
-            <span>decida só quando importa.</span>
-          </div>
-        ) : null}
-
-        {step.id === "business_goal" ? (
-          <div className="choiceGrid">
-            {goalChoices.map((choice) => {
-              const active = draft.goal === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("goal", choice.value)}>
-                <span className="choiceCheck">{active ? "✓" : ""}</span>
-                <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
-              </button>;
-            })}
+            <span>entenda.</span>
+            <span>organize.</span>
+            <span>faça avançar.</span>
           </div>
         ) : null}
 
         {step.id === "company_context" ? (
-          <textarea className="onboardingTextarea" aria-label="Como sua operação funciona hoje" placeholder="Ex.: Somos uma empresa de consórcio com quatro vendedores. Os clientes chegam pelo WhatsApp e a equipe acompanha tudo em planilhas." value={draft.companyContext} onChange={(event) => update("companyContext", event.target.value)} rows={5} autoFocus />
+          <textarea className="onboardingTextarea" aria-label="O que sua empresa faz" placeholder="Ex.: Vendemos consórcios e atendemos clientes pelo WhatsApp." value={draft.companyContext} onChange={(event) => update("companyContext", event.target.value)} rows={4} autoFocus />
         ) : null}
 
-        {step.id === "channels_optional" ? (
+        {step.id === "team_size" ? (
+          <input className="onboardingTextarea" aria-label="Tamanho da equipe" type="number" min="1" max="500" inputMode="numeric" placeholder="Ex.: 8" value={draft.teamSize} onChange={(event) => update("teamSize", event.target.value)} autoFocus />
+        ) : null}
+
+        {step.id === "team_structure" ? (
+          <textarea className="onboardingTextarea" aria-label="Quem faz o quê" placeholder={"Ex.:\nCarlos — vendas e propostas\nAna — financeiro e cobranças\nJoana — atendimento"} value={draft.teamStructure} onChange={(event) => update("teamStructure", event.target.value)} rows={6} autoFocus />
+        ) : null}
+
+        {step.id === "coordination_problem" ? (
           <div className="choiceGrid">
-            {channelChoices.map((choice) => {
-              const active = draft.currentChannel === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectAndAdvance("currentChannel", choice.value)}>
+            {problemChoices.map((choice) => {
+              const active = draft.coordinationProblem === choice.value;
+              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectProblem(choice.value)}>
                 <span className="choiceCheck">{active ? "✓" : ""}</span>
-                <span><strong>{choice.label}</strong></span>
+                <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
               </button>;
             })}
           </div>
         ) : null}
 
         {step.id === "desired_outcome" ? (
-          <textarea className="onboardingTextarea" aria-label="Descreva o primeiro pedido" placeholder="Ex.: Tenho clientes que pediram orçamento e ninguém respondeu. Quero recuperar essas conversas." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
+          <textarea className="onboardingTextarea" aria-label="O que precisa andar agora" placeholder="Ex.: Organize a equipe para responder todos os clientes atrasados até amanhã." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
         ) : null}
 
-        {step.id === "workflow_roi_preview" ? (
+        {step.id === "coordination_preview" ? (
           <div className="r3ResultPreview">
             <div className="previewHero">
-              <span className="monoLabel">PRIMEIRO PASSO</span>
-              <strong>{preview.firstWork}</strong>
-              <p>Começar pela menor ação útil, observar o que acontece e trazer para você apenas decisões com consequência real.</p>
+              <span className="monoLabel">PRIMEIRO TRABALHO</span>
+              <strong>{draft.request.trim() || "Organizar a primeira prioridade"}</strong>
+              <p>A AGESOMA define o responsável, acompanha até a conclusão e assume internamente o que não precisa ocupar uma pessoa.</p>
             </div>
             <div className="personalizationEvidence">
-              <div><span>Prioridade</span><strong>{preview.priority}</strong></div>
-              <div><span>Seu contexto</span><strong>{preview.context}</strong></div>
-              <div><span>Rotina principal</span><strong>{preview.channel}</strong></div>
+              <div><span>Empresa</span><strong>{draft.companyContext || "Seu negócio"}</strong></div>
+              <div><span>Equipe</span><strong>{draft.teamSize ? `${draft.teamSize} pessoa${Number(draft.teamSize) === 1 ? "" : "s"}` : "Sua equipe"}</strong></div>
+              <div><span>Primeiro foco</span><strong>{problemLabel(draft.coordinationProblem)}</strong></div>
             </div>
-          </div>
-        ) : null}
-
-        {step.id === "connect_tools" ? (
-          <div className="choiceGrid">
-            {sourceChoices.map((choice) => {
-              const active = draft.source === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => update("source", choice.value)}>
-                <span className="choiceCheck">{active ? "✓" : ""}</span>
-                <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
-              </button>;
-            })}
           </div>
         ) : null}
 
         {step.id === "first_execution" ? (
           <div className="r3FirstAction">
-            <div><span className="monoLabel">PRIORIDADE</span><strong>{preview.priority}</strong></div>
-            <div><span className="monoLabel">PRIMEIRO PEDIDO</span><strong>{preview.firstWork}</strong></div>
-            <div><span className="monoLabel">FONTE</span><strong>{labelFor(draft.source, sourceChoices, "Conectar quando precisar")}</strong></div>
+            <div><span className="monoLabel">EMPRESA</span><strong>{draft.companyContext || "Seu negócio"}</strong></div>
+            <div><span className="monoLabel">EQUIPE</span><strong>{peoplePreview.length ? peoplePreview.join(" · ") : `${draft.teamSize || "—"} pessoas`}</strong></div>
+            <div><span className="monoLabel">PRIMEIRO TRABALHO</span><strong>{draft.request || "Organizar a próxima prioridade"}</strong></div>
           </div>
         ) : null}
 
         {!isAutoStep ? (
           <div className="onboardingActions">
             <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
-            {step.id === "connect_tools" ? <span className="privacyNote">Nenhuma conta é acessada nesta tela.</span> : null}
           </div>
         ) : null}
       </section>
