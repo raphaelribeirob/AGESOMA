@@ -1,119 +1,136 @@
-# InstantWork
+# AGESOMA
 
-Service-as-a-Software for SMEs: customers buy completed work and verified business outcomes, not agent tooling.
+AGESOMA is one product with one job: act as the operating intelligence for a small or medium business.
 
-Public communication is governed by `docs/COMMUNICATION_SYSTEM.md`. Technical vocabulary below is internal architecture language, not the customer-facing value proposition.
+Its purpose is simple: understand how the company works, organize people and work, decide what should happen next, use HERMES when software can execute the work, and involve the owner only when a real decision or authorization is required.
 
-## Product operating model
+## Canonical product definition
 
-InstantWork adapts the persistent-agent model to a small business:
+**AGESOMA = the JARVIS for SMEs.**
 
-`observe -> find opportunity -> propose work -> approve when needed -> work in background -> deliver result -> verify value -> calculate economics -> learn -> observe again`
+Customer-facing promise:
 
-The owner-facing product is organized around seven surfaces:
+**AGESOMA organiza sua empresa, coordena sua equipe e faz o trabalho avançar.**
 
-`Início | Pedir | Oportunidades | Trabalhos | Resultados | Aprovações | Conexões`
+AGESOMA is not an agent marketplace, workflow builder, chatbot, CRM, HR system, project-management suite or collection of vertical products. Those capabilities may exist internally when useful, but they are not separate products or user-facing concepts.
 
-Conversation is the easiest way to delegate work, but results should become business views with evidence, cost, return after cost and next steps rather than remaining trapped in chat.
+## Operating model
 
-P0 principle: **the workflow is the product, Sentinel is the authority, Hermes is the executor, and the verified outcome is the unit of value.**
+```text
+Owner / business objective
+        ↓
+AGESOMA understands the company
+        ↓
+AGESOMA decides what needs to happen
+        ↓
+┌──────────────────────┬──────────────────────┐
+│ Human employee       │ HERMES               │
+│ receives work        │ executes digital work│
+└──────────────────────┴──────────────────────┘
+        ↓
+AGESOMA follows progress
+        ↓
+AGESOMA verifies the result
+        ↓
+AGESOMA reports what changed
+        ↓
+AGESOMA learns how this company works
+```
 
-## Product functions
+The owner should not need to understand agents, prompts, models, workflows, tools or orchestration.
 
-InstantWork is packaged around business jobs, not around a catalog of agents.
+## What AGESOMA does
 
-- **Observar** — read authorized business state, detect changes and surface opportunities.
-- **Trabalhar** — prepare files, organize information and perform reversible operational work.
-- **Agir** — send, update, schedule or execute external actions inside approved business rules.
-- **Comprometer** — spend, change commercial terms or create material obligations only with explicit scoped authority.
-- **Oportunidades** — proactively convert observed business state into proposed work.
-- **Resultados** — turn completed work into a business artifact with evidence and next steps.
-- **Valor comprovado** — show money recovered or revenue confirmed, work cost and return after cost instead of agent activity metrics.
-- **Conexões** — attach the systems the SME already uses; the owner should not need to understand integration architecture.
+AGESOMA maintains one operating picture of the business:
 
-## Hermes-first execution strategy
+- objectives and priorities;
+- employees, responsibilities and capacity;
+- work that is pending, active, blocked or completed;
+- decisions that need the owner;
+- systems and information the company already uses;
+- work that can be delegated to HERMES;
+- evidence that a result actually happened;
+- lessons learned from the company over time.
 
-InstantWork does not rebuild capabilities that Hermes already provides. Hermes is the operational engine for messaging channels, browser/computer-use, APIs, terminal-capable work and other supported tools. InstantWork remains responsible for tenant context, owner UX, policy/Sentinel, business approvals, outcome verification and economic attribution.
+From that picture, AGESOMA continually answers four questions:
 
-Canonical path:
+1. What needs to happen now?
+2. Who should do it?
+3. Can HERMES do it safely instead of a person?
+4. What does the owner actually need to know or decide?
 
-`business/customer event -> Hermes gateway/executor -> InstantWork policy boundary -> work -> Outcome Ledger -> verified business value`
+## Human + HERMES coordination
 
-For WhatsApp, the production path is the official **WhatsApp Business Cloud API** adapter included in Hermes. The deployment passes the `WHATSAPP_CLOUD_*` credentials directly to the Hermes gateway, keeps the webhook listener internal on port `8090`, and can place a Cloudflare Tunnel sidecar in front of it for the public HTTPS callback required by Meta. The unofficial Baileys/WhatsApp-Web bridge is not the default production path.
+Human employees remain part of the operating system. AGESOMA can assign, prioritize, follow up and surface blockers for human work.
 
-WhatsApp customer traffic stays allowlisted by default in the checked-in deployment. Before opening the number to arbitrary customers, configure a deliberately restricted `whatsapp_cloud` Hermes toolset; the stock Hermes WhatsApp platform toolset includes broad tools such as terminal access and is not an appropriate trust boundary for untrusted public customer messages.
+HERMES is an internal execution substrate controlled by AGESOMA. It may handle authorized browser, API, messaging, file and computer work when appropriate. HERMES is never the product, never the authority and never the owner-facing identity.
 
-The intended customer-service loop is:
+Canonical authority rule:
 
-`customer WhatsApp -> Hermes Cloud adapter -> safe customer-service session -> answer or escalate -> InstantWork records business action/outcome`
+**AGESOMA decides and governs. HERMES executes. People collaborate. The owner retains authority.**
 
-Owner-initiated consequential work continues through the InstantWork task/Sentinel path rather than granting customer chats unrestricted execution authority.
+## Owner experience
 
-## CAL AI-inspired packaging
+The primary product should stay extremely simple:
 
-InstantWork uses a value-led onboarding pattern inspired by high-converting consumer apps, adapted for SMEs. It does not copy Cal AI branding or fitness content.
+`Início | Equipe | Trabalho | Resultados`
 
-The onboarding route is `/onboarding` and follows this sequence:
+The owner can also ask AGESOMA directly what they want done.
 
-1. Promise — state the dream outcome in the owner's language.
-2. Magic demo — show a concrete business result before explaining features.
-3. Goal — choose the result that matters most now.
-4. Current state — understand how the company operates today.
-5. Bottleneck — identify where work or money is being lost.
-6. Autonomy — define how much work InstantWork may do without interruption.
-7. Connections — select where InstantWork will eventually work.
-8. Build — show that the operation is being personalized.
-9. Plan reveal — present the first workflow as the owner's plan.
-10. Offer — sell access to work and outcomes, not seats or agent counts.
+Examples:
 
-The current launch packaging target is **InstantWork Core — US$29/month maximum base access price**. Checkout is intentionally not activated until billing and the first real workflow are production-ready. Usage/outcome economics may be tested later, but the customer-facing value unit remains work completed and verified outcome.
+- “Organize a equipe para fechar mais vendas esta semana.”
+- “Quem está sobrecarregado?”
+- “O que está parado esperando alguém?”
+- “Resolva tudo que puder sem me interromper.”
+- “O que precisa da minha decisão hoje?”
+- “Mostre o que realmente foi concluído esta semana.”
+
+AGESOMA may internally use specialized work methods for different business situations, but these methods must never become separate AGESOMA products, modes or brands.
+
+## Safety and authority
+
+AGESOMA owns tenant context, employee/work context, policy, approvals, business memory, result verification and economic attribution.
+
+HERMES operates inside isolated Work Cells and receives only the authority needed for the active task. Consequential external actions remain subject to AGESOMA policy and scoped owner authority.
+
+The core principle is unchanged:
+
+**The executor is never its own authorization authority.**
 
 ## P0 stack
 
-- Next.js + React + TypeScript: owner-facing product shell.
-- PostgreSQL + pgvector: operational truth + semantic memory.
-- pg-boss: durable P0 jobs using the same Postgres database.
-- Sentinel: independent policy gate. The reasoning/execution agent never grants its own permissions.
-- Margin Governor: rejects or escalates work that is not economically rational.
-- Hermes: isolated execution plane and messaging gateway for APIs, WhatsApp, browser and computer-use.
-- Outcome Ledger: economic source of truth for every workflow.
-- PostHog: product/outcome analytics.
-- Sentry/C-Trace: reliability and agent execution traces.
-
-## Persistent business loop
-
-The production database includes persistent Goals, Watchers and Work Cells. A Goal defines the business outcome, a Watcher keeps observing an event/schedule/condition, and one Work Cell owns the tenant's runtime namespace. The UI should eventually create these directly from onboarding after authenticated tenant membership is wired.
+- Next.js + React + TypeScript: owner-facing AGESOMA shell.
+- PostgreSQL + pgvector: operational truth and business memory.
+- pg-boss: durable background work.
+- Sentinel: independent authorization boundary.
+- HERMES: isolated digital execution plane.
+- Work Cells: tenant-isolated runtime, browser/files/memory/credential namespaces.
+- Credential broker: keeps business credentials outside HERMES.
+- Outcome verification: distinguishes work performed from results actually proven.
+- PostHog + Sentry/C-Trace: product and reliability observability.
 
 ## Repository layout
 
 ```text
-apps/web            Owner shell, onboarding and API endpoints
-packages/core       Sentinel, Margin Governor, outcome contracts
-packages/db         Postgres client + migrations
-services/worker     pg-boss durable execution worker + Hermes adapter
-deploy/production   Hermes gateway, WhatsApp Cloud ingress and worker runtime
-docs                Architecture and release gates
+apps/web            AGESOMA owner experience and API endpoints
+packages/core       decision, policy, routing and business intelligence
+packages/db         operational database and migrations
+services/worker     durable coordination and HERMES adapter
+deploy/production   control plane and isolated tenant Work Cells
+docs                product doctrine, architecture and release gates
 ```
 
-## Compatibility aliases
+## Internal compatibility names
 
-The public product name is InstantWork. Existing internal identifiers such as `@agesoma/*`, `agesoma_p0`, `agesoma.execute`, the GitHub repository name and legacy Vercel project identifiers remain temporary compatibility aliases until their migrations can be coordinated without breaking production data or deployments.
+Existing identifiers such as `@agesoma/*`, `agesoma_p0` and `agesoma.execute` are valid internal names. Legacy `InstantWork` language must not return to the public product.
 
-## Start locally
+## Release test
 
-1. Copy `.env.example` to `.env` and set values.
-2. Start Postgres: `docker compose up -d postgres`.
-3. Install packages: `npm install`.
-4. Apply the database migrations in `packages/db/migrations/` in deployment order.
-5. Run the web app: `npm run dev`.
-6. Run the worker separately: `npm run worker`.
+A release is directionally correct only if an ordinary SME owner can use AGESOMA without learning AI concepts and can answer, at a glance:
 
-Hermes is intentionally **not** embedded in the web process. Run it as an isolated service/container and point `HERMES_BASE_URL` at it.
-
-## P0 release gate
-
-Do not expand to Studio/Builder/Temporal/Computer Use at scale until this closes end-to-end:
-
-`lead forgotten -> opportunity -> approval/policy -> execution -> response -> meeting/sale -> attributed revenue -> execution cost -> net value -> learning record`
-
-Required proof: one paying customer, one production workflow, measured outcome, recorded attribution, positive or explainable unit economics.
+- what the team is doing;
+- what AGESOMA/HERMES handled automatically;
+- what is blocked;
+- what needs the owner's decision;
+- what result was actually achieved.
