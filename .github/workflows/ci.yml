@@ -83,10 +83,23 @@ jobs:
             echo "Customer WhatsApp must not expose terminal/code execution"
             exit 1
           fi
+      - name: Enforce Muse-style execution boundaries
+        run: |
+          grep -q 'HERMES_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
+          grep -q 'Tenant-routed Hermes Work Cell is required; shared Hermes is disabled' services/worker/src/hermes.ts
+          grep -q 'AGESOMA_ALLOW_SHARED_HERMES' deploy/production/docker-compose.yml
+          hermes_block="$(awk '/^  hermes:/{flag=1} /^  worker:/{flag=0} flag' deploy/production/docker-compose.yml)"
+          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WHATSAPP_CLOUD_APP_SECRET|WHATSAPP_CLOUD_VERIFY_TOKEN'; then
+            echo "Business credentials must never be injected into Hermes"
+            exit 1
+          fi
       - name: Enforce tenant isolation migration
         run: |
           grep -q 'force row level security' packages/db/migrations/0006_tenant_isolation.sql
           grep -q 'grant usage on schema agesoma_p0 to authenticated' packages/db/migrations/0006_tenant_isolation.sql
+          grep -q 'credential_handles' packages/db/migrations/0005_muse_hardening.sql
+          grep -q 'egress_decisions' packages/db/migrations/0005_muse_hardening.sql
+          grep -q 'runtime_namespace' packages/db/migrations/0005_muse_hardening.sql
       - name: Build web app
         run: npm run build --workspace @agesoma/web
       - name: Mirror Next.js output to Vercel project root
