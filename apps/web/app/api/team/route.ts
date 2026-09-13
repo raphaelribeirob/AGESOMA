@@ -5,6 +5,7 @@ import { requireInternalApi, requireJson, requireTenantActor } from "../../../li
 
 const createSchema = z.object({
   tenantId: z.string().uuid(),
+  actorId: z.string().min(1).max(128).optional(),
   name: z.string().min(2).max(120),
   roleTitle: z.string().min(2).max(120),
   department: z.string().max(120).optional(),
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
   if (actor.error) return actor.error;
 
   const members = await tenantSql(tenantId, `
-    select id,name,role_title,department,responsibilities,skills,availability,weekly_capacity_hours,created_at,updated_at
+    select id,actor_id,name,role_title,department,responsibilities,skills,availability,weekly_capacity_hours,created_at,updated_at
     from team_members
     where tenant_id=$1
     order by case availability when 'active' then 0 when 'away' then 1 else 2 end, name asc
@@ -47,11 +48,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Only owner or admin can change the team" }, { status: 403 });
   }
 
+  if (input.actorId) {
+    const [membership] = await tenantSql<{ actor_id: string }>(input.tenantId, `
+      select actor_id from tenant_memberships where tenant_id=$1 and actor_id=$2 limit 1
+    `, [input.tenantId, input.actorId]);
+    if (!membership) return NextResponse.json({ error: "Team actor is not a member of this business" }, { status: 400 });
+  }
+
   const [member] = await tenantSql(input.tenantId, `
     insert into team_members (
-      tenant_id,name,role_title,department,responsibilities,skills,weekly_capacity_hours
-    ) values ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7)
+      tenant_id,actor_id,name,role_title,department,responsibilities,skills,weekly_capacity_hours
+    ) values ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8)
     on conflict (tenant_id, (lower(name))) do update set
+      actor_id=excluded.actor_id,
       role_title=excluded.role_title,
       department=excluded.department,
       responsibilities=excluded.responsibilities,
@@ -59,9 +68,10 @@ export async function POST(req: Request) {
       weekly_capacity_hours=excluded.weekly_capacity_hours,
       availability='active',
       updated_at=now()
-    returning id,name,role_title,department,responsibilities,skills,availability,weekly_capacity_hours
+    returning id,actor_id,name,role_title,department,responsibilities,skills,availability,weekly_capacity_hours
   `, [
     input.tenantId,
+    input.actorId ?? null,
     input.name,
     input.roleTitle,
     input.department ?? null,
