@@ -10,6 +10,25 @@ test("broad sales goal starts with observation", () => {
   assert.equal(plan.domain, "sales");
   assert.equal(plan.action, "business.observe");
   assert.equal(plan.requiresApproval, false);
+  assert.equal(plan.verticalWorkPack, null);
+});
+
+test("consorcio sales request activates the first vertical work pack", () => {
+  const plan = routeBusinessRequest("Encontre e qualifique 50 leads para consórcio");
+  assert.equal(plan.domain, "sales");
+  assert.equal(plan.action, "business.observe");
+  assert.equal(plan.verticalWorkPack?.id, "consorcio_sales_v1");
+  assert.equal(plan.verticalWorkPack?.market, "consorcio");
+  assert.ok(plan.verticalWorkPack?.stages.includes("qualify_interest"));
+  assert.ok(plan.verticalWorkPack?.successSignals.includes("meeting_booked"));
+});
+
+test("consorcio WhatsApp request keeps approval boundary and vertical context", () => {
+  const plan = routeBusinessRequest("Recupere os leads de consórcio parados e fale com eles no WhatsApp");
+  assert.equal(plan.resource, "whatsapp");
+  assert.equal(plan.action, "business.act");
+  assert.equal(plan.requiresApproval, true);
+  assert.equal(plan.verticalWorkPack?.id, "consorcio_sales_v1");
 });
 
 test("WhatsApp reply becomes an external action", () => {
