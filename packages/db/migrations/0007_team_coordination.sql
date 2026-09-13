@@ -3,6 +3,7 @@ set search_path to agesoma_p0, public;
 create table if not exists team_members (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references tenants(id) on delete cascade,
+  actor_id text,
   name text not null,
   role_title text not null,
   department text,
@@ -20,6 +21,8 @@ create table if not exists team_members (
 
 create unique index if not exists team_members_tenant_name_idx
   on team_members (tenant_id, lower(name));
+create unique index if not exists team_members_tenant_actor_idx
+  on team_members (tenant_id, actor_id) where actor_id is not null;
 create index if not exists team_members_tenant_availability_idx
   on team_members (tenant_id, availability, updated_at desc);
 
