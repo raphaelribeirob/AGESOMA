@@ -19,20 +19,49 @@ jobs:
       - run: npm run typecheck
       - name: Test core behavior
         run: node --test packages/core/test/request-router.test.mjs
+
+      - name: Enforce single AGESOMA purpose
+        run: |
+          test -f docs/PRODUCT_SCOPE.md
+          grep -q 'JARVIS for SMEs' docs/PRODUCT_SCOPE.md
+          test -f packages/db/migrations/0007_team_coordination.sql
+          grep -q 'create table if not exists team_members' packages/db/migrations/0007_team_coordination.sql
+          grep -q 'create table if not exists work_assignments' packages/db/migrations/0007_team_coordination.sql
+          grep -q 'executor_type in' packages/db/migrations/0007_team_coordination.sql
+          test -f apps/web/app/api/team/route.ts
+          test -f apps/web/app/api/coordinate/route.ts
+          test -f apps/web/app/api/assignments/route.ts
+          grep -q 'decideExecutor' packages/core/src/request-router.ts
+          grep -q 'href="#equipe">Equipe<' apps/web/app/page.tsx
+          grep -q 'href="#trabalho">Trabalho<' apps/web/app/page.tsx
+          grep -q 'href="#resultados">Resultados<' apps/web/app/page.tsx
+          if grep -R -n -E 'resolveVerticalWorkPack|verticalWorkPack|consorcio_sales_v1' packages/core/src/request-router.ts packages/core/src/index.ts apps/web/app; then
+            echo "Niche product routing must not return to canonical AGESOMA flows"
+            exit 1
+          fi
+          if grep -n -E 'HERMES|Hermes' apps/web/app/page.tsx apps/web/app/onboarding/page.tsx; then
+            echo "HERMES must remain invisible in owner-facing AGESOMA UI"
+            exit 1
+          fi
+
       - name: Enforce RiverThree product package
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
           grep -q 'name: "AGESOMA"' apps/web/lib/riverthree-product.ts
+          grep -q 'category: "smb-operating-intelligence"' apps/web/lib/riverthree-product.ts
           grep -q 'wordmark: "/agesoma-wordmark.jpeg"' apps/web/lib/riverthree-product.ts
           test -f apps/web/public/agesoma-wordmark.jpeg
           grep -q 'onboardingMode: "businessConsumerized"' apps/web/lib/riverthree-product.ts
           grep -q 'intelligenceOrb: "contextual"' apps/web/lib/riverthree-product.ts
           grep -q 'genZ: "subtle"' apps/web/lib/riverthree-product.ts
           grep -q 'mode: "actionAgent"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "channels_optional"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "workflow_roi_preview"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "company_context"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "team_size"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "team_structure"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "coordination_problem"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "coordination_preview"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "first_execution"' apps/web/lib/riverthree-product.ts
-          grep -q 'activationEvent: "first_business_workflow_succeeded"' apps/web/lib/riverthree-product.ts
+          grep -q 'activationEvent: "first_coordinated_work_assigned"' apps/web/lib/riverthree-product.ts
           grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx
           grep -q 'running ?' apps/web/app/page.tsx
           if grep -R -n -E 'CAL AI|RIVERTHREE|Business Consumerized|actionAgent|Work Cell|Watchers' apps/web/app; then
@@ -43,6 +72,7 @@ jobs:
             echo "Public AGESOMA UI must use AGESOMA identity and demonstrate value without legacy labels"
             exit 1
           fi
+
       - name: Enforce canonical RiverThree UI bindings
         run: |
           grep -q 'className="r3ActionHero"' apps/web/app/page.tsx
@@ -62,6 +92,7 @@ jobs:
             echo "Non-canonical UI bindings detected; RiverThree classes must be used directly"
             exit 1
           fi
+
       - name: Enforce independent outcome verification
         run: |
           if grep -q "insert into outcome_events" services/worker/src/product-output.ts; then
@@ -69,12 +100,15 @@ jobs:
             exit 1
           fi
           grep -q "requireOutcomeVerifier" apps/web/app/api/outcomes/route.ts
+
       - name: Enforce resolve-before-approval
         run: |
           grep -q 'executionAction = plan.requiresApproval ? "business.work" : plan.action' apps/web/app/api/requests/route.ts
+          grep -q 'plan.requiresApproval ? "business.work" : plan.action' apps/web/app/api/coordinate/route.ts
           grep -q 'Consequential action is not fully resolved' apps/web/app/api/approvals/route.ts
           grep -q 'Consequential capability is unresolved' services/worker/src/index.ts
           grep -q 'scope_hash' apps/web/app/api/approvals/route.ts
+
       - name: Enforce customer channel restriction
         run: |
           grep -q 'platform_toolsets' deploy/production/hermes-config.yaml
@@ -83,6 +117,7 @@ jobs:
             echo "Customer WhatsApp must not expose terminal/code execution"
             exit 1
           fi
+
       - name: Enforce Muse-style execution boundaries
         run: |
           test -f deploy/production/workcell-compose.yml
@@ -110,6 +145,7 @@ jobs:
           grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'agesoma-control-worker' deploy/production/provision-workcell.sh
+
       - name: Validate production topology
         run: |
           sh -n deploy/production/provision-workcell.sh
@@ -122,15 +158,20 @@ jobs:
           WHATSAPP_CLOUD_PHONE_NUMBER_ID=100000000000001 \
           WHATSAPP_CLOUD_ACCESS_TOKEN=test-whatsapp-token \
           docker compose -f deploy/production/workcell-compose.yml config >/dev/null
-      - name: Enforce tenant isolation migration
+
+      - name: Enforce tenant isolation migrations
         run: |
           grep -q 'force row level security' packages/db/migrations/0006_tenant_isolation.sql
           grep -q 'grant usage on schema agesoma_p0 to authenticated' packages/db/migrations/0006_tenant_isolation.sql
           grep -q 'credential_handles' packages/db/migrations/0005_muse_hardening.sql
           grep -q 'egress_decisions' packages/db/migrations/0005_muse_hardening.sql
           grep -q 'runtime_namespace' packages/db/migrations/0005_muse_hardening.sql
+          grep -q 'alter table team_members force row level security' packages/db/migrations/0007_team_coordination.sql
+          grep -q 'alter table work_assignments force row level security' packages/db/migrations/0007_team_coordination.sql
+
       - name: Build web app
         run: npm run build --workspace @agesoma/web
+
       - name: Mirror Next.js output to Vercel project root
         run: |
           rm -rf .next
