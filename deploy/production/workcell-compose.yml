@@ -1,0 +1,60 @@
+services:
+  sentinel-egress:
+    image: ubuntu/squid:latest
+    restart: unless-stopped
+    volumes:
+      - ./sentinel-egress.conf:/etc/squid/squid.conf:ro
+      - ${WORKCELL_ALLOWLIST_FILE}:/etc/squid/approved-domains:ro
+    networks:
+      - tenant_cell
+      - controlled_egress
+
+  hermes:
+    image: nousresearch/hermes-agent:v2026.9.7
+    restart: unless-stopped
+    command: ["gateway", "run"]
+    environment:
+      HERMES_HOME: /opt/data
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: "0.0.0.0"
+      API_SERVER_PORT: "8642"
+      API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
+      DELEGATION_MAX_CONCURRENT_CHILDREN: "3"
+      HERMES_AGENT_HELP_GUIDANCE: >-
+        You are one isolated AGESOMA Work Cell. Execute only work for the tenant assigned
+        to this runtime. You are not the authorization authority. Never broaden a supplied
+        capability and never seek business credentials.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NOUS_API_KEY: ${NOUS_API_KEY:-}
+      HTTP_PROXY: http://sentinel-egress:3128
+      HTTPS_PROXY: http://sentinel-egress:3128
+      ALL_PROXY: http://sentinel-egress:3128
+      NO_PROXY: 127.0.0.1,localhost
+    volumes:
+      - hermes_data:/opt/data
+      - ./hermes-config.yaml:/opt/data/config.yaml:ro
+    networks:
+      tenant_cell:
+        aliases:
+          - hermes-${AGESOMA_TENANT_ID}
+    depends_on:
+      - sentinel-egress
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+networks:
+  tenant_cell:
+    name: agesoma-cell-${AGESOMA_TENANT_ID}
+    external: true
+  controlled_egress:
+    name: agesoma-controlled-egress
+    external: true
+
+volumes:
+  hermes_data:
+    name: agesoma-hermes-${AGESOMA_TENANT_ID}
