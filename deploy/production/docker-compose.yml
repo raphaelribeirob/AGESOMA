@@ -11,49 +11,25 @@ services:
       API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
       DELEGATION_MAX_CONCURRENT_CHILDREN: "3"
       HERMES_AGENT_HELP_GUIDANCE: >-
-        You are the execution engine for InstantWork. Use delegation for bounded research,
+        You are the execution engine for AGESOMA. Use delegation for bounded research,
         analysis and reversible preparation. Keep delegation flat. Do not let delegated
         children create external commitments, send customer-facing communications, spend
         money, change commercial terms or change permissions. Consequential external work
-        must return to the parent task and remain subject to InstantWork policy and approval.
+        must return to the parent task and remain subject to AGESOMA policy and approval.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NOUS_API_KEY: ${NOUS_API_KEY:-}
-      WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID:-}
-      WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
-      WHATSAPP_CLOUD_APP_SECRET: ${WHATSAPP_CLOUD_APP_SECRET:-}
-      WHATSAPP_CLOUD_VERIFY_TOKEN: ${WHATSAPP_CLOUD_VERIFY_TOKEN:-}
-      WHATSAPP_CLOUD_APP_ID: ${WHATSAPP_CLOUD_APP_ID:-}
-      WHATSAPP_CLOUD_WABA_ID: ${WHATSAPP_CLOUD_WABA_ID:-}
-      WHATSAPP_CLOUD_HOME_CHANNEL: ${WHATSAPP_CLOUD_HOME_CHANNEL:-}
-      WHATSAPP_CLOUD_ALLOWED_USERS: ${WHATSAPP_CLOUD_ALLOWED_USERS:-}
-      WHATSAPP_CLOUD_ALLOW_ALL_USERS: ${WHATSAPP_CLOUD_ALLOW_ALL_USERS:-false}
-      WHATSAPP_CLOUD_DM_POLICY: ${WHATSAPP_CLOUD_DM_POLICY:-allowlist}
-      WHATSAPP_CLOUD_ALLOW_FROM: ${WHATSAPP_CLOUD_ALLOW_FROM:-}
-      WHATSAPP_CLOUD_WEBHOOK_HOST: "0.0.0.0"
-      WHATSAPP_CLOUD_WEBHOOK_PORT: "8090"
-      WHATSAPP_CLOUD_WEBHOOK_PATH: "/whatsapp/webhook"
     volumes:
       - hermes_data:/opt/data
       - ./hermes-config.yaml:/opt/data/config.yaml:ro
     expose:
       - "8642"
-      - "8090"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health')"]
       interval: 15s
       timeout: 5s
       retries: 8
       start_period: 30s
-
-  whatsapp-tunnel:
-    image: cloudflare/cloudflared:2026.9.0
-    restart: unless-stopped
-    profiles: ["whatsapp-cloud"]
-    command: ["tunnel", "--no-autoupdate", "run", "--token", "${CLOUDFLARE_TUNNEL_TOKEN}"]
-    depends_on:
-      hermes:
-        condition: service_healthy
 
   worker:
     build:
@@ -63,7 +39,9 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       AGESOMA_DB_SCHEMA: agesoma_p0
-      HERMES_BASE_URL: http://hermes:8642
+      HERMES_BASE_URL_TEMPLATE: ${HERMES_BASE_URL_TEMPLATE:-}
+      AGESOMA_ALLOW_SHARED_HERMES: ${AGESOMA_ALLOW_SHARED_HERMES:-false}
+      HERMES_BASE_URL: ${HERMES_BASE_URL:-}
       HERMES_SERVICE_TOKEN: ${HERMES_SERVICE_TOKEN}
       HERMES_RUN_TIMEOUT_MS: ${HERMES_RUN_TIMEOUT_MS:-120000}
       HERMES_RUN_POLL_MS: ${HERMES_RUN_POLL_MS:-1000}
