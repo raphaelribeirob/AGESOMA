@@ -1,6 +1,7 @@
 export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
 export type WatchCadence = "15m" | "1h" | "6h" | "1d" | "7d";
+export type LegacyWorkMethod = { stages: string[]; successSignals: string[] };
 
 export type RequestPlan = {
   title: string;
@@ -14,6 +15,7 @@ export type RequestPlan = {
   watch: boolean;
   cadence: WatchCadence | null;
   steps: string[];
+  workMethod: LegacyWorkMethod | null;
 };
 
 export type TeamMemberForCoordination = {
@@ -207,6 +209,7 @@ export function routeBusinessRequest(request: string): RequestPlan {
     requiresApproval: mode === "act" || mode === "commit",
     watch: monitoring.watch,
     cadence: monitoring.cadence,
-    steps: planSteps(mode, monitoring.watch)
+    steps: planSteps(mode, monitoring.watch),
+    workMethod: null
   };
 }
