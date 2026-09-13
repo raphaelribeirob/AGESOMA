@@ -1,3 +1,5 @@
+import { resolveVerticalWorkPack, type VerticalWorkPack } from "./vertical-packs";
+
 export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
 export type WatchCadence = "15m" | "1h" | "6h" | "1d" | "7d";
@@ -14,6 +16,7 @@ export type RequestPlan = {
   watch: boolean;
   cadence: WatchCadence | null;
   steps: string[];
+  verticalWorkPack: VerticalWorkPack | null;
 };
 
 function normalizeText(value: string) {
@@ -127,6 +130,7 @@ export function routeBusinessRequest(request: string): RequestPlan {
   const text = normalizeText(originalRequest);
   const mode = inferMode(text);
   const monitoring = inferWatch(text);
+  const verticalWorkPack = resolveVerticalWorkPack(originalRequest);
   const action = mode === "commit"
     ? "business.commit"
     : mode === "act"
@@ -146,6 +150,7 @@ export function routeBusinessRequest(request: string): RequestPlan {
     requiresApproval: mode === "act" || mode === "commit",
     watch: monitoring.watch,
     cadence: monitoring.cadence,
-    steps: planSteps(mode, monitoring.watch)
+    steps: planSteps(mode, monitoring.watch),
+    verticalWorkPack
   };
 }
