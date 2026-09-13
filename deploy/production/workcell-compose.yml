@@ -7,7 +7,7 @@ services:
       - ${WORKCELL_ALLOWLIST_FILE}:/etc/squid/approved-domains:ro
     networks:
       - tenant_cell
-      - controlled_egress
+      - sentinel_outbound
 
   credential-broker:
     image: nginx:alpine
@@ -24,7 +24,7 @@ services:
       credential_cell:
         aliases:
           - broker-${AGESOMA_TENANT_ID}
-      controlled_egress: {}
+      broker_outbound: {}
 
   hermes:
     image: nousresearch/hermes-agent:v2026.9.7
@@ -71,9 +71,10 @@ networks:
   credential_cell:
     name: agesoma-credentials-${AGESOMA_TENANT_ID}
     external: true
-  controlled_egress:
-    name: agesoma-controlled-egress
-    external: true
+  sentinel_outbound:
+    driver: bridge
+  broker_outbound:
+    driver: bridge
 
 volumes:
   hermes_data:
