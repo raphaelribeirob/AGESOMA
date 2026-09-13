@@ -25,12 +25,22 @@ function headers(token: string, mission: HermesMission) {
   };
 }
 
+function text(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function tenantUrl(template: string, tenantId: string, name: string) {
+  if (!template.includes("{tenantId}")) throw new Error(`${name} must contain {tenantId}`);
+  return template.replaceAll("{tenantId}", encodeURIComponent(tenantId)).replace(/\/$/, "");
+}
+
 function resolveWorkCellBaseUrl(mission: HermesMission) {
   const template = process.env.HERMES_BASE_URL_TEMPLATE?.trim();
-  if (template) {
-    if (!template.includes("{tenantId}")) throw new Error("HERMES_BASE_URL_TEMPLATE must contain {tenantId}");
-    return template.replaceAll("{tenantId}", encodeURIComponent(mission.tenantId)).replace(/\/$/, "");
-  }
+  if (template) return tenantUrl(template, mission.tenantId, "HERMES_BASE_URL_TEMPLATE");
 
   if (process.env.AGESOMA_ALLOW_SHARED_HERMES === "true") {
     const shared = process.env.HERMES_BASE_URL?.trim();
@@ -38,6 +48,74 @@ function resolveWorkCellBaseUrl(mission: HermesMission) {
   }
 
   throw new Error("Tenant-routed Hermes Work Cell is required; shared Hermes is disabled");
+}
+
+function resolveCredentialBrokerBaseUrl(mission: HermesMission) {
+  const template = process.env.CREDENTIAL_BROKER_BASE_URL_TEMPLATE?.trim();
+  if (!template) throw new Error("Tenant credential broker is not configured");
+  return tenantUrl(template, mission.tenantId, "CREDENTIAL_BROKER_BASE_URL_TEMPLATE");
+}
+
+function normalizeRecipient(value: string) {
+  return value.replace(/^whatsapp:/i, "").replace(/\D/g, "");
+}
+
+async function maybeExecuteCredentialedAction(mission: HermesMission) {
+  if (mission.action !== "business.act" && mission.action !== "business.commit") return null;
+  if (text(mission.payload.resource)?.toLowerCase() !== "whatsapp") return null;
+  if (!mission.grantRef) throw new Error("Approved WhatsApp action is missing scoped authority");
+
+  const operation = text(mission.payload.operation)?.toLowerCase();
+  if (!operation || !["send", "send_message", "send_text", "message"].includes(operation)) {
+    throw new Error("Approved WhatsApp operation is not supported by the credential broker");
+  }
+
+  const destination = text(mission.payload.destination);
+  const parameters = record(mission.payload.parameters) ?? {};
+  const approvedRecipient = destination ? normalizeRecipient(destination) : "";
+  const requestedRecipient = text(parameters.to) ? normalizeRecipient(text(parameters.to)!) : approvedRecipient;
+  if (!approvedRecipient || !requestedRecipient || approvedRecipient !== requestedRecipient) {
+    throw new Error("WhatsApp recipient differs from the approved capability");
+  }
+
+  const message = text(parameters.text) ?? text(parameters.message);
+  if (!message) throw new Error("Approved WhatsApp message text is missing");
+
+  const brokerToken = process.env.CREDENTIAL_BROKER_SERVICE_TOKEN?.trim();
+  if (!brokerToken) throw new Error("Credential broker service token is not configured");
+  const brokerUrl = resolveCredentialBrokerBaseUrl(mission);
+  const response = await fetch(`${brokerUrl}/v1/whatsapp/messages`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-agesoma-broker-token": brokerToken,
+      "x-agesoma-task-id": mission.taskId,
+      "x-agesoma-grant-ref": mission.grantRef
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: requestedRecipient,
+      type: "text",
+      text: { body: message }
+    }),
+    signal: AbortSignal.timeout(20_000)
+  });
+  const providerResponse = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(`Credential broker rejected WhatsApp action: ${response.status}`);
+
+  return {
+    runId: `broker-${mission.taskId}`,
+    status: "completed",
+    output: {
+      artifact: {
+        kind: "provider_action",
+        title: "Mensagem enviada",
+        content: { recipient: requestedRecipient, provider: "whatsapp_cloud" }
+      },
+      evidence: { provider: "whatsapp_cloud", providerResponse }
+    },
+    usage: null
+  };
 }
 
 function envelopeInstructions(action: string) {
@@ -74,6 +152,9 @@ function planningInstructions(action: string) {
 }
 
 export async function executeWithHermes(mission: HermesMission) {
+  const brokered = await maybeExecuteCredentialedAction(mission);
+  if (brokered) return brokered;
+
   const baseUrl = resolveWorkCellBaseUrl(mission);
   const token = process.env.HERMES_SERVICE_TOKEN;
   const timeoutMs = Number(process.env.HERMES_RUN_TIMEOUT_MS ?? 120_000);
