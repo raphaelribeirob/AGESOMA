@@ -1,143 +1,115 @@
-# InstantWork Communication System
+# AGESOMA Communication System
 
-InstantWork is built as Service-as-a-Software: the customer buys work and verified business outcomes, not an AI tool.
+AGESOMA is the operating intelligence for a small or medium business.
 
 ## Canonical promise
 
-**pt-BR:** Diga o resultado que precisa. O InstantWork faz o trabalho.
+**pt-BR:** AGESOMA organiza sua empresa, coordena sua equipe e faz o trabalho avançar.
 
-**en:** Tell us the outcome you need. InstantWork does the work.
+**en:** AGESOMA organizes your company, coordinates your team and keeps work moving.
 
-Supporting proof line:
+Supporting line:
 
-**pt-BR:** Veja o que foi feito, quanto custou e qual resultado foi comprovado.
+**pt-BR:** Veja o que está acontecendo, quem está responsável, o que já foi resolvido e o que realmente precisa de você.
 
-**en:** See what was done, what it cost, and which result was verified.
+## What the customer is buying
 
-## Initial commercial wedge
+The customer is not buying agents, workflows, automation infrastructure or AI tooling.
 
-**pt-BR:** Recupere vendas que sua empresa está deixando para trás.
+They are buying a better-organized company with clearer priorities, better coordination and more work actually completed.
 
-InstantWork identifies qualified opportunities that stopped moving, follows up within approved business rules, helps move them to a meeting or sale, and only counts value when the result has evidence.
-
-The long-term product may perform many kinds of work for an SME. The commercial entry point should remain concrete and measurable until the first workflow is proven.
+AGESOMA may use HERMES internally to execute digital work, but HERMES is never a customer-facing identity or feature category.
 
 ## Public-language rules
 
-1. Sell the work, never the machinery.
-2. Lead with the business result, then the work completed, then proof and cost.
-3. Do not require the owner to understand AI, agents, models, orchestration or architecture.
-4. Describe autonomy through behavior: what InstantWork can do, when it needs approval, and what it proved.
-5. Prefer money, meetings, sales, customers, time saved, cost and return over technical metrics.
-6. Never call an action a result. A message sent is work performed; a confirmed meeting, payment or externally verified state change can be a result.
-7. When InstantWork cannot act without permission, say exactly what decision is needed and why.
-8. The owner experience should read like a service company reporting completed work, not a developer console reporting agent activity.
-9. Do not use the term **ROI** in customer-facing UI, onboarding, marketing or reports. Demonstrate value directly with the underlying facts: money recovered, revenue confirmed, work cost, return after cost, meetings, time saved and other verified outcomes.
+1. Lead with company organization, work and results.
+2. Talk about people, responsibilities, priorities, blockers and outcomes.
+3. Never require the owner to understand AI, agents, prompts, models, orchestration or workflows.
+4. Do not present separate vertical AGESOMA products or modes.
+5. Specialized methods stay internal and invisible.
+6. When AGESOMA can resolve something itself, show the result rather than the machinery.
+7. When a person is responsible, make ownership and next action clear.
+8. When owner authority is needed, say exactly what decision is required.
+9. Never call an action a business result until the result is actually verified.
+10. Do not use the term ROI in the public product. Show the underlying facts instead.
 
-## Public vocabulary
+## Preferred public vocabulary
 
-Prefer:
-
+- Equipe
 - Trabalho
+- Responsável
+- Prioridade
+- Em andamento
+- Bloqueado
+- Concluído
 - Resultado
 - Resultado comprovado
-- Dinheiro recuperado
-- Receita comprovada
-- Custo do trabalho
-- Retorno líquido
-- Valor comprovado
-- Oportunidade
-- Reunião confirmada
-- Venda
-- Cliente
-- Preciso da sua autorização
-- Trabalhando
-- Concluído
-- Comprovado
 - Precisa de você
+- O que mudou
+- Próximo passo
+- AGESOMA resolveu
+- Aguardando alguém
 
 ## Internal-only vocabulary
 
-Do not lead with these terms in customer-facing product or marketing copy:
+Do not lead with these terms in customer-facing product or marketing:
 
-- ROI
-- AI agent / agente de IA
-- Autonomous Business Operator
-- Business Operator
-- Hermes
+- HERMES
 - Sentinel
-- Margin Governor
+- Work Cell
+- agent / agente de IA
 - workflow
-- outcome contract
-- Outcome Ledger / Value Ledger
-- Trust Plane
-- cognitive architecture
+- work method
+- orchestration
+- model
+- token
+- capability scope
 - R0-R4
-- L0-L4 autonomy levels
-- model / token / API / browser cost breakdown
-
-These terms remain valid in engineering, security, architecture and compliance documentation.
+- Outcome Ledger
+- Margin Governor
 
 ## Translation layer
 
 | Internal concept | Customer language |
 | --- | --- |
-| Agent/workflow running | Trabalhando |
-| Sentinel review | Preciso da sua autorização |
-| Sentinel deny | Não posso fazer isso dentro das regras atuais |
-| Outcome verified | Resultado comprovado |
-| Outcome pending evidence | Aguardando confirmação do resultado |
-| Execution cost | Custo do trabalho |
-| Attributed revenue | Dinheiro recuperado / receita comprovada |
-| ROI / economic return | Dinheiro recuperado + custo do trabalho + retorno líquido |
-| Margin Governor replan | O custo não compensa; vou buscar outra forma |
-| Opportunity detection | Encontrei uma oportunidade |
-| Learning record | Aprendi com esta decisão |
+| HERMES executing | AGESOMA está resolvendo |
+| Human assignment | [Nome] está responsável |
+| Sentinel review | Precisa da sua decisão |
+| Task queued/running | Em andamento |
+| Task blocked | Bloqueado |
+| Verified outcome | Resultado comprovado |
+| Opportunity detected | Encontrei algo que precisa de atenção |
+| Learning record | AGESOMA aprendeu com isso |
+| Internal work method | Invisible; show only the work/result |
 
-## UI hierarchy
+## Primary owner experience
 
-Every owner-facing screen should prioritize information in this order:
+The normal owner-facing hierarchy is:
 
-1. What changed for the business?
-2. What work did InstantWork do?
-3. What result is proven?
-4. What did the work cost?
-5. What remains after the cost?
-6. What needs the owner's decision?
-7. What should happen next?
+1. What needs attention now?
+2. Who is responsible?
+3. What is moving?
+4. What is blocked?
+5. What did AGESOMA resolve automatically?
+6. What result was actually achieved?
+7. What needs the owner's decision?
 
-Architecture and AI details belong behind an administrative or technical layer, never in the primary experience.
+Primary navigation direction:
 
-## Canonical home language
+`Início | Equipe | Trabalho | Resultados`
 
-Headline direction:
+Primary prompt direction:
 
-**O que o InstantWork fez — e quanto isso valeu para o seu negócio.**
+**O que você precisa que a empresa resolva?**
 
-Primary operating prompt direction:
+Preferred acknowledgement:
 
-**O que você precisa resolver?**
+**Vou organizar isso.**
 
-Preferred acknowledgement after delegation:
+## Positioning test
 
-**Vou cuidar disso.**
+Before shipping copy, ask:
 
-Then show the agreed business contract in plain language:
+> Would a small-business owner understand that AGESOMA helps run and organize the company even if every reference to AI disappeared?
 
-- Objetivo
-- O que conta como resultado
-- Limite de custo
-- Quando preciso da sua autorização
-- Como o resultado será comprovado
-
-## Pricing-language principle
-
-Do not position InstantWork as software sold per seat. A low-cost subscription may provide access, but value must be measured around work performed and verified outcomes. Pricing experiments should make the relationship between work, cost and business value increasingly visible.
-
-## Sequoia alignment test
-
-Before shipping public copy, ask:
-
-> If every reference to AI, agents and software disappeared, would a small-business owner still immediately understand what work InstantWork performs and why it is worth paying for?
-
-If the answer is no, rewrite the copy.
+If the answer is no, rewrite it.
