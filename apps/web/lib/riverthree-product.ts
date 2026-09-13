@@ -45,19 +45,19 @@ export const agesomaPackage = {
   },
   promise: {
     headline: "Sua empresa organizada. O trabalho avançando.",
-    outcome: "A AGESOMA entende a empresa, coordena a equipe, usa o HERMES quando o trabalho pode ser executado digitalmente e envolve o dono apenas quando uma decisão é necessária.",
-    firstValueDefinition: "O dono entende imediatamente o que precisa acontecer, quem está responsável e o que a AGESOMA já resolveu sem exigir conhecimento de IA."
+    outcome: "A AGESOMA entende a empresa, organiza responsabilidades, acompanha o trabalho da equipe e assume digitalmente o que não precisa ocupar uma pessoa.",
+    firstValueDefinition: "O dono enxerga quem é responsável por cada trabalho, o que está parado e o que realmente precisa da sua decisão."
   },
   onboarding: {
     progressModel: "fixedKnownPath" as const,
     steps: [
       { id: "welcome", type: "welcome", required: true, advanceMode: "explicit" },
-      { id: "business_goal", type: "single", required: true, advanceMode: "auto" },
       { id: "company_context", type: "text", required: true, advanceMode: "explicit" },
-      { id: "channels_optional", type: "single", required: false, advanceMode: "auto" },
+      { id: "team_size", type: "numeric", required: true, advanceMode: "explicit" },
+      { id: "team_structure", type: "text", required: true, advanceMode: "explicit" },
+      { id: "coordination_problem", type: "single", required: true, advanceMode: "auto" },
       { id: "desired_outcome", type: "text", required: true, advanceMode: "explicit" },
-      { id: "workflow_roi_preview", type: "result", required: true, advanceMode: "explicit" },
-      { id: "connect_tools", type: "connection", required: false, advanceMode: "explicit" },
+      { id: "coordination_preview", type: "result", required: true, advanceMode: "explicit" },
       { id: "first_execution", type: "firstAction", required: true, advanceMode: "explicit" }
     ] satisfies RiverThreeStep[]
   },
@@ -105,7 +105,7 @@ export const agesomaPackage = {
     subscriptionState: true
   },
   analytics: {
-    activationEvent: "first_business_workflow_succeeded",
+    activationEvent: "first_coordinated_work_assigned",
     commonEvents: true
   }
 } as const;
