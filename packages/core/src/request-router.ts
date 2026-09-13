@@ -1,5 +1,3 @@
-import { resolveInternalWorkMethod, type InternalWorkMethod } from "./work-methods.ts";
-
 export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
 export type WatchCadence = "15m" | "1h" | "6h" | "1d" | "7d";
@@ -16,7 +14,24 @@ export type RequestPlan = {
   watch: boolean;
   cadence: WatchCadence | null;
   steps: string[];
-  workMethod: InternalWorkMethod | null;
+};
+
+export type TeamMemberForCoordination = {
+  id: string;
+  name: string;
+  roleTitle: string;
+  department?: string | null;
+  responsibilities?: string[];
+  skills?: string[];
+  availability?: string;
+};
+
+export type ExecutorDecision = {
+  executorType: "human" | "hermes";
+  teamMemberId: string | null;
+  teamMemberName: string | null;
+  reason: string;
+  confidence: number;
 };
 
 function normalizeText(value: string) {
@@ -36,7 +51,7 @@ function inferDomain(text: string): RequestDomain {
   if (includesAny(text, ["venda", "vender", "vendendo", "lead", "cliente potencial", "proposta", "pipeline", "crm", "comercial", "prospect"])) return "sales";
   if (includesAny(text, ["atendimento", "suporte", "cliente", "reclamacao", "chamado", "responder clientes", "whatsapp"])) return "service";
   if (includesAny(text, ["pagar", "pagamento", "cobranca", "financeiro", "fatura", "nota fiscal", "pix", "custo", "receita", "margem"])) return "finance";
-  if (includesAny(text, ["operacao", "processo", "estoque", "fornecedor", "planilha", "arquivo", "tarefa", "rotina"])) return "operations";
+  if (includesAny(text, ["operacao", "processo", "estoque", "fornecedor", "planilha", "arquivo", "tarefa", "rotina", "equipe", "funcionario"])) return "operations";
   return "general";
 }
 
@@ -69,7 +84,8 @@ function inferMode(text: string): RequestMode {
 
   const workTerms = [
     "crie", "criar", "prepare", "preparar", "organize", "organizar", "redija", "redigir", "elabore",
-    "elaborar", "monte", "montar", "gere", "gerar", "planilha", "relatorio", "relatório", "documento"
+    "elaborar", "monte", "montar", "gere", "gerar", "planilha", "relatorio", "relatório", "documento",
+    "distribua", "distribuir", "delegue", "delegar", "priorize", "priorizar"
   ];
   if (includesAny(text, workTerms)) return "work";
 
@@ -92,34 +108,76 @@ function inferWatch(text: string): { watch: boolean; cadence: WatchCadence | nul
 }
 
 function planSteps(mode: RequestMode, watch: boolean) {
-  const recurring = watch ? " Manter observação recorrente na cadência solicitada." : "";
+  const recurring = watch ? " Manter acompanhamento recorrente na cadência solicitada." : "";
   if (mode === "commit") return [
-    "Confirmar o alvo, valor, termos e escopo exatos do compromisso.",
-    "Submeter a capability concreta à política e à aprovação do dono.",
+    "Confirmar responsável, alvo, valor, termos e escopo exatos.",
+    "Submeter a decisão concreta à política e à aprovação do dono.",
     `Executar somente o compromisso aprovado e registrar evidência.${recurring}`
   ];
   if (mode === "act") return [
-    "Reunir o contexto autorizado necessário para a ação.",
+    "Entender quem é o melhor responsável pelo trabalho.",
     "Resolver destinatário, recurso e parâmetros concretos.",
     "Passar pela política/aprovação aplicável antes do efeito externo.",
-    `Executar e registrar evidência do resultado.${recurring}`
+    `Executar ou atribuir e acompanhar até a conclusão.${recurring}`
   ];
   if (mode === "work") return [
-    "Reunir o contexto autorizado necessário.",
-    "Produzir o trabalho de forma reversível.",
-    `Entregar o artifact ou resultado preparado para revisão/uso.${recurring}`
+    "Entender o trabalho e a responsabilidade necessária.",
+    "Executar digitalmente ou atribuir à pessoa adequada.",
+    `Acompanhar até a entrega e registrar o resultado.${recurring}`
   ];
   return [
-    "Entender o contexto e as fontes autorizadas relevantes.",
-    "Observar e reunir evidência sem criar efeitos externos.",
-    `Retornar achados e propor o próximo trabalho somente se houver base real.${recurring}`
+    "Entender o estado atual da empresa e da equipe.",
+    "Identificar o que precisa acontecer e quem deve assumir.",
+    `Trazer ao dono somente o que exigir decisão ou mudança de prioridade.${recurring}`
   ];
 }
 
 function titleFromRequest(request: string) {
   const compact = request.replace(/\s+/g, " ").trim();
-  if (compact.length <= 120) return compact;
-  return `${compact.slice(0, 117).trimEnd()}...`;
+  return compact.length <= 120 ? compact : `${compact.slice(0, 117).trimEnd()}...`;
+}
+
+function memberWords(member: TeamMemberForCoordination) {
+  return normalizeText([member.roleTitle, member.department ?? "", ...(member.responsibilities ?? []), ...(member.skills ?? [])].join(" "));
+}
+
+export function decideExecutor(plan: RequestPlan, members: TeamMemberForCoordination[]): ExecutorDecision {
+  const active = members.filter((member) => !member.availability || member.availability === "active");
+  const request = normalizeText(plan.originalRequest);
+
+  for (const member of active) {
+    const name = normalizeText(member.name);
+    if (name.length >= 2 && request.includes(name)) {
+      return { executorType: "human", teamMemberId: member.id, teamMemberName: member.name, reason: "Pessoa indicada no pedido.", confidence: 1 };
+    }
+  }
+
+  const requestWords = new Set(normalizeText(`${plan.originalRequest} ${plan.domain}`).split(/[^a-z0-9]+/).filter((word) => word.length >= 3));
+  const ranked = active.map((member) => {
+    const description = memberWords(member);
+    let score = 0;
+    for (const word of requestWords) if (description.includes(word)) score += 1;
+    return { member, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const best = ranked[0];
+  if (best && best.score > 0 && (plan.mode === "act" || plan.mode === "commit")) {
+    return {
+      executorType: "human",
+      teamMemberId: best.member.id,
+      teamMemberName: best.member.name,
+      reason: "Melhor correspondência entre responsabilidade e trabalho.",
+      confidence: Math.min(0.9, 0.6 + best.score * 0.1)
+    };
+  }
+
+  return {
+    executorType: "hermes",
+    teamMemberId: null,
+    teamMemberName: null,
+    reason: "Trabalho digital, de preparação ou de coordenação executado pela AGESOMA.",
+    confidence: 0.85
+  };
 }
 
 export function routeBusinessRequest(request: string): RequestPlan {
@@ -130,7 +188,6 @@ export function routeBusinessRequest(request: string): RequestPlan {
   const text = normalizeText(originalRequest);
   const mode = inferMode(text);
   const monitoring = inferWatch(text);
-  const workMethod = resolveInternalWorkMethod(originalRequest);
   const action = mode === "commit"
     ? "business.commit"
     : mode === "act"
@@ -150,7 +207,6 @@ export function routeBusinessRequest(request: string): RequestPlan {
     requiresApproval: mode === "act" || mode === "commit",
     watch: monitoring.watch,
     cadence: monitoring.cadence,
-    steps: planSteps(mode, monitoring.watch),
-    workMethod
+    steps: planSteps(mode, monitoring.watch)
   };
 }
