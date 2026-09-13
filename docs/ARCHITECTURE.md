@@ -1,108 +1,99 @@
-# InstantWork P0 Architecture
+# AGESOMA Architecture
 
-## Boundary rule
+## Product rule
 
-The LLM/execution plane is never its own authorization authority.
+AGESOMA has one job: act as the operating intelligence of a small or medium business.
 
-InstantWork is an **authorized universal business operator**: it may discover and use any website, application, API or computer interface needed to complete a business outcome when that resource is public or the SME has explicitly authorized access. Freedom is destination-agnostic; control is based on impact.
+It understands the company, organizes people and work, decides what should happen next, delegates digital execution to HERMES when appropriate, follows progress, verifies results and involves the owner only when authority or judgment is actually required.
 
-InstantWork must never bypass authentication or access controls, obtain credentials it was not given, cross tenant boundaries, escalate privileges, or turn a read-only permission into a consequential action.
+There are no separate AGESOMA products for sales, finance, service, recruiting or other verticals. Specialized knowledge may exist internally as work methods, but the customer always uses the same AGESOMA.
+
+## Canonical chain
 
 ```text
-Owner intent / business event
+Owner / business objective
         ↓
-Opportunity + outcome selection
+AGESOMA business state + priorities
         ↓
-Sentinel: what impact is allowed?
+AGESOMA decides next work
         ↓
-Margin Governor: is the work economically rational?
+┌───────────────────────┬────────────────────────┐
+│ Human employee        │ HERMES                 │
+│ assignment + followup │ isolated execution     │
+└───────────────────────┴────────────────────────┘
         ↓
-Durable job (Postgres / pg-boss)
+AGESOMA verifies progress and result
         ↓
-Tenant Work Cell
+Owner sees only what matters
         ↓
-Hermes isolated execution service
-        ↓
-Authorized web / apps / APIs / computer interfaces
-        ↓
-Outcome Ledger
-        ↓
-C-Trace + LearningRecord + ROI Mode
+AGESOMA learns how the company operates
 ```
 
-## Universal operator model
+## Responsibilities
 
-The owner should not need to pre-register every website or application InstantWork may need during a task. The task grants an outcome and an impact envelope; inside that envelope the execution layer may discover the route needed to finish the work.
+AGESOMA owns:
 
-The canonical access levels are:
+- company context and goals;
+- employees, roles, responsibilities and workload;
+- prioritization and assignment of work;
+- business memory;
+- policy and authorization;
+- decisions that require the owner;
+- task and outcome state;
+- verification of results;
+- learning from completed work and owner corrections.
 
-- **Observe / `business.observe` / R0:** navigate public or already-authorized resources and read business state without changing it.
-- **Work / `business.work` / R1:** create drafts, prepare files, navigate interfaces and perform reversible operations inside the authorized business context.
-- **Act / `business.act` / R2:** create external side effects such as sending messages, updating external systems or booking meetings. These are controlled by Sentinel and the owner's policy/grants.
-- **Commit / `business.commit` / R3:** spend money, change commercial terms, alter authentication/security settings, publish irreversible changes or create material obligations. These always require explicit scoped authority and may be denied by policy.
+HERMES owns only execution inside the capability granted by AGESOMA:
 
-A destination may be discovered dynamically, but every consequential execution must remain inside the exact approved capability scope. Discovery is broad; authorization is specific.
+- browser work;
+- computer use;
+- APIs;
+- files and transformations;
+- messaging and other connected digital operations.
+
+HERMES is never the authority and never the owner-facing product.
+
+## Authority rule
+
+The executor is never its own authorization authority.
+
+AGESOMA/Sentinel defines what impact is allowed. HERMES receives only the minimum authority needed for the active task. Consequential actions remain bound to exact approved destination, operation, resource and parameters.
+
+## Human coordination
+
+A human employee and HERMES are both execution resources from the perspective of AGESOMA.
+
+AGESOMA chooses the route based on responsibility, available context, authorization, cost, reversibility and required human judgment. The owner should not need to decide whether a task is “AI work” or “human work”.
 
 ## Tenant Work Cell
 
-Each SME must have a logically isolated work cell containing its sessions, files, memory, connector scopes and execution state. Compute may be shared for cost efficiency, but tenant context and credentials may not be shared.
+Each company receives isolated execution state: runtime, browser profile, files, memory and credential namespaces. Business credentials remain outside HERMES wherever possible and are brokered only for the approved operation.
 
-Credentials remain outside model context whenever possible. Hermes receives the minimum execution authority needed for the active task, while InstantWork/Sentinel remain the authorization authority.
-
-An authenticated browser profile belongs to exactly one Tenant Work Cell. Reusable cookies, sessions and connected accounts must never be shared across businesses.
-
-## Universal runtime
-
-The execution runtime should expose three routes, all private to the work cell:
-
-1. **Browser automation** for arbitrary web applications.
-2. **Computer use** when a workflow cannot be completed through browser/API primitives and requires a GUI application.
-3. **Sandbox terminal** for files, transformation, code and local automation. It must not provide host-level or cross-tenant privilege.
-
-Browser/computer/terminal availability is a runtime capability, not customer-facing product complexity. The owner asks for a business result; InstantWork chooses the route.
-
-## Why Hermes is separate
-
-Hermes is treated as an execution substrate. InstantWork owns tenant isolation, permission policy, economic limits, outcome attribution, learning records and the owner experience. Credentials are not stored in agent context.
-
-Hermes provides browser automation, computer-use and terminal-based execution. InstantWork exposes that operational freedom through the Tenant Work Cell rather than turning every destination into a bespoke integration.
-
-## Muse-for-SME operating loop
+## Operating loop
 
 ```text
-Observe
+Understand company state
   ↓
-Find opportunity
+Identify what needs to happen
   ↓
-Propose work
+Prioritize
   ↓
-Approve only when needed
+Assign to a person or HERMES
   ↓
-Work in background
+Monitor progress
   ↓
-Deliver artifact/result
+Ask owner only when needed
   ↓
-Verify business outcome
-  ↓
-Calculate ROI
+Verify completion/result
   ↓
 Learn
   ↺
 ```
 
-## P0 first workflow
+## Customer-facing simplicity
 
-Commercial recovery over WhatsApp/CRM/calendar:
+Primary surfaces should converge toward:
 
-1. Observe permitted inbound conversations and lead state.
-2. Detect stale qualified opportunities.
-3. Classify and estimate recoverable value.
-4. Route external actions through Sentinel.
-5. Route cost/value through Margin Governor.
-6. Execute approved follow-up through Hermes.
-7. Record response, meeting, resumed proposal or sale.
-8. Attribute revenue only with evidence/confidence.
-9. Record all execution costs.
-10. Learn from owner corrections and verified outcomes.
+`Início | Equipe | Trabalho | Resultados`
 
-The first workflow remains narrow for validation, but the underlying operator architecture is destination-agnostic from the start.
+Technical concepts such as HERMES, Sentinel, Work Cell, models, agents, workflows and internal work methods must remain outside the normal owner experience.
