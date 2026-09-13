@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     operation: plan.requiresApproval ? "resolve_capability" : plan.operation,
     resource: plan.resource,
     requestPlan: plan,
-    verticalWorkPack: plan.verticalWorkPack,
+    workMethod: plan.workMethod,
     requestedAction: plan.action,
     requiresResolution: plan.requiresApproval,
     businessMemory,
@@ -93,10 +93,10 @@ export async function POST(req: Request) {
     outputContract: {
       artifact: "Return a result artifact suited to the business job.",
       opportunities: "Return evidence-backed opportunities only when discovered.",
-      workMethod: plan.verticalWorkPack
-        ? `Use the work-pack stages in order when relevant: ${plan.verticalWorkPack.stages.join(", ")}. Do not invent completed stages.`
+      workMethod: plan.workMethod
+        ? `Use these internal work stages when relevant: ${plan.workMethod.stages.join(", ")}. Do not invent completed stages.`
         : "Use the shortest evidence-backed route that safely completes the business job.",
-      successSignals: plan.verticalWorkPack?.successSignals ?? [],
+      successSignals: plan.workMethod?.successSignals ?? [],
       proposedAction: plan.requiresApproval
         ? "Resolve exactly one concrete consequential action. Return action, destination, operation, resource, parameters and amountCents when relevant. Do not execute the side effect."
         : "Do not invent a consequential action unless the objective actually requires one.",
@@ -179,7 +179,6 @@ export async function POST(req: Request) {
     taskStatus: created.task_status,
     watcherId: created.watcher_id,
     plan,
-    verticalWorkPack: plan.verticalWorkPack?.id ?? null,
     executionAction,
     resolutionRequired: plan.requiresApproval,
     memoryCount: businessMemory.length,
