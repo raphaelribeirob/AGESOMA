@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     insert into team_members (
       tenant_id,name,role_title,department,responsibilities,skills,weekly_capacity_hours
     ) values ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7)
-    on conflict (tenant_id, lower(name)) do update set
+    on conflict (tenant_id, (lower(name))) do update set
       role_title=excluded.role_title,
       department=excluded.department,
       responsibilities=excluded.responsibilities,
