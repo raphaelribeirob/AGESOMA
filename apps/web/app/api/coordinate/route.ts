@@ -70,12 +70,29 @@ export async function POST(req: Request) {
     returning id
   `, [input.tenantId, `coord-${crypto.randomUUID()}`, JSON.stringify({ source: "agesoma_coordination", plan })]);
 
+  const teamContext = team.map((member) => ({
+    id: member.id,
+    name: member.name,
+    roleTitle: member.roleTitle,
+    department: member.department ?? null,
+    responsibilities: member.responsibilities ?? [],
+    skills: member.skills ?? []
+  }));
+
   const payload = JSON.stringify({
     objective: plan.originalRequest,
     requestedAction: plan.action,
     coordination: decision,
+    teamContext,
     requestedBy: actor.actorId,
-    ownerRequested: isManager
+    ownerRequested: isManager,
+    outputContract: {
+      humanAssignments: isManager
+        ? "When this objective genuinely requires coordinating several employees, you may return up to 10 humanAssignments. Each must contain teamMemberId, title and reason, use only a teamMemberId from teamContext, and be reversible internal work only. Never assign spending, external messages, commercial commitments, permission changes or irreversible actions this way."
+        : "Do not create humanAssignments.",
+      artifact: "Return a concise business artifact explaining what was organized or completed.",
+      outcome: "Do not claim a business result verified unless a separate verifier supplied evidence."
+    }
   });
 
   const [task] = await tenantSql<{ id: string; status: string }>(input.tenantId, `
