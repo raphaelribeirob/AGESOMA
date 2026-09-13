@@ -85,14 +85,43 @@ jobs:
           fi
       - name: Enforce Muse-style execution boundaries
         run: |
+          test -f deploy/production/workcell-compose.yml
+          test -f deploy/production/provision-workcell.sh
+          test -f deploy/production/sentinel-egress.conf
+          test -f deploy/production/credential-broker.conf.template
           grep -q 'HERMES_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
           grep -q 'Tenant-routed Hermes Work Cell is required; shared Hermes is disabled' services/worker/src/hermes.ts
-          grep -q 'AGESOMA_ALLOW_SHARED_HERMES' deploy/production/docker-compose.yml
-          hermes_block="$(awk '/^  hermes:/{flag=1} /^  worker:/{flag=0} flag' deploy/production/docker-compose.yml)"
-          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WHATSAPP_CLOUD_APP_SECRET|WHATSAPP_CLOUD_VERIFY_TOKEN'; then
-            echo "Business credentials must never be injected into Hermes"
+          grep -q 'CREDENTIAL_BROKER_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
+          grep -q 'maybeExecuteCredentialedAction' services/worker/src/hermes.ts
+          grep -q 'AGESOMA_ALLOW_SHARED_HERMES: "false"' deploy/production/docker-compose.yml
+          if grep -q '^  hermes:' deploy/production/docker-compose.yml; then
+            echo "Canonical control plane must not embed a shared Hermes executor"
             exit 1
           fi
+          hermes_block="$(awk '/^  hermes:/{flag=1} /^networks:/{if(flag)flag=0} flag' deploy/production/workcell-compose.yml)"
+          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WHATSAPP_CLOUD_APP_SECRET|WHATSAPP_CLOUD_VERIFY_TOKEN|CREDENTIAL_BROKER_SERVICE_TOKEN'; then
+            echo "Business or broker credentials must never be injected into Hermes"
+            exit 1
+          fi
+          broker_block="$(awk '/^  credential-broker:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          printf '%s\n' "$broker_block" | grep -q 'WHATSAPP_CLOUD_ACCESS_TOKEN'
+          printf '%s\n' "$broker_block" | grep -q 'credential_cell'
+          grep -q 'http_access deny all' deploy/production/sentinel-egress.conf
+          grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'agesoma-control-worker' deploy/production/provision-workcell.sh
+      - name: Validate production topology
+        run: |
+          sh -n deploy/production/provision-workcell.sh
+          docker compose -f deploy/production/docker-compose.yml config >/dev/null
+          AGESOMA_TENANT_ID=00000000-0000-0000-0000-000000000001 \
+          WORKCELL_ALLOWLIST_FILE="$PWD/deploy/production/approved-domains.txt" \
+          HERMES_SERVICE_TOKEN=test-hermes-token \
+          CREDENTIAL_BROKER_SERVICE_TOKEN=test-broker-token \
+          WHATSAPP_GRAPH_VERSION=v23.0 \
+          WHATSAPP_CLOUD_PHONE_NUMBER_ID=100000000000001 \
+          WHATSAPP_CLOUD_ACCESS_TOKEN=test-whatsapp-token \
+          docker compose -f deploy/production/workcell-compose.yml config >/dev/null
       - name: Enforce tenant isolation migration
         run: |
           grep -q 'force row level security' packages/db/migrations/0006_tenant_isolation.sql
