@@ -54,6 +54,11 @@ export async function POST(req: Request) {
     availability: member.availability
   }));
   const decision = decideExecutor(plan, team);
+  const isManager = actor.role === "owner" || actor.role === "admin";
+
+  if (decision.executorType === "human" && plan.requiresApproval && !isManager) {
+    return NextResponse.json({ error: "Owner or admin approval is required before assigning consequential work" }, { status: 403 });
+  }
 
   const action = decision.executorType === "hermes" && plan.requiresApproval ? "business.work" : plan.action;
   const policy = getActionPolicy(action);
@@ -63,14 +68,14 @@ export async function POST(req: Request) {
     insert into workflows (tenant_id,key,version,status,config)
     values ($1,$2,1,'active',$3::jsonb)
     returning id
-  `, [input.tenantId, `coord-${Date.now()}`, JSON.stringify({ source: "agesoma_coordination", plan })]);
+  `, [input.tenantId, `coord-${crypto.randomUUID()}`, JSON.stringify({ source: "agesoma_coordination", plan })]);
 
   const payload = JSON.stringify({
     objective: plan.originalRequest,
     requestedAction: plan.action,
     coordination: decision,
     requestedBy: actor.actorId,
-    ownerRequested: true
+    ownerRequested: isManager
   });
 
   const [task] = await tenantSql<{ id: string; status: string }>(input.tenantId, `
@@ -98,7 +103,7 @@ export async function POST(req: Request) {
     taskId: task.id,
     status: task.status,
     responsible: decision.executorType === "human" ? decision.teamMemberName : "AGESOMA",
-    type: decision.executorType,
+    responsibility: decision.executorType === "human" ? "person" : "agesoma",
     plan
   }, { status: 201 });
 }
