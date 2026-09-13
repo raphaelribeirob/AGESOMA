@@ -9,6 +9,23 @@ services:
       - tenant_cell
       - controlled_egress
 
+  credential-broker:
+    image: nginx:alpine
+    restart: unless-stopped
+    environment:
+      CREDENTIAL_BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION}
+      WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID}
+      WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN}
+      NGINX_ENVSUBST_FILTER: ^(CREDENTIAL_BROKER_SERVICE_TOKEN|WHATSAPP_)
+    volumes:
+      - ./credential-broker.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks:
+      credential_cell:
+        aliases:
+          - broker-${AGESOMA_TENANT_ID}
+      controlled_egress: {}
+
   hermes:
     image: nousresearch/hermes-agent:v2026.9.7
     restart: unless-stopped
@@ -50,6 +67,9 @@ services:
 networks:
   tenant_cell:
     name: agesoma-cell-${AGESOMA_TENANT_ID}
+    external: true
+  credential_cell:
+    name: agesoma-credentials-${AGESOMA_TENANT_ID}
     external: true
   controlled_egress:
     name: agesoma-controlled-egress
