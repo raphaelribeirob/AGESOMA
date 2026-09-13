@@ -9,7 +9,7 @@ import "./agesoma-brand.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
-  description: "Diga o resultado que precisa. A AGESOMA faz o trabalho e mostra o que foi comprovado."
+  description: "AGESOMA organiza sua equipe, acompanha o trabalho e ajuda sua empresa a funcionar melhor."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
