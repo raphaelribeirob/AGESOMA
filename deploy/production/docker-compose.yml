@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./sentinel-egress.conf:/etc/squid/squid.conf:ro
+      - ./approved-domains.txt:/etc/squid/approved-domains:ro
     networks:
       - workcell_internal
       - controlled_egress
