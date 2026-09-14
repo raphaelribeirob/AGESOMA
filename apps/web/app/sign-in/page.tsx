@@ -33,7 +33,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="onboardingShell r3Surface-plain">
+    <main className="onboardingShell r3Surface-plain authShell">
       <section className="onboardingCard" style={{ maxWidth: 560, margin: "8vh auto 0" }}>
         <div className="onboardingCopy">
           <div className="agesomaWelcomeBrand"><img src="/agesoma-wordmark.jpeg" alt="AGESOMA" /></div>
