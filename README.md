@@ -31,9 +31,11 @@ The package may expand over time, but specialists do not become separate custome
 
 **Single-agent experience, multi-agent architecture.**
 
-A digital agent is a persistent identity with a role, purpose, skills, preferred resources, memory namespace and work history. It does not require a permanent server process. When an agent receives work, AGESOMA starts or selects an ephemeral execution runtime and supplies only the context and authority needed for that task.
+A digital agent is a persistent identity with a role, purpose, skills, preferred resources, memory namespace and work history. It does not require its own permanent server process. When an agent receives work, AGESOMA routes the task to an isolated execution runtime and supplies only the context and authority needed for that task.
 
-**Agent identity is stateful. Execution is stateless and disposable.**
+In P0, the specialists of a tenant share that tenant's isolated HERMES Work Cell. The agent identity remains independent from that runtime so the execution layer can later move to pooled or ephemeral runners without changing the product model.
+
+**Agent identity is stateful and runtime-independent. No agent owns a dedicated server.**
 
 ## Operating model
 
@@ -85,7 +87,7 @@ From that picture, AGESOMA continually answers four questions:
 
 Human employees remain part of the operating system. AGESOMA can assign, prioritize, follow up and surface blockers for human work.
 
-Digital agents are tenant-scoped persistent identities. HERMES is the replaceable execution substrate used by those agents when software must perform browser, API, messaging, file or computer work. A Work Cell is an ephemeral execution environment, not the agent itself.
+Digital agents are tenant-scoped persistent identities. HERMES is the replaceable execution substrate used by those agents when software must perform browser, API, messaging, file or computer work. In P0, one tenant-isolated Work Cell is reused by the tenant's digital specialists; it is execution infrastructure, not the agent itself.
 
 The owner may conversationally ask to “contratar um agente” when that metaphor makes the capability easier to understand, but agent configuration, prompts, tools, runtime selection and orchestration never become a separate management interface.
 
@@ -157,7 +159,7 @@ The core principle is unchanged:
 - pg-boss: durable background work.
 - Sentinel: independent authorization boundary.
 - HERMES: isolated digital execution plane.
-- Work Cells: tenant-isolated ephemeral runtime, browser/files/memory/credential namespaces.
+- Work Cells: tenant-isolated execution runtime; P0 keeps one persistent Work Cell per provisioned tenant, shared by that tenant's agents.
 - Credential broker: keeps business credentials outside HERMES.
 - Outcome verification: distinguishes work performed from results actually proven.
 - OpenTelemetry-compatible observability.
