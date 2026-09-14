@@ -7,7 +7,7 @@ export type RiverThreeOnboardingMode =
 
 export type RiverThreeExpressionLevel = "off" | "subtle" | "selective" | "elevated";
 export type RiverThreeAdvanceMode = "auto" | "explicit";
-export type RiverThreeHomeMode = "trackerProgress" | "actionAgent";
+export type RiverThreeHomeMode = "trackerProgress" | "actionAgent" | "jarvisConversation";
 
 export type RiverThreeStep = {
   id: string;
@@ -36,7 +36,7 @@ export const agesomaPackage = {
   expression: {
     genZ: "subtle" as RiverThreeExpressionLevel,
     targetRange: "5-10",
-    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing"] as const,
+    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing", "jarvis"] as const,
     grain: "contextual" as const,
     gradient: "contextual" as const,
     editorialAsymmetry: "off" as const,
@@ -44,9 +44,9 @@ export const agesomaPackage = {
     motionPersonality: "contextual" as const
   },
   promise: {
-    headline: "Sua empresa organizada. O trabalho avançando.",
-    outcome: "A AGESOMA entende a empresa, organiza responsabilidades, acompanha o trabalho da equipe e assume digitalmente o que não precisa ocupar uma pessoa.",
-    firstValueDefinition: "O dono enxerga quem é responsável por cada trabalho, o que está parado e o que realmente precisa da sua decisão."
+    headline: "Converse com a inteligência da sua empresa.",
+    outcome: "A AGESOMA entende a empresa, coordena pessoas e agentes, faz o trabalho avançar e relata naturalmente o que mudou.",
+    firstValueDefinition: "O dono consegue perguntar o que está acontecendo ou pedir trabalho em linguagem natural, sem navegar por um sistema."
   },
   onboarding: {
     progressModel: "fixedKnownPath" as const,
@@ -64,7 +64,7 @@ export const agesomaPackage = {
   permissions: {
     notifications: "just-in-time" as const,
     contacts: "just-in-time" as const,
-    microphone: "none" as const,
+    microphone: "just-in-time" as const,
     camera: "none" as const,
     photos: "none" as const,
     health: "none" as const,
@@ -91,10 +91,10 @@ export const agesomaPackage = {
     note: "Billing remains disabled until a real entitlement boundary is wired."
   },
   home: {
-    mode: "actionAgent" as RiverThreeHomeMode,
-    primaryOutcome: "team_work_state_and_verified_results",
-    nextBestAction: "resolve_blocker_or_delegate_next_work",
-    supportingMetricsMax: 3
+    mode: "jarvisConversation" as RiverThreeHomeMode,
+    primaryOutcome: "natural_company_conversation_and_verified_results",
+    nextBestAction: "answer_or_act_without_exposing_system_complexity",
+    supportingMetricsMax: 0
   },
   runtime: {
     loading: true,
@@ -105,7 +105,7 @@ export const agesomaPackage = {
     subscriptionState: true
   },
   analytics: {
-    activationEvent: "first_coordinated_work_assigned",
+    activationEvent: "first_jarvis_request_accepted",
     commonEvents: true
   }
 } as const;
