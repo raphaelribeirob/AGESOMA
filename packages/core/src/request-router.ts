@@ -1,4 +1,4 @@
-export type RequestDomain = "sales" | "service" | "operations" | "finance" | "general";
+export type RequestDomain = "sales" | "marketing" | "service" | "operations" | "finance" | "general";
 export type RequestMode = "observe" | "work" | "act" | "commit";
 export type WatchCadence = "15m" | "1h" | "6h" | "1d" | "7d";
 export type LegacyWorkMethod = { stages: string[]; successSignals: string[] };
@@ -51,6 +51,7 @@ function includesAny(text: string, terms: string[]) {
 
 function inferDomain(text: string): RequestDomain {
   if (includesAny(text, ["venda", "vender", "vendendo", "lead", "cliente potencial", "proposta", "pipeline", "crm", "comercial", "prospect"])) return "sales";
+  if (includesAny(text, ["marketing", "campanha", "anuncio", "anúncio", "ads", "criativo", "conteudo", "conteúdo", "aquisição", "aquisicao", "trafego", "tráfego", "instagram", "tiktok", "seo"])) return "marketing";
   if (includesAny(text, ["atendimento", "suporte", "cliente", "reclamacao", "chamado", "responder clientes", "whatsapp"])) return "service";
   if (includesAny(text, ["pagar", "pagamento", "cobranca", "financeiro", "fatura", "nota fiscal", "pix", "custo", "receita", "margem"])) return "finance";
   if (includesAny(text, ["operacao", "processo", "estoque", "fornecedor", "planilha", "arquivo", "tarefa", "rotina", "equipe", "funcionario"])) return "operations";
