@@ -102,7 +102,9 @@ def build_graphiti() -> tuple[Graphiti, dict[str, str]]:
     embedding_model = first_env(
         "AGESOMA_EMBEDDING_MODEL", default="text-embedding-3-small"
     ) or "text-embedding-3-small"
-    embedding_dim = positive_int_env("AGESOMA_EMBEDDING_DIM", 1536)
+    # Graphiti 0.29.3 defaults to 1024 dimensions. Preserve that dimension by default so
+    # existing Neo4j vector indices remain compatible across the provider-abstraction change.
+    embedding_dim = positive_int_env("AGESOMA_EMBEDDING_DIM", 1024)
     embedder = OpenAIEmbedder(
         config=OpenAIEmbedderConfig(
             api_key=embedding_api_key,
