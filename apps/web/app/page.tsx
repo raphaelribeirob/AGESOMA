@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { tenantSql } from "@agesoma/db";
+import { resolveAuthenticatedWorkspace } from "../lib/auth-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +25,7 @@ async function safeTenantSql<T>(tenantId: string, query: string, params: unknown
   }
 }
 
-async function loadWorkspace() {
-  const tenantId = process.env.AGESOMA_DEFAULT_TENANT_ID ?? process.env.INSTANTWORK_DEFAULT_TENANT_ID;
-  if (!tenantId) return null;
-
+async function loadWorkspace(tenantId: string) {
   const [team, assignments, approvals, running, artifacts, outcomeRows] = await Promise.all([
     safeTenantSql<TeamMember>(tenantId, `
       select id,name,role_title,department,availability
@@ -84,14 +83,17 @@ function IntelligenceOrb() {
 }
 
 export default async function Home() {
-  const workspace = await loadWorkspace();
-  const team = workspace?.team ?? [];
-  const assignments = workspace?.assignments ?? [];
-  const approvals = workspace?.approvals ?? [];
-  const running = workspace?.running?.[0];
+  const authenticated = await resolveAuthenticatedWorkspace();
+  if (!authenticated) redirect("/sign-in");
+
+  const workspace = await loadWorkspace(authenticated.tenantId);
+  const team = workspace.team ?? [];
+  const assignments = workspace.assignments ?? [];
+  const approvals = workspace.approvals ?? [];
+  const running = workspace.running?.[0];
   const blocked = assignments.filter((assignment) => assignment.status === "blocked");
-  const verifiedCount = Number(workspace?.outcomes?.verified_count ?? 0);
-  const lastArtifact = workspace?.artifacts?.[0];
+  const verifiedCount = Number(workspace.outcomes?.verified_count ?? 0);
+  const lastArtifact = workspace.artifacts?.[0];
 
   const primary = approvals[0] ? {
     eyebrow: "Precisa de você",
@@ -165,8 +167,8 @@ export default async function Home() {
           <aside className="r3QuietMaterial">
             <div>
               <span className="monoLabel">AGORA</span>
-              <strong>{workspace ? "Empresa acompanhada." : "Pronto para organizar."}</strong>
-              <p>{workspace ? "Nenhuma execução digital ativa neste momento." : "Comece dizendo quem está na equipe e o que precisa avançar."}</p>
+              <strong>Empresa acompanhada.</strong>
+              <p>Nenhuma execução digital ativa neste momento.</p>
             </div>
           </aside>
         )}
@@ -246,7 +248,7 @@ export default async function Home() {
       <section className="resultSection" id="resultados">
         <div className="sectionIntro">
           <div className="eyebrow">Resultados</div>
-          <h2>{verifiedCount ? `${money(workspace?.outcomes?.net_value_cents)} de impacto confirmado.` : "O que foi concluído de verdade."}</h2>
+          <h2>{verifiedCount ? `${money(workspace.outcomes?.net_value_cents)} de impacto confirmado.` : "O que foi concluído de verdade."}</h2>
           <p>{verifiedCount ? `${verifiedCount} resultado${verifiedCount === 1 ? "" : "s"} comprovado${verifiedCount === 1 ? "" : "s"}.` : "Sem atividade vazia: resultado só aparece quando há evidência."}</p>
         </div>
         <div className="workspaceCard">
