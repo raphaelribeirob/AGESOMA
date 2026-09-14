@@ -21,7 +21,7 @@ The product must always be able to answer:
 
 Jarvis is the single owner-facing intelligence. It is not one worker agent.
 
-Behind Jarvis, AGESOMA maintains a tenant-scoped package of persistent digital specialists. Their identities, roles, memory namespaces and work histories persist, while execution is performed by ephemeral runtime capacity.
+Behind Jarvis, AGESOMA maintains a tenant-scoped package of persistent digital specialists. Their identities, roles, memory namespaces and work histories persist independently of the execution runtime. In P0, a tenant's digital specialists share that tenant's isolated HERMES Work Cell; no agent owns a dedicated server.
 
 Canonical package:
 
@@ -55,18 +55,19 @@ The owner may ask what is happening, request work, approve a consequential actio
 - Verified result
 - Business memory
 
-Every active piece of work must have one accountable owner. For digital work, the persistent digital agent owns the job while the runtime that executes it remains replaceable and disposable.
+Every active piece of work must have one accountable owner. For digital work, the persistent digital agent owns the job while the execution substrate remains replaceable and separate from the agent identity.
 
 ## Architectural rules
 
 1. **Single-agent experience, multi-agent architecture.**
-2. **Agent identity is stateful; execution is stateless and disposable.**
+2. **Agent identity is stateful and runtime-independent; no agent owns a dedicated server.**
 3. Jarvis chooses the specialist; the owner does not configure orchestration.
 4. A digital agent cannot grant itself authority or expand its own permissions.
 5. Sentinel remains independent from the executor and from the digital agent identity.
 6. Company Brain context is not authorization or proof.
 7. Verified business outcomes remain independent from executor claims.
 8. Infrastructure terms stay out of the customer-facing experience.
+9. Runtime elasticity is a scale concern; P0 may reuse one isolated Work Cell per tenant without changing the agent model.
 
 ## Non-goals
 
