@@ -82,7 +82,9 @@ export const DEFAULT_AGENT_PACKAGE: readonly AgentTemplate[] = [
   }
 ] as const;
 
-const byDomain = new Map<RequestDomain, AgentTemplate>(DEFAULT_AGENT_PACKAGE.map((agent) => [agent.domain, agent]));
+const byDomain = new Map<RequestDomain, AgentTemplate>(
+  DEFAULT_AGENT_PACKAGE.map((agent) => [agent.domain, agent] as const)
+);
 
 export function agentTemplateForPlan(plan: RequestPlan): AgentTemplate {
   return byDomain.get(plan.domain) ?? DEFAULT_AGENT_PACKAGE.find((agent) => agent.key === "research")!;
