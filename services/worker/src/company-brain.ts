@@ -72,5 +72,13 @@ export function brainQueryForTask(action: string, payload: Record<string, unknow
   const objective = typeof payload.objective === "string" && payload.objective.trim()
     ? payload.objective.trim()
     : action;
-  return `Business context, prior decisions, people, processes and results relevant to this objective: ${objective}`;
+  const digitalAgent = payload.digitalAgent && typeof payload.digitalAgent === "object"
+    ? payload.digitalAgent as Record<string, unknown>
+    : null;
+  const agentName = typeof digitalAgent?.name === "string" ? digitalAgent.name : null;
+  const agentPurpose = typeof digitalAgent?.purpose === "string" ? digitalAgent.purpose : null;
+  const specialist = agentName
+    ? ` The active specialist is ${agentName}${agentPurpose ? `, whose purpose is: ${agentPurpose}` : ""}.`
+    : "";
+  return `Business context, prior decisions, people, processes and results relevant to this objective: ${objective}.${specialist}`;
 }
