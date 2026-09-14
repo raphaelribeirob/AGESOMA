@@ -57,54 +57,33 @@ create table if not exists agent_task_assignments (
 create index if not exists agent_task_assignments_tenant_agent_idx
   on agent_task_assignments (tenant_id, agent_id, created_at desc);
 
--- One database-level provisioning function is used for both existing and future tenants.
--- Jarvis also calls an idempotent application-level provisioner as a defensive fallback.
-create or replace function seed_default_digital_agents(p_tenant_id uuid)
-returns void
-language sql
-as $$
-  insert into digital_agents (
-    tenant_id, template_key, name, role_title, domain, purpose,
-    responsibilities, skills, preferred_resources, memory_namespace
-  )
-  select
-    p_tenant_id,
-    a.template_key,
-    a.name,
-    a.role_title,
-    a.domain,
-    a.purpose,
-    a.responsibilities::jsonb,
-    a.skills::jsonb,
-    a.preferred_resources::jsonb,
-    'agent:' || a.template_key
-  from (values
-    ('sales','Agente de Vendas','Especialista comercial digital','sales','Aumentar receita acompanhando oportunidades, leads, propostas e follow-ups.','["qualificar leads","recuperar oportunidades","preparar propostas","acompanhar pipeline"]','["crm","follow-up","propostas","qualificação","conversão"]','["crm","whatsapp","email","calendar"]'),
-    ('marketing','Agente de Marketing','Especialista de crescimento digital','marketing','Gerar demanda e melhorar aquisição usando evidências da empresa e dos canais.','["analisar aquisição","preparar campanhas","avaliar canais","produzir ativos de marketing"]','["marketing","campanhas","conteúdo","aquisição","ads"]','["web","files","email"]'),
-    ('service','Agente de Atendimento','Especialista de relacionamento com clientes','service','Resolver demandas de clientes com rapidez, contexto e consistência.','["responder clientes","acompanhar tickets","identificar risco de churn","organizar retornos"]','["atendimento","suporte","whatsapp","email","retenção"]','["whatsapp","email","crm"]'),
-    ('finance','Agente Financeiro','Especialista financeiro digital','finance','Acompanhar cobranças, recebimentos, custos e sinais financeiros que exigem ação.','["acompanhar cobranças","analisar recebimentos","preparar conciliações","sinalizar riscos financeiros"]','["financeiro","cobrança","faturas","margem","recebimentos"]','["finance","files","email","whatsapp"]'),
-    ('operations','Agente de Operações','Especialista de operações digitais','operations','Fazer processos, rotinas e trabalho interno avançarem com menos coordenação manual.','["organizar processos","preparar documentos","acompanhar tarefas","resolver rotinas operacionais"]','["operações","processos","documentos","planilhas","coordenação"]','["files","web","email","calendar"]'),
-    ('research','Agente de Pesquisa','Analista digital da empresa','general','Investigar perguntas abertas, comparar evidências e preparar decisões para o Jarvis.','["pesquisar","comparar evidências","resumir contexto","preparar recomendações"]','["pesquisa","análise","síntese","benchmark","documentação"]','["web","files"]')
-  ) as a(template_key,name,role_title,domain,purpose,responsibilities,skills,preferred_resources)
-  on conflict (tenant_id, template_key) do nothing;
-$$;
-
-select seed_default_digital_agents(id) from tenants;
-
-create or replace function provision_default_digital_agents_for_new_tenant()
-returns trigger
-language plpgsql
-as $$
-begin
-  perform seed_default_digital_agents(new.id);
-  return new;
-end;
-$$;
-
-drop trigger if exists tenants_provision_default_digital_agents on tenants;
-create trigger tenants_provision_default_digital_agents
-after insert on tenants
-for each row execute function provision_default_digital_agents_for_new_tenant();
+-- Existing tenants receive the complete default Jarvis workforce. Future tenants are
+-- idempotently provisioned by the authenticated Jarvis API on first use.
+insert into digital_agents (
+  tenant_id, template_key, name, role_title, domain, purpose,
+  responsibilities, skills, preferred_resources, memory_namespace
+)
+select
+  t.id,
+  a.template_key,
+  a.name,
+  a.role_title,
+  a.domain,
+  a.purpose,
+  a.responsibilities::jsonb,
+  a.skills::jsonb,
+  a.preferred_resources::jsonb,
+  'agent:' || a.template_key
+from tenants t
+cross join (values
+  ('sales','Agente de Vendas','Especialista comercial digital','sales','Aumentar receita acompanhando oportunidades, leads, propostas e follow-ups.','["qualificar leads","recuperar oportunidades","preparar propostas","acompanhar pipeline"]','["crm","follow-up","propostas","qualificação","conversão"]','["crm","whatsapp","email","calendar"]'),
+  ('marketing','Agente de Marketing','Especialista de crescimento digital','marketing','Gerar demanda e melhorar aquisição usando evidências da empresa e dos canais.','["analisar aquisição","preparar campanhas","avaliar canais","produzir ativos de marketing"]','["marketing","campanhas","conteúdo","aquisição","ads"]','["web","files","email"]'),
+  ('service','Agente de Atendimento','Especialista de relacionamento com clientes','service','Resolver demandas de clientes com rapidez, contexto e consistência.','["responder clientes","acompanhar tickets","identificar risco de churn","organizar retornos"]','["atendimento","suporte","whatsapp","email","retenção"]','["whatsapp","email","crm"]'),
+  ('finance','Agente Financeiro','Especialista financeiro digital','finance','Acompanhar cobranças, recebimentos, custos e sinais financeiros que exigem ação.','["acompanhar cobranças","analisar recebimentos","preparar conciliações","sinalizar riscos financeiros"]','["financeiro","cobrança","faturas","margem","recebimentos"]','["finance","files","email","whatsapp"]'),
+  ('operations','Agente de Operações','Especialista de operações digitais','operations','Fazer processos, rotinas e trabalho interno avançarem com menos coordenação manual.','["organizar processos","preparar documentos","acompanhar tarefas","resolver rotinas operacionais"]','["operações","processos","documentos","planilhas","coordenação"]','["files","web","email","calendar"]'),
+  ('research','Agente de Pesquisa','Analista digital da empresa','general','Investigar perguntas abertas, comparar evidências e preparar decisões para o Jarvis.','["pesquisar","comparar evidências","resumir contexto","preparar recomendações"]','["pesquisa","análise","síntese","benchmark","documentação"]','["web","files"]')
+) as a(template_key,name,role_title,domain,purpose,responsibilities,skills,preferred_resources)
+on conflict (tenant_id, template_key) do nothing;
 
 alter table digital_agents enable row level security;
 alter table digital_agents force row level security;
