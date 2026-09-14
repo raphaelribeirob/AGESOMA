@@ -2,11 +2,14 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  DEFAULT_AGENT_PACKAGE,
+  agentTemplateForPlan,
   buildCapabilityScope,
   decideExecutor,
   getActionPolicy,
   routeBusinessRequest,
   serializeCapabilityScope,
+  type AgentTemplate,
   type TeamMemberForCoordination
 } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
@@ -25,6 +28,21 @@ type TeamRow = {
   responsibilities: unknown;
   skills: unknown;
   availability: string;
+};
+
+type DigitalAgentRow = {
+  id: string;
+  template_key: string;
+  name: string;
+  role_title: string;
+  domain: string;
+  purpose: string;
+  responsibilities: unknown;
+  skills: unknown;
+  preferred_resources: unknown;
+  status: string;
+  autonomy_mode: string;
+  memory_namespace: string;
 };
 
 type ApprovalTask = {
@@ -85,6 +103,73 @@ async function snapshot(tenantId: string) {
   return row ?? { team_count: 0, active_work: 0, blocked_work: 0, approvals: 0, verified_count: 0, net_value_cents: 0 };
 }
 
+async function ensureAgentPackage(tenantId: string) {
+  const templates = DEFAULT_AGENT_PACKAGE.map((agent) => ({
+    template_key: agent.key,
+    name: agent.name,
+    role_title: agent.roleTitle,
+    domain: agent.domain,
+    purpose: agent.purpose,
+    responsibilities: agent.responsibilities,
+    skills: agent.skills,
+    preferred_resources: agent.preferredResources,
+    memory_namespace: `agent:${agent.key}`
+  }));
+
+  await tenantSql(tenantId, `
+    insert into digital_agents (
+      tenant_id,template_key,name,role_title,domain,purpose,
+      responsibilities,skills,preferred_resources,memory_namespace
+    )
+    select
+      $1,x.template_key,x.name,x.role_title,x.domain,x.purpose,
+      x.responsibilities,x.skills,x.preferred_resources,x.memory_namespace
+    from jsonb_to_recordset($2::jsonb) as x(
+      template_key text,
+      name text,
+      role_title text,
+      domain text,
+      purpose text,
+      responsibilities jsonb,
+      skills jsonb,
+      preferred_resources jsonb,
+      memory_namespace text
+    )
+    on conflict (tenant_id,template_key) do nothing
+  `, [tenantId, JSON.stringify(templates)]);
+
+  return await tenantSql<DigitalAgentRow>(tenantId, `
+    select id,template_key,name,role_title,domain,purpose,responsibilities,skills,
+      preferred_resources,status,autonomy_mode,memory_namespace
+    from digital_agents
+    where tenant_id=$1 and status='active'
+    order by hired_at asc,template_key asc
+  `, [tenantId]);
+}
+
+function resolveDigitalAgent(agents: DigitalAgentRow[], template: AgentTemplate) {
+  return agents.find((agent) => agent.template_key === template.key)
+    ?? agents.find((agent) => agent.template_key === "research")
+    ?? null;
+}
+
+function agentContext(agent: DigitalAgentRow) {
+  return {
+    id: agent.id,
+    templateKey: agent.template_key,
+    name: agent.name,
+    roleTitle: agent.role_title,
+    domain: agent.domain,
+    purpose: agent.purpose,
+    responsibilities: list(agent.responsibilities),
+    skills: list(agent.skills),
+    preferredResources: list(agent.preferred_resources),
+    autonomyMode: agent.autonomy_mode,
+    memoryNamespace: agent.memory_namespace,
+    runtime: "hermes-work-cell"
+  };
+}
+
 async function firstApproval(tenantId: string) {
   const tasks = await tenantSql<ApprovalTask>(tenantId, `
     select id,status,action_type,payload
@@ -133,12 +218,26 @@ function looksLikeQuestion(message: string) {
   return message.includes("?") || /^(como|o que|qual|quais|quem|quanto|quantos|onde|quando|por que|porque|me diga|me mostre|mostre|resuma|resumo|relatório|relatorio|status|situação|situacao)/.test(normalized);
 }
 
+function asksAboutAgents(message: string) {
+  const normalized = message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /\bagente|agentes|equipe digital|especialistas digitais|especialista digital/.test(normalized);
+}
+
 async function answerQuestion(tenantId: string, message: string) {
-  const [state, facts, approval] = await Promise.all([
+  const [state, facts, approval, agents] = await Promise.all([
     snapshot(tenantId),
     searchBrain(tenantId, message),
-    firstApproval(tenantId)
+    firstApproval(tenantId),
+    ensureAgentPackage(tenantId)
   ]);
+
+  if (asksAboutAgents(message)) {
+    const names = agents.map((agent) => agent.name.replace(/^Agente de /, "")).join(", ");
+    return {
+      reply: `Tenho ${agents.length} especialistas digitais ativos por trás desta conversa: ${names}. Você continua falando só comigo; eu escolho quem deve trabalhar e reúno o resultado aqui.`,
+      approval
+    };
+  }
 
   const active = Number(state.active_work);
   const blocked = Number(state.blocked_work);
@@ -168,12 +267,16 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     return { reply: "Entendi o pedido, mas ainda não consigo transformá-lo em um trabalho seguro. Diga o resultado que você quer em uma frase mais concreta.", approval: await firstApproval(tenantId) };
   }
 
-  const rows = await tenantSql<TeamRow>(tenantId, `
-    select id,name,role_title,department,responsibilities,skills,availability
-    from team_members
-    where tenant_id=$1 and availability='active'
-    order by name asc
-  `, [tenantId]);
+  const [rows, agents] = await Promise.all([
+    tenantSql<TeamRow>(tenantId, `
+      select id,name,role_title,department,responsibilities,skills,availability
+      from team_members
+      where tenant_id=$1 and availability='active'
+      order by name asc
+    `, [tenantId]),
+    ensureAgentPackage(tenantId)
+  ]);
+
   const team: TeamMemberForCoordination[] = rows.map((member) => ({
     id: member.id,
     name: member.name,
@@ -184,13 +287,29 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     availability: member.availability
   }));
 
-  const decision = decideExecutor(plan, team);
+  const humanDecision = decideExecutor(plan, team);
+  const explicitHuman = humanDecision.executorType === "human" && humanDecision.confidence === 1;
+  const selectedAgent = explicitHuman ? null : resolveDigitalAgent(agents, agentTemplateForPlan(plan));
+  if (!explicitHuman && !selectedAgent) {
+    return { reply: "Minha equipe digital ainda não foi provisionada corretamente. Não vou iniciar esse trabalho até isso estar corrigido.", approval: await firstApproval(tenantId) };
+  }
+
+  const decision = explicitHuman
+    ? humanDecision
+    : {
+        executorType: "hermes" as const,
+        teamMemberId: null,
+        teamMemberName: null,
+        reason: `${selectedAgent!.name} é o especialista persistente responsável; a execução roda em Work Cell descartável.`,
+        confidence: 0.95
+      };
+
   const isManager = canApprove(role);
-  if (decision.executorType === "human" && plan.requiresApproval && !isManager) {
+  if (explicitHuman && plan.requiresApproval && !isManager) {
     return { reply: "Esse trabalho exige decisão do dono ou de um administrador antes de ser atribuído.", approval: await firstApproval(tenantId) };
   }
 
-  const action = decision.executorType === "hermes" && plan.requiresApproval ? "business.work" : plan.action;
+  const action = !explicitHuman && plan.requiresApproval ? "business.work" : plan.action;
   const policy = getActionPolicy(action);
   if (!policy) return { reply: "Ainda não tenho uma forma segura de executar esse trabalho.", approval: await firstApproval(tenantId) };
 
@@ -198,7 +317,12 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     insert into workflows (tenant_id,key,version,status,config)
     values ($1,$2,1,'active',$3::jsonb)
     returning id
-  `, [tenantId, `jarvis-${crypto.randomUUID()}`, JSON.stringify({ source: "jarvis_conversation", plan })]);
+  `, [tenantId, `jarvis-${crypto.randomUUID()}`, JSON.stringify({
+    source: "jarvis_conversation",
+    plan,
+    digitalAgentId: selectedAgent?.id ?? null,
+    digitalAgentKey: selectedAgent?.template_key ?? null
+  })]);
 
   const teamContext = team.map((member) => ({
     id: member.id,
@@ -213,6 +337,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     objective: plan.originalRequest,
     requestedAction: plan.action,
     coordination: decision,
+    digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
     teamContext,
     requestedBy: actorId,
     ownerRequested: isManager,
@@ -237,7 +362,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     policy.reversible,
     policy.external,
     payload,
-    decision.executorType === "human" ? new Date() : null
+    explicitHuman ? new Date() : null
   ]);
 
   await tenantSql(tenantId, `
@@ -245,7 +370,20 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     values ($1,$2,$3,$4,'assigned',$5,$6)
   `, [tenantId, task.id, decision.executorType, decision.teamMemberId, decision.reason, actorId]);
 
-  const responsible = decision.executorType === "human" ? decision.teamMemberName ?? "sua equipe" : "eu";
+  if (selectedAgent) {
+    await tenantSql(tenantId, `
+      insert into agent_task_assignments (tenant_id,task_id,agent_id,assigned_reason)
+      values ($1,$2,$3,$4)
+    `, [tenantId, task.id, selectedAgent.id, `Jarvis routed ${plan.domain} work to ${selectedAgent.name}`]);
+    await tenantSql(tenantId, `
+      update digital_agents set last_used_at=now(),updated_at=now()
+      where id=$1 and tenant_id=$2
+    `, [selectedAgent.id, tenantId]);
+  }
+
+  const responsible = explicitHuman
+    ? humanDecision.teamMemberName ?? "sua equipe"
+    : selectedAgent!.name.replace(/^Agente de /, "meu especialista de ");
   const approvalNote = plan.requiresApproval
     ? " Vou preparar a ação exata e pedir sua autorização antes de qualquer etapa consequencial."
     : " Vou acompanhar até haver uma entrega ou um bloqueio real.";
