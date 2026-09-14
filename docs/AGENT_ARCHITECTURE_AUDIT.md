@@ -43,13 +43,14 @@ The owner sees one intelligence. Agents are internal persistent identities, not 
 | Explicit human override | implemented | 9/10 |
 | Sentinel independence | preserved | 10/10 |
 | Tenant isolation | strong | 9/10 |
-| Agent task ownership/history | implemented | 8/10 |
+| Agent task ownership/history | implemented for Jarvis-created digital work | 8/10 |
 | Company Brain specialist context | partial | 6/10 |
 | Per-agent memory isolation | not yet real | 4/10 |
 | Runtime elasticity | P0 only | 4/10 |
 | Per-agent economics/observability | partial | 5/10 |
+| Agent template lifecycle/versioning | missing | 4/10 |
 
-Overall architectural alignment: **7.6/10**.
+Overall architectural alignment: **7.5/10**.
 
 ## What is now installed
 
@@ -138,6 +139,22 @@ Company Brain memory
 ```
 
 Shared company truth must remain available to every authorized specialist, while specialist episodic learning should be tagged and retrievable by agent identity.
+
+## Coverage finding
+
+The canonical Jarvis path now assigns digital work to a persistent agent. Older/internal task producers such as watchers and legacy request/coordination endpoints can still create executable work without an `agent_task_assignments` row.
+
+That is acceptable for the P0 Jarvis rollout because Jarvis is the canonical owner surface, but it means the invariant “every digital task has a digital-agent owner” is **not yet system-wide**.
+
+Before using agent-level analytics as authoritative, all digital task producers should pass through one shared routing primitive or receive a deterministic agent owner before dispatch.
+
+## Template lifecycle finding
+
+The default package is canonical in `packages/core/src/agent-registry.ts`, while migration `0010_agent_registry.sql` contains a snapshot used to seed existing tenants. Provisioning uses `on conflict do nothing` so tenant state is not silently overwritten.
+
+That protects future tenant customization, but there is not yet a `template_version` or explicit upgrade policy. If the Sales agent definition changes later, existing tenants will not automatically inherit it.
+
+The correct next design is versioned templates plus explicit migrations/upgrades that distinguish platform defaults from tenant-customized fields. Do not solve this by blindly overwriting existing agent rows.
 
 ## Economics finding
 
