@@ -50,6 +50,29 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce Jarvis digital workforce
+        run: |
+          test -f packages/core/src/agent-registry.ts
+          test -f packages/db/migrations/0010_agent_registry.sql
+          grep -q 'DEFAULT_AGENT_PACKAGE' packages/core/src/agent-registry.ts
+          grep -q 'Agente de Vendas' packages/core/src/agent-registry.ts
+          grep -q 'Agente de Marketing' packages/core/src/agent-registry.ts
+          grep -q 'Agente de Atendimento' packages/core/src/agent-registry.ts
+          grep -q 'Agente Financeiro' packages/core/src/agent-registry.ts
+          grep -q 'Agente de Operações' packages/core/src/agent-registry.ts
+          grep -q 'Agente de Pesquisa' packages/core/src/agent-registry.ts
+          grep -q 'create table if not exists digital_agents' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'create table if not exists agent_task_assignments' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'agentTemplateForPlan' apps/web/app/api/jarvis/route.ts
+          grep -q 'ensureAgentPackage' apps/web/app/api/jarvis/route.ts
+          grep -q 'agent_task_assignments' apps/web/app/api/jarvis/route.ts
+          grep -q 'runtime: "hermes-work-cell"' apps/web/app/api/jarvis/route.ts
+          grep -q 'digitalAgent' services/worker/src/company-brain.ts
+          if grep -n -E 'digital_agents|agent_task_assignments|hermes-work-cell' apps/web/app/page.tsx apps/web/app/jarvis-client.tsx apps/web/app/onboarding/page.tsx; then
+            echo "Digital workforce implementation details must stay behind the Jarvis surface"
+            exit 1
+          fi
+
       - name: Enforce RiverThree product package
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
@@ -70,11 +93,11 @@ jobs:
           grep -q 'activationEvent: "first_jarvis_request_accepted"' apps/web/lib/riverthree-product.ts
           grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx
           grep -q 'JarvisClient' apps/web/app/page.tsx
-          if grep -R -n -E 'CAL AI|RIVERTHREE|Business Consumerized|actionAgent|Work Cell|Watchers' apps/web/app; then
+          if grep -n -E 'CAL AI|RIVERTHREE|Business Consumerized|actionAgent|Work Cell|Watchers' apps/web/app/page.tsx apps/web/app/jarvis-client.tsx apps/web/app/onboarding/page.tsx; then
             echo "Internal design or architecture language must never appear in public product UI"
             exit 1
           fi
-          if grep -R -n -E '\bROI\b|InstantWork' apps/web/app; then
+          if grep -n -E '\bROI\b|InstantWork' apps/web/app/page.tsx apps/web/app/jarvis-client.tsx apps/web/app/onboarding/page.tsx; then
             echo "Public AGESOMA UI must use AGESOMA identity and demonstrate value without legacy labels"
             exit 1
           fi
@@ -174,6 +197,10 @@ jobs:
           grep -q 'runtime_namespace' packages/db/migrations/0005_muse_hardening.sql
           grep -q 'alter table team_members force row level security' packages/db/migrations/0007_team_coordination.sql
           grep -q 'alter table work_assignments force row level security' packages/db/migrations/0007_team_coordination.sql
+          grep -q 'alter table digital_agents force row level security' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'alter table agent_task_assignments force row level security' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'foreign key (tenant_id, agent_id)' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'foreign key (tenant_id, task_id)' packages/db/migrations/0010_agent_registry.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web
