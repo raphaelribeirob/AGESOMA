@@ -2,7 +2,7 @@
 
 AGESOMA is one product with one job: act as the operating intelligence for a small or medium business.
 
-Its purpose is simple: understand how the company works, organize people and work, decide what should happen next, use HERMES when software can execute the work, and involve the owner only when a real decision or authorization is required.
+Its purpose is simple: understand how the company works, decide what should happen next, coordinate people and digital execution, verify what changed, and involve the owner only when a real decision or authorization is required.
 
 ## Canonical product definition
 
@@ -10,83 +10,109 @@ Its purpose is simple: understand how the company works, organize people and wor
 
 Customer-facing promise:
 
-**AGESOMA organiza sua empresa, coordena sua equipe e faz o trabalho avançar.**
+**Converse com a inteligência da sua empresa.**
 
-AGESOMA is not an agent marketplace, workflow builder, chatbot, CRM, HR system, project-management suite or collection of vertical products. Those capabilities may exist internally when useful, but they are not separate products or user-facing concepts.
+The owner-facing product is not a dashboard, agent marketplace, workflow builder, CRM, HR system, project-management suite or collection of modes. Those capabilities may exist internally, but the customer experiences one intelligence: AGESOMA.
 
 ## Operating model
 
 ```text
-Owner / business objective
+Owner conversation
         ↓
 AGESOMA understands the company
         ↓
 AGESOMA decides what needs to happen
         ↓
 ┌──────────────────────┬──────────────────────┐
-│ Human employee       │ HERMES               │
-│ receives work        │ executes digital work│
+│ Human employee       │ HERMES / agents      │
+│ receives work        │ execute digital work │
 └──────────────────────┴──────────────────────┘
         ↓
 AGESOMA follows progress
         ↓
 AGESOMA verifies the result
         ↓
-AGESOMA reports what changed
+AGESOMA reports naturally in conversation
         ↓
 AGESOMA learns how this company works
 ```
 
-The owner should not need to understand agents, prompts, models, workflows, tools or orchestration.
+The owner should not need to understand prompts, models, workflows, tools, orchestration, Company Brain, Sentinel or HERMES.
 
-## What AGESOMA does
+## What AGESOMA knows
 
 AGESOMA maintains one operating picture of the business:
 
 - objectives and priorities;
 - employees, responsibilities and capacity;
+- agents and digital capabilities available to the company;
 - work that is pending, active, blocked or completed;
 - decisions that need the owner;
 - systems and information the company already uses;
-- work that can be delegated to HERMES;
 - evidence that a result actually happened;
 - lessons learned from the company over time.
 
 From that picture, AGESOMA continually answers four questions:
 
 1. What needs to happen now?
-2. Who should do it?
-3. Can HERMES do it safely instead of a person?
+2. Who or what should do it?
+3. What can be completed safely without interrupting the owner?
 4. What does the owner actually need to know or decide?
 
-## Human + HERMES coordination
+## Human + agent coordination
 
 Human employees remain part of the operating system. AGESOMA can assign, prioritize, follow up and surface blockers for human work.
 
-HERMES is an internal execution substrate controlled by AGESOMA. It may handle authorized browser, API, messaging, file and computer work when appropriate. HERMES is never the product, never the authority and never the owner-facing identity.
+Agents and HERMES are internal execution substrates controlled by AGESOMA. The owner may conversationally ask to “contratar um agente” when that metaphor makes the capability easier to understand, but agent configuration, prompts, tools and orchestration never become a separate management interface.
 
 Canonical authority rule:
 
-**AGESOMA decides and governs. HERMES executes. People collaborate. The owner retains authority.**
+**AGESOMA decides and governs. HERMES and agents execute. People collaborate. The owner retains authority.**
 
 ## Owner experience
 
-The primary product should stay extremely simple:
+The canonical owner experience is one Jarvis-style conversation.
 
-`Início | Equipe | Trabalho | Resultados`
+There is no primary navigation such as `Início | Equipe | Trabalho | Resultados`.
 
-The owner can also ask AGESOMA directly what they want done.
+The main screen contains only:
+
+```text
+AGESOMA
+
+        Intelligence Orb
+
+        conversation
+
+“O que você quer saber ou fazer na sua empresa?”
+```
+
+Operational state appears only when it is relevant to the conversation: progress, approvals, results, recommendations and warnings are rendered inline rather than requiring the owner to open dashboards.
 
 Examples:
 
+- “Como está minha empresa hoje?”
 - “Organize a equipe para fechar mais vendas esta semana.”
-- “Quem está sobrecarregado?”
-- “O que está parado esperando alguém?”
+- “Contrate um agente para recuperar leads antigos.”
 - “Resolva tudo que puder sem me interromper.”
 - “O que precisa da minha decisão hoje?”
-- “Mostre o que realmente foi concluído esta semana.”
+- “Como foi o resultado desta semana?”
 
-AGESOMA may internally use specialized work methods for different business situations, but these methods must never become separate AGESOMA products, modes or brands.
+A consequential action must be approvable from inside the same conversation. A verified result must be reportable in the same conversation. The owner should never need to navigate elsewhere to understand what AGESOMA is doing.
+
+## Jarvis interaction states
+
+AGESOMA exposes only human-readable states:
+
+- listening;
+- thinking;
+- working;
+- needs your approval;
+- completed;
+- blocked;
+- reporting a verified result.
+
+Internal infrastructure names must not leak into customer-facing copy.
 
 ## Safety and authority
 
@@ -100,20 +126,24 @@ The core principle is unchanged:
 
 ## P0 stack
 
-- Next.js + React + TypeScript: owner-facing AGESOMA shell.
-- PostgreSQL + pgvector: operational truth and business memory.
+- Next.js + React + TypeScript: Jarvis conversation shell.
+- Better Auth: authenticated owner identity and tenant resolution.
+- PostgreSQL + pgvector: operational truth and structured business memory.
+- Graphiti + Neo4j: temporal Company Brain context.
 - pg-boss: durable background work.
 - Sentinel: independent authorization boundary.
 - HERMES: isolated digital execution plane.
 - Work Cells: tenant-isolated runtime, browser/files/memory/credential namespaces.
 - Credential broker: keeps business credentials outside HERMES.
 - Outcome verification: distinguishes work performed from results actually proven.
-- PostHog + Sentry/C-Trace: product and reliability observability.
+- OpenTelemetry-compatible observability.
+
+The Jarvis surface is intentionally backend-agnostic. Open-source conversation/voice runtimes such as assistant-ui, AG-UI and Pipecat may be connected behind this interaction contract without changing the owner mental model.
 
 ## Repository layout
 
 ```text
-apps/web            AGESOMA owner experience and API endpoints
+apps/web            AGESOMA Jarvis experience and authenticated API endpoints
 packages/core       decision, policy, routing and business intelligence
 packages/db         operational database and migrations
 services/worker     durable coordination and HERMES adapter
@@ -121,16 +151,15 @@ deploy/production   control plane and isolated tenant Work Cells
 docs                product doctrine, architecture and release gates
 ```
 
-## Internal compatibility names
-
-Existing identifiers such as `@agesoma/*`, `agesoma_p0` and `agesoma.execute` are valid internal names. Legacy `InstantWork` language must not return to the public product.
-
 ## Release test
 
-A release is directionally correct only if an ordinary SME owner can use AGESOMA without learning AI concepts and can answer, at a glance:
+A release is directionally correct only if an ordinary SME owner can operate AGESOMA from one conversation and naturally ask:
 
-- what the team is doing;
-- what AGESOMA/HERMES handled automatically;
+- what is happening in the company;
+- what AGESOMA is working on;
 - what is blocked;
 - what needs the owner's decision;
-- what result was actually achieved.
+- what result was actually achieved;
+- what AGESOMA recommends doing next.
+
+If the owner needs a dashboard to answer one of those questions, the Jarvis experience is incomplete.

@@ -7,10 +7,11 @@ import "./riverthree-fonts.css";
 import "./riverthree-v418.css";
 import "./agesoma-brand.css";
 import "./instantspeak-reference.css";
+import "./jarvis.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
-  description: "AGESOMA organiza sua equipe, acompanha o trabalho e ajuda sua empresa a funcionar melhor."
+  description: "Converse com a inteligência da sua empresa."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
