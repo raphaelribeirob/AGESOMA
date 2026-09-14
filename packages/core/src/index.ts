@@ -3,6 +3,7 @@ export * from "./sentinel";
 export * from "./margin-governor";
 export * from "./outcomes";
 export * from "./request-router";
+export * from "./agent-registry";
 export * from "./personalization";
 export * from "./autonomy";
 export * from "./company-ontology";
