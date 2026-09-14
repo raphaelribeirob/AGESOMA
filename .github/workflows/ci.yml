@@ -31,15 +31,21 @@ jobs:
           test -f apps/web/app/api/team/route.ts
           test -f apps/web/app/api/coordinate/route.ts
           test -f apps/web/app/api/assignments/route.ts
+          test -f apps/web/app/api/jarvis/route.ts
+          test -f apps/web/app/jarvis-client.tsx
           grep -q 'decideExecutor' packages/core/src/request-router.ts
-          grep -q 'href="#equipe">Equipe<' apps/web/app/page.tsx
-          grep -q 'href="#trabalho">Trabalho<' apps/web/app/page.tsx
-          grep -q 'href="#resultados">Resultados<' apps/web/app/page.tsx
+          grep -q 'JarvisClient' apps/web/app/page.tsx
+          grep -q 'className="jarvisConversation"' apps/web/app/jarvis-client.tsx
+          grep -q 'className="jarvisComposer"' apps/web/app/jarvis-client.tsx
+          if grep -q -E 'href="#(equipe|trabalho|resultados)"' apps/web/app/page.tsx; then
+            echo "Dashboard navigation must not return to the canonical Jarvis owner experience"
+            exit 1
+          fi
           if grep -R -n -E 'resolveVerticalWorkPack|verticalWorkPack|consorcio_sales_v1' packages/core/src/request-router.ts packages/core/src/index.ts apps/web/app; then
             echo "Niche product routing must not return to canonical AGESOMA flows"
             exit 1
           fi
-          if grep -n -E 'HERMES|Hermes' apps/web/app/page.tsx apps/web/app/onboarding/page.tsx; then
+          if grep -n -E 'HERMES|Hermes' apps/web/app/page.tsx apps/web/app/jarvis-client.tsx apps/web/app/onboarding/page.tsx; then
             echo "HERMES must remain invisible in owner-facing AGESOMA UI"
             exit 1
           fi
@@ -54,16 +60,16 @@ jobs:
           grep -q 'onboardingMode: "businessConsumerized"' apps/web/lib/riverthree-product.ts
           grep -q 'intelligenceOrb: "contextual"' apps/web/lib/riverthree-product.ts
           grep -q 'genZ: "subtle"' apps/web/lib/riverthree-product.ts
-          grep -q 'mode: "actionAgent"' apps/web/lib/riverthree-product.ts
+          grep -q 'mode: "jarvisConversation"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "company_context"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "team_size"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "team_structure"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "coordination_problem"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "coordination_preview"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "first_execution"' apps/web/lib/riverthree-product.ts
-          grep -q 'activationEvent: "first_coordinated_work_assigned"' apps/web/lib/riverthree-product.ts
+          grep -q 'activationEvent: "first_jarvis_request_accepted"' apps/web/lib/riverthree-product.ts
           grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx
-          grep -q 'running ?' apps/web/app/page.tsx
+          grep -q 'JarvisClient' apps/web/app/page.tsx
           if grep -R -n -E 'CAL AI|RIVERTHREE|Business Consumerized|actionAgent|Work Cell|Watchers' apps/web/app; then
             echo "Internal design or architecture language must never appear in public product UI"
             exit 1
@@ -75,20 +81,18 @@ jobs:
 
       - name: Enforce canonical RiverThree UI bindings
         run: |
-          grep -q 'className="r3ActionHero"' apps/web/app/page.tsx
-          grep -q 'className="r3QuietMaterial"' apps/web/app/page.tsx
-          grep -q 'className="r3LiveIntelligence"' apps/web/app/page.tsx
-          grep -q 'className="orbMaterial r3OrbCompact"' apps/web/app/page.tsx
-          grep -q 'className="r3NextBestAction"' apps/web/app/page.tsx
-          grep -q 'className="r3MetricStrip"' apps/web/app/page.tsx
-          grep -q 'className="workspaceSection"' apps/web/app/page.tsx
-          grep -q 'className="resultSection"' apps/web/app/page.tsx
+          grep -q 'className="jarvisShell"' apps/web/app/jarvis-client.tsx
+          grep -q 'className="jarvisHeader"' apps/web/app/jarvis-client.tsx
+          grep -q 'className="jarvisConversation"' apps/web/app/jarvis-client.tsx
+          grep -q 'className="jarvisComposer"' apps/web/app/jarvis-client.tsx
+          grep -q 'jarvisOrb' apps/web/app/jarvis-client.tsx
+          grep -q 'jarvisApproval' apps/web/app/jarvis-client.tsx
           grep -q 'className="onboardingCard"' apps/web/app/onboarding/page.tsx
           grep -q 'className="r3WelcomeMaterial"' apps/web/app/onboarding/page.tsx
           grep -q 'className="choiceCheck"' apps/web/app/onboarding/page.tsx
           grep -q 'className="r3ResultPreview"' apps/web/app/onboarding/page.tsx
           grep -q 'className="r3FirstAction"' apps/web/app/onboarding/page.tsx
-          if grep -E -n 'className="(homeHero|quietState|liveIntelligence|nextBestAction|metricStrip|activitySection|activityList|activityRow|resultsSection|resultCard|onboardingStage|welcomeMaterial|choiceMark|firstActionCard|intelligenceOrb)"' apps/web/app/page.tsx apps/web/app/onboarding/page.tsx; then
+          if grep -E -n 'className="(homeHero|quietState|liveIntelligence|nextBestAction|metricStrip|activitySection|activityList|activityRow|resultsSection|resultCard|onboardingStage|welcomeMaterial|choiceMark|firstActionCard|intelligenceOrb)"' apps/web/app/page.tsx apps/web/app/jarvis-client.tsx apps/web/app/onboarding/page.tsx; then
             echo "Non-canonical UI bindings detected; RiverThree classes must be used directly"
             exit 1
           fi
@@ -108,6 +112,8 @@ jobs:
           grep -q 'Consequential action is not fully resolved' apps/web/app/api/approvals/route.ts
           grep -q 'Consequential capability is unresolved' services/worker/src/index.ts
           grep -q 'scope_hash' apps/web/app/api/approvals/route.ts
+          grep -q 'buildCapabilityScope' apps/web/app/api/jarvis/route.ts
+          grep -q 'scopeHash' apps/web/app/api/jarvis/route.ts
 
       - name: Enforce customer channel restriction
         run: |
