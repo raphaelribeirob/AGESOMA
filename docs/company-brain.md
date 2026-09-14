@@ -23,6 +23,7 @@ It stores and relates facts about:
 - Graphiti `0.29.3`: temporal knowledge graph ingestion and retrieval.
 - Neo4j `5.26`: graph persistence.
 - PostgreSQL + pgvector: canonical operational records remain here.
+- OpenAI-compatible inference protocol: model-provider abstraction for Graphiti. AGESOMA can route it to LiteLLM, vLLM, Ollama, llama.cpp or another compatible endpoint instead of requiring one proprietary model vendor.
 - AGESOMA worker: recalls Company Brain context before `business.observe` and `business.work` execution, then writes successful task completions back as episodes.
 - HERMES: receives selected memory as context only.
 
@@ -39,6 +40,7 @@ The following rules are mandatory:
 5. The executor cannot mark its own economic outcome as verified.
 6. Tenant isolation is enforced by Graphiti `group_id`, using the AGESOMA tenant ID.
 7. The Brain API is internal-only and requires `AGESOMA_BRAIN_INTERNAL_API_TOKEN`.
+8. Model endpoints are replaceable infrastructure. No model provider is part of AGESOMA's authority boundary or canonical business state.
 
 ## Runtime flow
 
@@ -51,6 +53,8 @@ PostgreSQL operational truth
           │
           ├── recall relevant facts ───────► Company Brain
           │                                  Graphiti + Neo4j
+          │                                        │
+          │                                        └── replaceable AI endpoint
           │
           ├── selected context
           ▼
@@ -65,9 +69,23 @@ PostgreSQL + artifacts
           └── successful task episode ────► Company Brain
 ```
 
+## Model-provider abstraction
+
+The Brain uses Graphiti's OpenAI-compatible client interface. This is a protocol choice, not a vendor commitment.
+
+Configuration priority for inference is:
+
+1. `AGESOMA_LLM_BASE_URL` / `AGESOMA_LLM_API_KEY`;
+2. `LITELLM_BASE_URL` / `LITELLM_API_KEY`;
+3. `OPENAI_BASE_URL` / `OPENAI_API_KEY` as compatibility fallback.
+
+Embeddings can use an independent compatible endpoint through `AGESOMA_EMBEDDING_BASE_URL`. Model names and embedding dimensions are also configuration values. This keeps the AGESOMA Company Brain portable across hosted and self-hosted models.
+
 ## Local startup
 
-Copy `.env.example` to `.env`, provide strong values for `NEO4J_PASSWORD` and `AGESOMA_BRAIN_INTERNAL_API_TOKEN`, and provide `OPENAI_API_KEY` for Graphiti inference/embeddings.
+Copy `.env.example` to `.env` and provide strong values for `NEO4J_PASSWORD` and `AGESOMA_BRAIN_INTERNAL_API_TOKEN`.
+
+Then configure an OpenAI-compatible model endpoint. For example, a local gateway can be provided through `AGESOMA_LLM_BASE_URL` and `AGESOMA_EMBEDDING_BASE_URL`. Direct `OPENAI_API_KEY` is optional and is only needed when OpenAI itself is the selected provider.
 
 Then run:
 
