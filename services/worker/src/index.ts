@@ -9,6 +9,7 @@ import {
 } from "@agesoma/core";
 import { sql } from "@agesoma/db";
 import { loadAutonomy } from "./autonomy";
+import { brainQueryForTask, recallCompanyContext, rememberCompanyEpisode } from "./company-brain";
 import { executeWithHermes } from "./hermes";
 import { persistProductOutput } from "./product-output";
 
@@ -29,7 +30,10 @@ async function reportHeartbeat() {
       set instance_id=excluded.instance_id,
           metadata=excluded.metadata,
           last_seen_at=excluded.last_seen_at
-  `, [instanceId, JSON.stringify({ hermesConfigured: Boolean(process.env.HERMES_BASE_URL && process.env.HERMES_SERVICE_TOKEN) })]);
+  `, [instanceId, JSON.stringify({
+    hermesConfigured: Boolean(process.env.HERMES_BASE_URL && process.env.HERMES_SERVICE_TOKEN),
+    companyBrainConfigured: Boolean(process.env.AGESOMA_BRAIN_URL && process.env.AGESOMA_BRAIN_INTERNAL_API_TOKEN)
+  })]);
 }
 
 type QueuedTask = {
@@ -294,7 +298,34 @@ await boss.work("agesoma.execute", async ([job]) => {
   await sql(`update tasks set status='running', execution_started_at=now(), failure_reason=null, updated_at=now() where id=$1 and tenant_id=$2`, [data.taskId, data.tenantId]);
 
   try {
-    const result = await executeWithHermes({ taskId: data.taskId, tenantId: data.tenantId, action: data.action, payload: data.payload, grantRef });
+    let executionPayload = data.payload;
+    if (data.action === "business.observe" || data.action === "business.work") {
+      const brainFacts = await recallCompanyContext({
+        tenantId: data.tenantId,
+        query: brainQueryForTask(data.action, data.payload),
+        limit: 10
+      }).catch((error) => {
+        console.error("Company Brain recall failed", error);
+        return [];
+      });
+
+      if (brainFacts.length) {
+        executionPayload = {
+          ...data.payload,
+          businessMemory: {
+            source: "agesoma-company-brain",
+            trust: "context-only-not-authorization-or-proof",
+            facts: brainFacts.map((item) => ({
+              fact: item.fact,
+              validAt: item.valid_at ?? null,
+              invalidAt: item.invalid_at ?? null
+            }))
+          }
+        };
+      }
+    }
+
+    const result = await executeWithHermes({ taskId: data.taskId, tenantId: data.tenantId, action: data.action, payload: executionPayload, grantRef });
     await sql(`update tasks set status='completed', execution_finished_at=now(), execution_result=$3::jsonb, updated_at=now() where id=$1 and tenant_id=$2`, [
       data.taskId, data.tenantId, JSON.stringify(result)
     ]);
@@ -302,6 +333,27 @@ await boss.work("agesoma.execute", async ([job]) => {
     if (typeof data.payload.watcherId === "string") {
       await sql(`update watchers set last_checked_at=now(), updated_at=now() where id=$1 and tenant_id=$2`, [data.payload.watcherId, data.tenantId]);
     }
+
+    const objective = typeof data.payload.objective === "string" ? data.payload.objective : null;
+    const resultSnapshot = JSON.stringify(result).slice(0, 12_000);
+    await rememberCompanyEpisode({
+      tenantId: data.tenantId,
+      name: `task.completed:${data.action}`,
+      sourceDescription: "Verified AGESOMA task completion record after product persistence",
+      content: {
+        event: "task.completed",
+        taskId: data.taskId,
+        workflowId: task.workflow_id,
+        action: data.action,
+        objective,
+        operation: typeof data.payload.operation === "string" ? data.payload.operation : null,
+        resource: typeof data.payload.resource === "string" ? data.payload.resource : null,
+        destination: typeof data.payload.destination === "string" ? data.payload.destination : null,
+        completedAt: new Date().toISOString(),
+        executionResultSnapshot: resultSnapshot
+      }
+    }).catch((error) => console.error("Company Brain ingestion failed", error));
+
     return result;
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Execution failed";
