@@ -23,7 +23,7 @@ jobs:
       - name: Enforce single AGESOMA purpose
         run: |
           test -f docs/PRODUCT_SCOPE.md
-          grep -q 'AGESOMA for SMEs' docs/PRODUCT_SCOPE.md
+          grep -q 'AI operating intelligence for SMEs' docs/PRODUCT_SCOPE.md
           test -f packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists team_members' packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists work_assignments' packages/db/migrations/0007_team_coordination.sql
@@ -34,7 +34,7 @@ jobs:
           test -f apps/web/app/api/agesoma/route.ts
           test -f apps/web/app/agesoma-client.tsx
           grep -q 'decideExecutor' packages/core/src/request-router.ts
-          grep -q 'AGESOMAClient' apps/web/app/page.tsx
+          grep -q 'AgesomaClient' apps/web/app/page.tsx
           grep -q 'className="agesomaConversation"' apps/web/app/agesoma-client.tsx
           grep -q 'className="agesomaComposer"' apps/web/app/agesoma-client.tsx
           if grep -q -E 'href="#(equipe|trabalho|resultados)"' apps/web/app/page.tsx; then
@@ -92,7 +92,7 @@ jobs:
           grep -q 'id: "first_execution"' apps/web/lib/riverthree-product.ts
           grep -q 'activationEvent: "first_agesoma_request_accepted"' apps/web/lib/riverthree-product.ts
           grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx
-          grep -q 'AGESOMAClient' apps/web/app/page.tsx
+          grep -q 'AgesomaClient' apps/web/app/page.tsx
           if grep -n -E 'CAL AI|RIVERTHREE|Business Consumerized|actionAgent|Work Cell|Watchers' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
             echo "Internal design or architecture language must never appear in public product UI"
             exit 1
