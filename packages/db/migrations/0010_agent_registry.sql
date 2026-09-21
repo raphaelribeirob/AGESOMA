@@ -1,6 +1,6 @@
 set search_path to agesoma_p0, public;
 
--- AGESOMA presents one Jarvis to the owner, while keeping a persistent digital workforce
+-- AGESOMA presents one AGESOMA to the owner, while keeping a persistent digital workforce
 -- behind that single interface. Agents are stateful identities; execution remains ephemeral
 -- and continues through the existing HERMES/Work Cell runtime.
 create table if not exists digital_agents (
@@ -57,8 +57,8 @@ create table if not exists agent_task_assignments (
 create index if not exists agent_task_assignments_tenant_agent_idx
   on agent_task_assignments (tenant_id, agent_id, created_at desc);
 
--- Existing tenants receive the complete default Jarvis workforce. Future tenants are
--- idempotently provisioned by the authenticated Jarvis API on first use.
+-- Existing tenants receive the complete default AGESOMA workforce. Future tenants are
+-- idempotently provisioned by the authenticated AGESOMA API on first use.
 insert into digital_agents (
   tenant_id, template_key, name, role_title, domain, purpose,
   responsibilities, skills, preferred_resources, memory_namespace
@@ -81,7 +81,7 @@ cross join (values
   ('service','Agente de Atendimento','Especialista de relacionamento com clientes','service','Resolver demandas de clientes com rapidez, contexto e consistência.','["responder clientes","acompanhar tickets","identificar risco de churn","organizar retornos"]','["atendimento","suporte","whatsapp","email","retenção"]','["whatsapp","email","crm"]'),
   ('finance','Agente Financeiro','Especialista financeiro digital','finance','Acompanhar cobranças, recebimentos, custos e sinais financeiros que exigem ação.','["acompanhar cobranças","analisar recebimentos","preparar conciliações","sinalizar riscos financeiros"]','["financeiro","cobrança","faturas","margem","recebimentos"]','["finance","files","email","whatsapp"]'),
   ('operations','Agente de Operações','Especialista de operações digitais','operations','Fazer processos, rotinas e trabalho interno avançarem com menos coordenação manual.','["organizar processos","preparar documentos","acompanhar tarefas","resolver rotinas operacionais"]','["operações","processos","documentos","planilhas","coordenação"]','["files","web","email","calendar"]'),
-  ('research','Agente de Pesquisa','Analista digital da empresa','general','Investigar perguntas abertas, comparar evidências e preparar decisões para o Jarvis.','["pesquisar","comparar evidências","resumir contexto","preparar recomendações"]','["pesquisa","análise","síntese","benchmark","documentação"]','["web","files"]')
+  ('research','Agente de Pesquisa','Analista digital da empresa','general','Investigar perguntas abertas, comparar evidências e preparar decisões para o AGESOMA.','["pesquisar","comparar evidências","resumir contexto","preparar recomendações"]','["pesquisa","análise","síntese","benchmark","documentação"]','["web","files"]')
 ) as a(template_key,name,role_title,domain,purpose,responsibilities,skills,preferred_resources)
 on conflict (tenant_id, template_key) do nothing;
 
