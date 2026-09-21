@@ -92,8 +92,10 @@ Learn
 
 ## Customer-facing simplicity
 
-Primary surfaces should converge toward:
+The canonical owner experience is one AGESOMA conversation.
 
-`Início | Equipe | Trabalho | Resultados`
+Work state, approvals, team context, recommendations and verified results should appear contextually inside that conversation instead of requiring the owner to navigate across operational dashboards.
+
+Account and advanced settings may exist outside the core conversation when necessary.
 
 Technical concepts such as HERMES, Sentinel, Work Cell, models, agents, workflows and internal work methods must remain outside the normal owner experience.
