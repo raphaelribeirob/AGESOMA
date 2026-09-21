@@ -24,6 +24,23 @@ export async function sql<T = Record<string, unknown>>(
   return result.rows as T[];
 }
 
+export async function transaction<T>(
+  work: (client: InstanceType<typeof Pool> extends { connect(): Promise<infer C> } ? C : never) => Promise<T>
+): Promise<T> {
+  const client = await db().connect();
+  try {
+    await client.query("begin");
+    const result = await work(client as never);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function tenantSql<T = Record<string, unknown>>(
   tenantId: string,
   text: string,
