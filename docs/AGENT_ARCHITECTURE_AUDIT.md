@@ -9,7 +9,7 @@ The canonical experience is one AGESOMA conversation backed by multiple speciali
 ```text
 Owner
   ↓
-AGESOMA / AGESOMA
+AGESOMA
   ↓
 Digital Agent Registry
   ├─ Sales
@@ -173,7 +173,7 @@ The existing task and outcome infrastructure gives most of the raw primitives. A
 
 The architecture now supports the desired model:
 
-**one AGESOMA in front, a digital workforce behind it.**
+**one AGESOMA experience in front, a digital workforce behind it.**
 
 Do not add an agent-management dashboard. Agent details should appear conversationally only when useful, for example:
 
