@@ -18,7 +18,7 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - name: Test core behavior
-        run: node --test packages/core/test/request-router.test.mjs
+        run: npm test
 
       - name: Enforce single AGESOMA purpose
         run: |
