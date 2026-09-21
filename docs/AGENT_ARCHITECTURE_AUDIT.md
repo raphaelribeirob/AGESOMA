@@ -4,12 +4,12 @@ Date: 2026-09-14
 
 ## Target
 
-The canonical experience is one Jarvis conversation backed by multiple specialized digital agents.
+The canonical experience is one AGESOMA conversation backed by multiple specialized digital agents.
 
 ```text
 Owner
   ↓
-AGESOMA / Jarvis
+AGESOMA / AGESOMA
   ↓
 Digital Agent Registry
   ├─ Sales
@@ -27,7 +27,7 @@ External systems
   ↓
 Outcome verification
   ↓
-Jarvis report
+AGESOMA report
 ```
 
 The owner sees one intelligence. Agents are internal persistent identities, not separate chat products.
@@ -36,14 +36,14 @@ The owner sees one intelligence. Agents are internal persistent identities, not 
 
 | Area | Status | Score |
 |---|---|---:|
-| Single Jarvis owner surface | implemented | 10/10 |
+| Single AGESOMA owner surface | implemented | 10/10 |
 | Persistent tenant-scoped agent identities | implemented | 9/10 |
 | Default specialist package | implemented | 9/10 |
-| Jarvis domain-to-agent routing | implemented | 8/10 |
+| AGESOMA domain-to-agent routing | implemented | 8/10 |
 | Explicit human override | implemented | 9/10 |
 | Sentinel independence | preserved | 10/10 |
 | Tenant isolation | strong | 9/10 |
-| Agent task ownership/history | implemented for Jarvis-created digital work | 8/10 |
+| Agent task ownership/history | implemented for AGESOMA-created digital work | 8/10 |
 | Company Brain specialist context | partial | 6/10 |
 | Per-agent memory isolation | not yet real | 4/10 |
 | Runtime elasticity | P0 only | 4/10 |
@@ -56,9 +56,9 @@ Overall architectural alignment: **7.5/10**.
 
 `digital_agents` stores the persistent identity of each specialist per tenant: role, domain, purpose, responsibilities, skills, preferred resources, autonomy mode, memory namespace and usage timestamps.
 
-`agent_task_assignments` records which persistent specialist owns each Jarvis-created digital task. It is intentionally separate from `work_assignments`: the first records logical agent ownership; the second records the runtime/person that actually executes the task.
+`agent_task_assignments` records which persistent specialist owns each AGESOMA-created digital task. It is intentionally separate from `work_assignments`: the first records logical agent ownership; the second records the runtime/person that actually executes the task.
 
-The Jarvis API idempotently provisions the six canonical specialists for future tenants and selects the appropriate active specialist from the request domain. If the owner explicitly names a human employee, the human assignment remains authoritative.
+The AGESOMA API idempotently provisions the six canonical specialists for future tenants and selects the appropriate active specialist from the request domain. If the owner explicitly names a human employee, the human assignment remains authoritative.
 
 The selected digital agent is passed into the execution payload as context. Sentinel, scoped approvals and independent outcome verification remain outside the agent and executor authority boundaries.
 
@@ -106,7 +106,7 @@ Keep this while validating product behavior and low tenant counts.
 Scale phase:
 
 ```text
-Jarvis task queue
+AGESOMA task queue
       ↓
 Scheduler
       ↓
@@ -142,9 +142,9 @@ Shared company truth must remain available to every authorized specialist, while
 
 ## Coverage finding
 
-The canonical Jarvis path now assigns digital work to a persistent agent. Older/internal task producers such as watchers and legacy request/coordination endpoints can still create executable work without an `agent_task_assignments` row.
+The canonical AGESOMA path now assigns digital work to a persistent agent. Older/internal task producers such as watchers and legacy request/coordination endpoints can still create executable work without an `agent_task_assignments` row.
 
-That is acceptable for the P0 Jarvis rollout because Jarvis is the canonical owner surface, but it means the invariant “every digital task has a digital-agent owner” is **not yet system-wide**.
+That is acceptable for the P0 AGESOMA rollout because AGESOMA is the canonical owner surface, but it means the invariant “every digital task has a digital-agent owner” is **not yet system-wide**.
 
 Before using agent-level analytics as authoritative, all digital task producers should pass through one shared routing primitive or receive a deterministic agent owner before dispatch.
 
@@ -173,13 +173,13 @@ The existing task and outcome infrastructure gives most of the raw primitives. A
 
 The architecture now supports the desired model:
 
-**one Jarvis in front, a digital workforce behind it.**
+**one AGESOMA in front, a digital workforce behind it.**
 
 Do not add an agent-management dashboard. Agent details should appear conversationally only when useful, for example:
 
 > “Tenho seis especialistas ativos. Vendas está cuidando dos leads e Financeiro está acompanhando cobranças.”
 
-The default interaction remains Jarvis.
+The default interaction remains AGESOMA.
 
 ## Release blockers
 
@@ -187,7 +187,7 @@ Before calling this production-active, all of the following must be true:
 
 1. migration `0010_agent_registry.sql` applied to the production database;
 2. existing tenant receives the six agent identities;
-3. a Jarvis sales request creates an `agent_task_assignments` row owned by the Sales agent;
+3. a AGESOMA sales request creates an `agent_task_assignments` row owned by the Sales agent;
 4. the task still passes Sentinel independently;
 5. HERMES receives the digital-agent context but no extra authority;
 6. a verified outcome can be joined back to the responsible agent;
