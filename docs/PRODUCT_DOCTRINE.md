@@ -6,7 +6,7 @@ Its purpose is simple: understand how the company works, decide what should happ
 
 ## Canonical product definition
 
-**AGESOMA = the JARVIS for SMEs.**
+**AGESOMA = the AGESOMA for SMEs.**
 
 Customer-facing promise:
 
@@ -14,11 +14,11 @@ Customer-facing promise:
 
 The owner-facing product is not a dashboard, agent marketplace, workflow builder, CRM, HR system, project-management suite or collection of modes. Those capabilities may exist internally, but the customer experiences one intelligence: AGESOMA.
 
-## Jarvis architecture
+## AGESOMA architecture
 
-Jarvis is not one worker agent. Jarvis is the executive orchestrator presented to the owner as one intelligence.
+AGESOMA is not one worker agent. AGESOMA is the executive orchestrator presented to the owner as one intelligence.
 
-Behind Jarvis, every tenant receives a persistent package of digital specialists:
+Behind AGESOMA, every tenant receives a persistent package of digital specialists:
 
 - Sales;
 - Marketing;
@@ -42,9 +42,9 @@ In P0, the specialists of a tenant share that tenant's isolated HERMES Work Cell
 ```text
 Owner conversation
         ↓
-AGESOMA / Jarvis understands the company
+AGESOMA / AGESOMA understands the company
         ↓
-Jarvis plans and selects the responsible specialist
+AGESOMA plans and selects the responsible specialist
         ↓
 ┌──────────────────────┬─────────────────────────┐
 │ Human employee       │ Digital agent identity  │
@@ -93,11 +93,11 @@ The owner may conversationally ask to “contratar um agente” when that metaph
 
 Canonical authority rule:
 
-**Jarvis coordinates. Digital agents own specialist work. HERMES executes. Sentinel governs. People collaborate. The owner retains authority.**
+**AGESOMA coordinates. Digital agents own specialist work. HERMES executes. Sentinel governs. People collaborate. The owner retains authority.**
 
 ## Owner experience
 
-The canonical owner experience is one Jarvis-style conversation.
+The canonical owner experience is one AGESOMA-style conversation.
 
 There is no primary navigation such as `Início | Equipe | Trabalho | Resultados`.
 
@@ -126,7 +126,7 @@ Examples:
 
 A consequential action must be approvable from inside the same conversation. A verified result must be reportable in the same conversation. The owner should never need to navigate elsewhere to understand what AGESOMA is doing.
 
-## Jarvis interaction states
+## AGESOMA interaction states
 
 AGESOMA exposes only human-readable states:
 
@@ -152,7 +152,7 @@ The core principle is unchanged:
 
 ## P0 stack
 
-- Next.js + React + TypeScript: Jarvis conversation shell.
+- Next.js + React + TypeScript: AGESOMA conversation shell.
 - Better Auth: authenticated owner identity and tenant resolution.
 - PostgreSQL + pgvector: operational truth, Agent Registry and structured business state.
 - Graphiti + Neo4j: temporal Company Brain context.
@@ -164,12 +164,12 @@ The core principle is unchanged:
 - Outcome verification: distinguishes work performed from results actually proven.
 - OpenTelemetry-compatible observability.
 
-The Jarvis surface is intentionally backend-agnostic. Open-source conversation/voice runtimes such as assistant-ui, AG-UI and Pipecat may be connected behind this interaction contract without changing the owner mental model.
+The AGESOMA surface is intentionally backend-agnostic. Open-source conversation/voice runtimes such as assistant-ui, AG-UI and Pipecat may be connected behind this interaction contract without changing the owner mental model.
 
 ## Repository layout
 
 ```text
-apps/web            AGESOMA Jarvis experience and authenticated API endpoints
+apps/web            AGESOMA AGESOMA experience and authenticated API endpoints
 packages/core       decision, policy, routing, Agent Registry templates and business intelligence
 packages/db         operational database and migrations
 services/worker     durable coordination and HERMES adapter
@@ -189,4 +189,4 @@ A release is directionally correct only if an ordinary SME owner can operate AGE
 - what result was actually achieved;
 - what AGESOMA recommends doing next.
 
-If the owner needs a dashboard to answer one of those questions, the Jarvis experience is incomplete.
+If the owner needs a dashboard to answer one of those questions, the AGESOMA experience is incomplete.
