@@ -18,6 +18,15 @@ export async function findTenant(tenantId: string) {
   return tenant ?? null;
 }
 
+export async function findTask(tenantId: string, taskId: string) {
+  const [task] = await tenantSql<{ id: string }>(
+    tenantId,
+    "select id from tasks where id=$1 and tenant_id=$2 limit 1",
+    [taskId, tenantId]
+  );
+  return task ?? null;
+}
+
 export async function findWorkflow(tenantId: string, workflowId: string) {
   const [workflow] = await tenantSql<{ id: string }>(
     tenantId,
