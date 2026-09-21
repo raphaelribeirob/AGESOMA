@@ -7,7 +7,7 @@ export type RiverThreeOnboardingMode =
 
 export type RiverThreeExpressionLevel = "off" | "subtle" | "selective" | "elevated";
 export type RiverThreeAdvanceMode = "auto" | "explicit";
-export type RiverThreeHomeMode = "trackerProgress" | "actionAgent" | "jarvisConversation";
+export type RiverThreeHomeMode = "trackerProgress" | "actionAgent" | "agesomaConversation";
 
 export type RiverThreeStep = {
   id: string;
@@ -36,7 +36,7 @@ export const agesomaPackage = {
   expression: {
     genZ: "subtle" as RiverThreeExpressionLevel,
     targetRange: "5-10",
-    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing", "jarvis"] as const,
+    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing", "agesoma"] as const,
     grain: "contextual" as const,
     gradient: "contextual" as const,
     editorialAsymmetry: "off" as const,
@@ -91,7 +91,7 @@ export const agesomaPackage = {
     note: "Billing remains disabled until a real entitlement boundary is wired."
   },
   home: {
-    mode: "jarvisConversation" as RiverThreeHomeMode,
+    mode: "agesomaConversation" as RiverThreeHomeMode,
     primaryOutcome: "natural_company_conversation_and_verified_results",
     nextBestAction: "answer_or_act_without_exposing_system_complexity",
     supportingMetricsMax: 0
@@ -105,7 +105,7 @@ export const agesomaPackage = {
     subscriptionState: true
   },
   analytics: {
-    activationEvent: "first_jarvis_request_accepted",
+    activationEvent: "first_agesoma_request_accepted",
     commonEvents: true
   }
 } as const;
