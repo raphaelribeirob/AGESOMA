@@ -54,7 +54,7 @@ Owner / business objective
         ↓
 AGESOMA understands company state and priorities
         ↓
-AGESOMA-style orchestrator selects the next action
+AGESOMA selects the next action
         ↓
 Human employee or digital specialist owns the work
         ↓
