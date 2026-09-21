@@ -28,7 +28,13 @@ For a fast technical review:
 ## Engineering and evaluation
 
 - [OSS Stack Audit](OSS_STACK_AUDIT.md) — open-source stack evaluation.
+- [Testing](TESTING.md) — behavioral suite and CI verification strategy.
 - [Release Gates](RELEASE_GATES.md) — production-readiness checklist.
+
+## Security
+
+- [Security Policy](../.github/SECURITY.md) — vulnerability reporting and active security boundaries.
+- [Release Gates](RELEASE_GATES.md) — production security and isolation work still requiring evidence.
 
 ## Internal implementation vocabulary
 
