@@ -75,7 +75,7 @@ export const DEFAULT_AGENT_PACKAGE: readonly AgentTemplate[] = [
     name: "Agente de Pesquisa",
     roleTitle: "Analista digital da empresa",
     domain: "general",
-    purpose: "Investigar perguntas abertas, comparar evidências e preparar decisões para o Jarvis.",
+    purpose: "Investigar perguntas abertas, comparar evidências e preparar decisões para o AGESOMA.",
     responsibilities: ["pesquisar", "comparar evidências", "resumir contexto", "preparar recomendações"],
     skills: ["pesquisa", "análise", "síntese", "benchmark", "documentação"],
     preferredResources: ["web", "files"]
