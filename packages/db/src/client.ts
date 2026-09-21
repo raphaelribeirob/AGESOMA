@@ -1,4 +1,4 @@
-import pg from "pg";
+import pg, { type PoolClient } from "pg";
 
 const { Pool } = pg;
 let pool: InstanceType<typeof Pool> | undefined;
@@ -25,12 +25,12 @@ export async function sql<T = Record<string, unknown>>(
 }
 
 export async function transaction<T>(
-  work: (client: InstanceType<typeof Pool> extends { connect(): Promise<infer C> } ? C : never) => Promise<T>
+  work: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await db().connect();
   try {
     await client.query("begin");
-    const result = await work(client as never);
+    const result = await work(client);
     await client.query("commit");
     return result;
   } catch (error) {
