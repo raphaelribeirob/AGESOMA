@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { assertActionPayloadSize, getActionPolicy } from "@agesoma/core";
-import { tenantSql } from "@agesoma/db";
+import { createTask, findTenant, findWorkflow } from "@agesoma/db";
 import { requireInternalApi, requireJson } from "../../../lib/security";
 
 const schema = z.object({
@@ -18,15 +18,21 @@ const schema = z.object({
 export async function POST(req: Request) {
   const unauthorized = requireInternalApi(req);
   if (unauthorized) return unauthorized;
+
   const wrongType = requireJson(req);
   if (wrongType) return wrongType;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Invalid task request" }, { status: 400 });
-  const input = parsed.data;
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid task request" }, { status: 400 });
+  }
 
+  const input = parsed.data;
   const policy = getActionPolicy(input.action);
-  if (!policy) return NextResponse.json({ error: "Unknown or prohibited action" }, { status: 400 });
+
+  if (!policy) {
+    return NextResponse.json({ error: "Unknown or prohibited action" }, { status: 400 });
+  }
 
   try {
     assertActionPayloadSize(policy, input.payload);
@@ -34,29 +40,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
 
-  const [tenant] = await tenantSql<{ id: string }>(input.tenantId, `select id from tenants where id=$1 limit 1`, [input.tenantId]);
-  if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-
-  if (input.workflowId) {
-    const [workflow] = await tenantSql<{ id: string }>(
-      input.tenantId,
-      `select id from workflows where id=$1 and tenant_id=$2 limit 1`,
-      [input.workflowId, input.tenantId]
-    );
-    if (!workflow) return NextResponse.json({ error: "Workflow not found for tenant" }, { status: 404 });
+  if (!(await findTenant(input.tenantId))) {
+    return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
-  const [task] = await tenantSql<{ id: string; status: string }>(input.tenantId, `
-    insert into tasks (
-      tenant_id, workflow_id, action_type, risk_class, reversible, external,
-      expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)
-    returning id, status
-  `, [
-    input.tenantId, input.workflowId ?? null, policy.type, policy.riskClass,
-    policy.reversible, policy.external, input.expectedValueCents, input.expectedCostCents,
-    input.expectedLossCents, input.confidence, JSON.stringify(input.payload)
-  ]);
+  if (input.workflowId && !(await findWorkflow(input.tenantId, input.workflowId))) {
+    return NextResponse.json({ error: "Workflow not found for tenant" }, { status: 404 });
+  }
+
+  const task = await createTask({
+    tenantId: input.tenantId,
+    workflowId: input.workflowId,
+    actionType: policy.type,
+    riskClass: policy.riskClass,
+    reversible: policy.reversible,
+    external: policy.external,
+    expectedValueCents: input.expectedValueCents,
+    expectedCostCents: input.expectedCostCents,
+    expectedLossCents: input.expectedLossCents,
+    confidence: input.confidence,
+    payload: input.payload
+  });
 
   return NextResponse.json(task, { status: 201 });
 }
