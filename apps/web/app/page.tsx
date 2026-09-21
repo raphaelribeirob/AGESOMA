@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../lib/auth-workspace";
-import JarvisClient from "./jarvis-client";
+import AgesomaClient from "./agesoma-client";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +76,7 @@ export default async function Home() {
   if (!parts.length) parts.push("Sua empresa está tranquila neste momento. Ainda não há trabalho ativo nem decisões pendentes");
 
   return (
-    <JarvisClient
+    <AgesomaClient
       initial={{
         greeting: firstName ? `Olá, ${firstName}.` : "Olá.",
         brief: `${parts.join(". ")}. O que você quer saber ou fazer?`,
