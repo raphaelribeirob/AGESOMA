@@ -135,6 +135,8 @@ This distinction is deliberate: the repository separates implemented architectur
 - [`docs/OWNER_MODEL.md`](docs/OWNER_MODEL.md) — owner authority and product model.
 - [`docs/ZERO_LEARNING_CURVE.md`](docs/ZERO_LEARNING_CURVE.md) — UX doctrine.
 - [`docs/VISUAL_SYSTEM.md`](docs/VISUAL_SYSTEM.md) — AGESOMA visual-system rules.
+- [`docs/TESTING.md`](docs/TESTING.md) — behavioral testing and CI strategy.
+- [`.github/SECURITY.md`](.github/SECURITY.md) — vulnerability reporting and security boundaries.
 - [`docs/RELEASE_GATES.md`](docs/RELEASE_GATES.md) — what is implemented vs. still release-gated.
 - [`docs/PRODUCT_DOCTRINE.md`](docs/PRODUCT_DOCTRINE.md) — original detailed product doctrine.
 
