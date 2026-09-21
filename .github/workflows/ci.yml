@@ -134,7 +134,7 @@ jobs:
           grep -q 'plan.requiresApproval ? "business.work" : plan.action' apps/web/app/api/coordinate/route.ts
           grep -q 'Consequential action is not fully resolved' apps/web/app/api/approvals/route.ts
           grep -q 'Consequential capability is unresolved' services/worker/src/execution/task-runner.ts
-          grep -q 'scope_hash' apps/web/app/api/approvals/route.ts
+          grep -q 'scope_hash' packages/db/src/repositories/approvals.ts
           grep -q 'buildCapabilityScope' apps/web/app/api/jarvis/route.ts
           grep -q 'scopeHash' apps/web/app/api/jarvis/route.ts
 
