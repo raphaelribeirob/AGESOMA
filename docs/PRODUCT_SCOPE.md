@@ -4,7 +4,7 @@
 
 AGESOMA exists for one purpose: act as the operating intelligence of a small or medium business so the owner can run the company through one conversation instead of coordinating software, people and automations manually.
 
-Internally we use the shorthand **AGESOMA for SMEs**.
+AGESOMA is an **AI operating intelligence for SMEs**.
 
 The product must always be able to answer:
 
