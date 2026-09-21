@@ -1,10 +1,10 @@
-# InstantWork Owner Model
+# AGESOMA Owner Model
 
-InstantWork should feel like the operator of this specific owner and this specific business, not a generic assistant with a friendly tone.
+AGESOMA should feel like the operator of this specific owner and this specific business, not a generic assistant with a friendly tone.
 
 ## Principle
 
-Two owners can ask the same thing and InstantWork may prioritize, summarize, interrupt and recommend differently because it understands their preferences and business context. Personalization never expands authority.
+Two owners can ask the same thing and AGESOMA may prioritize, summarize, interrupt and recommend differently because it understands their preferences and business context. Personalization never expands authority.
 
 ## Memory classes
 
@@ -50,7 +50,7 @@ Past experience is context, not proof that the same decision is valid now.
 
 ## Learning policy
 
-InstantWork should learn progressively from normal use instead of forcing a long personality questionnaire.
+AGESOMA should learn progressively from normal use instead of forcing a long personality questionnaire.
 
 Target balance:
 - roughly 20% explicit configuration
@@ -113,6 +113,6 @@ Recent context should not automatically outrank a highly relevant stable rule.
 
 For every personalization feature, ask:
 
-> If two business owners make the same request, can InstantWork work differently for each in a useful and safe way without changing the authorization boundary?
+> If two business owners make the same request, can AGESOMA work differently for each in a useful and safe way without changing the authorization boundary?
 
 If the answer is no, the feature is cosmetic personalization rather than an Owner Model.
