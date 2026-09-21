@@ -42,7 +42,7 @@ Supporting design-system assets include:
 - `apps/web/app/agesoma-brand.css`;
 - `apps/web/app/riverthree-fonts.css`;
 - `apps/web/app/riverthree-v418.css`;
-- `apps/web/app/jarvis.css`.
+- `apps/web/app/agesoma-conversation.css`.
 
 RiverThree is the internal design contract used by R3 products. AGESOMA applies that contract through its own product-specific package and visual layer.
 
