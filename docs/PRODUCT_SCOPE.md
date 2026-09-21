@@ -4,7 +4,7 @@
 
 AGESOMA exists for one purpose: act as the operating intelligence of a small or medium business so the owner can run the company through one conversation instead of coordinating software, people and automations manually.
 
-Internally we use the shorthand **JARVIS for SMEs**.
+Internally we use the shorthand **AGESOMA for SMEs**.
 
 The product must always be able to answer:
 
@@ -17,11 +17,11 @@ The product must always be able to answer:
 
 ## Canonical operating model
 
-`Owner -> Jarvis -> human or digital specialist -> HERMES/runtime -> verification -> Jarvis report`
+`Owner -> AGESOMA -> human or digital specialist -> HERMES/runtime -> verification -> AGESOMA report`
 
-Jarvis is the single owner-facing intelligence. It is not one worker agent.
+AGESOMA is the single owner-facing intelligence. It is not one worker agent.
 
-Behind Jarvis, AGESOMA maintains a tenant-scoped package of persistent digital specialists. Their identities, roles, memory namespaces and work histories persist independently of the execution runtime. In P0, a tenant's digital specialists share that tenant's isolated HERMES Work Cell; no agent owns a dedicated server.
+Behind AGESOMA, AGESOMA maintains a tenant-scoped package of persistent digital specialists. Their identities, roles, memory namespaces and work histories persist independently of the execution runtime. In P0, a tenant's digital specialists share that tenant's isolated HERMES Work Cell; no agent owns a dedicated server.
 
 Canonical package:
 
@@ -36,7 +36,7 @@ HERMES is the internal digital execution substrate controlled by AGESOMA. It is 
 
 ## Canonical owner experience
 
-**One Jarvis conversation. No primary dashboard navigation.**
+**One AGESOMA conversation. No primary dashboard navigation.**
 
 The owner may ask what is happening, request work, approve a consequential action and receive a verified report without leaving the conversation.
 
@@ -61,7 +61,7 @@ Every active piece of work must have one accountable owner. For digital work, th
 
 1. **Single-agent experience, multi-agent architecture.**
 2. **Agent identity is stateful and runtime-independent; no agent owns a dedicated server.**
-3. Jarvis chooses the specialist; the owner does not configure orchestration.
+3. AGESOMA chooses the specialist; the owner does not configure orchestration.
 4. A digital agent cannot grant itself authority or expand its own permissions.
 5. Sentinel remains independent from the executor and from the digital agent identity.
 6. Company Brain context is not authorization or proof.
@@ -98,6 +98,6 @@ A feature belongs in AGESOMA only if it improves at least one of these outcomes:
 - following progress and blockers;
 - reducing unnecessary owner intervention;
 - proving that work actually finished;
-- making Jarvis more useful without making the interface more complex.
+- making AGESOMA more useful without making the interface more complex.
 
 If a proposed feature does none of these, it is outside the product scope.
