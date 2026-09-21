@@ -21,7 +21,7 @@ test("marketing requests route to the marketing specialist", () => {
   assert.equal(agentTemplateForPlan(plan).key, "marketing");
 });
 
-test("Jarvis package contains the canonical six specialists", () => {
+test("AGESOMA package contains the canonical six specialists", () => {
   assert.deepEqual(DEFAULT_AGENT_PACKAGE.map((agent) => agent.key), [
     "sales",
     "marketing",
