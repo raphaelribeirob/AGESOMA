@@ -6,7 +6,7 @@ Its purpose is simple: understand how the company works, decide what should happ
 
 ## Canonical product definition
 
-**AGESOMA = the AGESOMA for SMEs.**
+**AGESOMA = AI operating intelligence for SMEs.**
 
 Customer-facing promise:
 
@@ -14,7 +14,7 @@ Customer-facing promise:
 
 The owner-facing product is not a dashboard, agent marketplace, workflow builder, CRM, HR system, project-management suite or collection of modes. Those capabilities may exist internally, but the customer experiences one intelligence: AGESOMA.
 
-## AGESOMA architecture
+## Operating architecture
 
 AGESOMA is not one worker agent. AGESOMA is the executive orchestrator presented to the owner as one intelligence.
 
@@ -42,7 +42,7 @@ In P0, the specialists of a tenant share that tenant's isolated HERMES Work Cell
 ```text
 Owner conversation
         ↓
-AGESOMA / AGESOMA understands the company
+AGESOMA understands the company
         ↓
 AGESOMA plans and selects the responsible specialist
         ↓
@@ -97,7 +97,7 @@ Canonical authority rule:
 
 ## Owner experience
 
-The canonical owner experience is one AGESOMA-style conversation.
+The canonical owner experience is one AGESOMA conversation.
 
 There is no primary navigation such as `Início | Equipe | Trabalho | Resultados`.
 
@@ -164,7 +164,7 @@ The core principle is unchanged:
 - Outcome verification: distinguishes work performed from results actually proven.
 - OpenTelemetry-compatible observability.
 
-The AGESOMA surface is intentionally backend-agnostic. Open-source conversation/voice runtimes such as assistant-ui, AG-UI and Pipecat may be connected behind this interaction contract without changing the owner mental model.
+The conversational surface is intentionally backend-agnostic. Open-source conversation/voice runtimes such as assistant-ui, AG-UI and Pipecat may be connected behind this interaction contract without changing the owner mental model.
 
 ## Repository layout
 
