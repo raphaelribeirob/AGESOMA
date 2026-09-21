@@ -1,4 +1,4 @@
-# InstantWork release gates
+# AGESOMA release gates
 
 ## P0 — Muse-for-SME safety and runtime
 
@@ -12,7 +12,7 @@
 - [x] Consequential requests resolve a concrete capability before approval; approval is bound to task + action + destination + operation + resource + full payload hash.
 - [x] Approval endpoint exposes a server-generated canonical capability view, restricts approval to owner/admin and fails closed on unresolved R2/R3 scope.
 - [x] Approval grants are short-lived, one-time and fail closed on scope change.
-- [ ] Every Hermes network egress passes through an InstantWork-controlled system-level policy boundary. Application-level egress decisions are recorded, but a physical network proxy/VM boundary is still required for Muse-level isolation.
+- [ ] Every Hermes network egress passes through an AGESOMA-controlled system-level policy boundary. Application-level egress decisions are recorded, but a physical network proxy/VM boundary is still required for Muse-level isolation.
 - [ ] Real business credentials remain outside the executor-visible environment. Customer WhatsApp tool access is restricted, but provider/channel secret isolation still needs a separate credential/connector boundary.
 - [ ] Each tenant has physically isolated browser/session/files/memory state inside its Work Cell. Namespaces exist; runtime isolation still needs enforcement.
 - [ ] Margin Governor is bounded and distinguishes explicit user work from autonomous work, but expected business value/cost is not yet fully server-derived from provider usage.
