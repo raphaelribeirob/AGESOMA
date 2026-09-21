@@ -54,7 +54,7 @@ Owner / business objective
         ↓
 AGESOMA understands company state and priorities
         ↓
-Jarvis-style orchestrator selects the next action
+AGESOMA-style orchestrator selects the next action
         ↓
 Human employee or digital specialist owns the work
         ↓
@@ -104,7 +104,7 @@ The primary experience is conversational. Technical concepts such as models, pro
 For recruiters and technical reviewers, these are the fastest entry points:
 
 - [`apps/web`](apps/web) — AGESOMA owner experience and API endpoints.
-- [`apps/web/app/api/jarvis/route.ts`](apps/web/app/api/jarvis/route.ts) — conversational orchestration surface.
+- [`apps/web/app/api/agesoma/route.ts`](apps/web/app/api/agesoma/route.ts) — conversational orchestration surface.
 - [`packages/core/src/request-router.ts`](packages/core/src/request-router.ts) — request and capability routing.
 - [`packages/core/src/agent-registry.ts`](packages/core/src/agent-registry.ts) — persistent specialist-agent model.
 - [`packages/core/src/sentinel.ts`](packages/core/src/sentinel.ts) — policy and authorization logic.
