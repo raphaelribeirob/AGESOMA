@@ -11,7 +11,8 @@
     "dev": "npm run dev --workspace @agesoma/web",
     "build": "npm run build --workspace @agesoma/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "worker": "npm run dev --workspace @agesoma/worker"
+    "worker": "npm run dev --workspace @agesoma/worker",
+    "test": "node --test packages/core/test/*.test.mjs"
   },
   "engines": {
     "node": "24.x"
