@@ -7,7 +7,7 @@ import "./riverthree-fonts.css";
 import "./riverthree-v418.css";
 import "./agesoma-brand.css";
 import "./agesoma-visual-system.css";
-import "./jarvis.css";
+import "./agesoma-conversation.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
