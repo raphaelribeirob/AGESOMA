@@ -4,6 +4,8 @@
 
 # AGESOMA
 
+[![AGESOMA CI](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml/badge.svg)](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml)
+
 **AI-native business operations platform for small and medium-sized businesses.**
 
 AGESOMA is designed to act as an operating intelligence layer for a company: it understands business context, prioritizes work, coordinates human and digital specialists, routes approved actions to an isolated execution layer, and reports meaningful outcomes through a single conversational experience.
@@ -20,6 +22,7 @@ AGESOMA is designed to act as an operating intelligence layer for a company: it 
 | **Primary users** | Owners and operators of small and medium-sized businesses |
 | **Stage** | Active prototype / pre-production |
 | **Core stack** | Next.js, React, TypeScript, PostgreSQL, pgvector, Graphiti, Neo4j, pg-boss, HERMES |
+| **CI** | Typecheck, behavioral test, architecture invariants, production-topology validation and web build |
 
 ## The problem
 
@@ -94,6 +97,8 @@ The primary experience is conversational. Technical concepts such as models, pro
 | **Work Cells** | Tenant-scoped execution environments |
 | **Outcome verification** | Separates execution claims from provider-backed business evidence |
 
+**Internal vocabulary:** RiverThree is R3’s product/design contract, HERMES is the execution substrate, Sentinel is the authorization boundary, and Work Cells are tenant-scoped execution environments. These implementation concepts are intentionally hidden from the normal owner experience.
+
 ## Repository tour
 
 For recruiters and technical reviewers, these are the fastest entry points:
@@ -122,12 +127,14 @@ This distinction is deliberate: the repository separates implemented architectur
 
 ## Documentation
 
+- [`docs/README.md`](docs/README.md) — documentation map for reviewers.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system responsibilities and operating loop.
 - [`docs/AGENT_ARCHITECTURE_AUDIT.md`](docs/AGENT_ARCHITECTURE_AUDIT.md) — agent-model audit.
 - [`docs/company-brain.md`](docs/company-brain.md) — persistent company intelligence model.
 - [`docs/company-ontology.md`](docs/company-ontology.md) — business ontology.
 - [`docs/OWNER_MODEL.md`](docs/OWNER_MODEL.md) — owner authority and product model.
 - [`docs/ZERO_LEARNING_CURVE.md`](docs/ZERO_LEARNING_CURVE.md) — UX doctrine.
+- [`docs/VISUAL_SYSTEM.md`](docs/VISUAL_SYSTEM.md) — AGESOMA visual-system rules.
 - [`docs/RELEASE_GATES.md`](docs/RELEASE_GATES.md) — what is implemented vs. still release-gated.
 - [`docs/PRODUCT_DOCTRINE.md`](docs/PRODUCT_DOCTRINE.md) — original detailed product doctrine.
 
