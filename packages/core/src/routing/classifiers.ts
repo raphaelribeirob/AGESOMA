@@ -15,7 +15,17 @@ export function inferDomain(text: string): RequestDomain {
   return "general";
 }
 
+export function isApiDiscoveryRequest(text: string) {
+  return includesAny(text, [
+    "api gratis", "api gratuita", "apis gratis", "apis gratuitas", "free api", "free apis",
+    "public api", "public APIs", "api publica", "api pública", "apis publicas", "apis públicas",
+    "encontre uma api", "procurar uma api", "procure uma api", "buscar uma api", "busque uma api",
+    "descobrir api", "descubra api", "repositorio de api", "repositório de api"
+  ]);
+}
+
 export function inferResource(text: string) {
+  if (isApiDiscoveryRequest(text)) return "api_directory";
   if (includesAny(text, ["meta ads", "facebook ads", "instagram ads"])) return "facebook";
   if (text.includes("google ads")) return "google_ads";
   if (includesAny(text, ["trafego pago", "tráfego pago", "paid media", "midia paga", "mídia paga"])) return "paid_media";
