@@ -3,6 +3,7 @@ import type { RequestDomain, RequestPlan } from "./request-router";
 export type AgentTemplateKey =
   | "sales"
   | "marketing"
+  | "paid_media"
   | "service"
   | "finance"
   | "operations"
@@ -37,8 +38,18 @@ export const DEFAULT_AGENT_PACKAGE: readonly AgentTemplate[] = [
     domain: "marketing",
     purpose: "Gerar demanda e melhorar aquisição usando evidências da empresa e dos canais.",
     responsibilities: ["analisar aquisição", "preparar campanhas", "avaliar canais", "produzir ativos de marketing"],
-    skills: ["marketing", "campanhas", "conteúdo", "aquisição", "ads"],
+    skills: ["marketing", "campanhas", "conteúdo", "aquisição"],
     preferredResources: ["web", "files", "email"]
+  },
+  {
+    key: "paid_media",
+    name: "Especialista de Mídia Paga",
+    roleTitle: "Especialista digital de tráfego pago",
+    domain: "paid_media",
+    purpose: "Analisar performance de mídia paga, preparar otimizações e executar mudanças aprovadas com controle de orçamento.",
+    responsibilities: ["analisar campanhas", "preparar otimizações", "criar campanhas pausadas", "gerenciar orçamento aprovado"],
+    skills: ["meta ads", "google ads", "paid media", "aquisição", "criativos", "orçamento"],
+    preferredResources: ["facebook", "google_ads", "web", "files"]
   },
   {
     key: "service",
@@ -73,7 +84,7 @@ export const DEFAULT_AGENT_PACKAGE: readonly AgentTemplate[] = [
   {
     key: "research",
     name: "Agente de Pesquisa",
-    roleTitle: "Analista digital da empresa",
+    roleTitle: "Analista digital",
     domain: "general",
     purpose: "Investigar perguntas abertas, comparar evidências e preparar decisões para o AGESOMA.",
     responsibilities: ["pesquisar", "comparar evidências", "resumir contexto", "preparar recomendações"],
