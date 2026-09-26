@@ -224,11 +224,10 @@ function asksAboutAgents(message: string) {
 }
 
 async function answerQuestion(tenantId: string, message: string) {
-  const [state, facts, approval, agents] = await Promise.all([
+  const [state, facts, approval] = await Promise.all([
     snapshot(tenantId),
     searchBrain(tenantId, message),
-    firstApproval(tenantId),
-    ensureAgentPackage(tenantId)
+    firstApproval(tenantId)
   ]);
 
   if (asksAboutAgents(message)) {
