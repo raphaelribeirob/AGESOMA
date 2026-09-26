@@ -404,14 +404,14 @@ export async function executeWithHermes(mission: HermesMission) {
     method: "POST",
     headers: headers(token, mission),
     body: JSON.stringify({
-      session_id: `agesoma-${mission.taskId}`,
+      session_id: `agesoma-runtime-${mission.tenantId}`,
       input: JSON.stringify({
         action: mission.action,
         payload: executionPayload,
         authorization: { grantRef: mission.grantRef ?? null }
       }),
       instructions: [
-        "You are the AGESOMA execution substrate, not the authorization authority.",
+        "You are the AGESOMA execution substrate inside one persistent personal runtime for this tenant, not the authorization authority.",
         "Operate only on public resources or resources the user has already authorized.",
         "Never bypass authentication, access controls, tenant boundaries or security protections.",
         "Never seek, expose or reuse credentials outside the connected user context.",
