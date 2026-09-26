@@ -301,3 +301,15 @@
     gap: 4px;
   }
 }
+
+
+.watcherPause {
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--smoke);
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 10px;
+  cursor: pointer;
+}
