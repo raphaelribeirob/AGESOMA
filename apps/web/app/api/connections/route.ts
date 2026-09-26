@@ -23,6 +23,16 @@ const registerSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).default({})
 });
 
+function containsSensitiveKey(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsSensitiveKey);
+  if (!value || typeof value !== "object") return false;
+  return Object.entries(value as Record<string, unknown>).some(([key, item]) => {
+    const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (/token|secret|password|apikey|accesskey|privatekey|cookie|authorization/.test(normalized)) return true;
+    return containsSensitiveKey(item);
+  });
+}
+
 function authorizationUrl(provider: z.infer<typeof providerSchema>) {
   const key = {
     gmail: "AGESOMA_GMAIL_AUTH_URL",
@@ -79,6 +89,12 @@ export async function POST(req: Request) {
   // This registration endpoint never accepts raw credentials. It only binds an opaque
   // credential handle already created by the broker/OAuth callback to this tenant.
   const input = parsed.data;
+  if (containsSensitiveKey(input.metadata)) {
+    return NextResponse.json({
+      error: "Credenciais e tokens não podem ser armazenados no registro de conexão."
+    }, { status: 400 });
+  }
+
   if (input.credentialHandleId) {
     const [handle] = await tenantSql<{ id: string }>(authenticated.tenantId, `
       select id from credential_handles
