@@ -1,4 +1,5 @@
 import { sql } from "@agesoma/db";
+import { discoverFreeApis } from "./api-discovery";
 
 export interface HermesMission {
   taskId: string;
@@ -83,6 +84,36 @@ async function requireConnectedPermission(
   if (!permissions || permissions[permission] !== true) {
     throw new Error(`Connected service does not grant ${provider}.${permission}`);
   }
+}
+
+async function maybeDiscoverPublicApis(mission: HermesMission) {
+  if (mission.action !== "api.discover") return null;
+
+  const objective = text(mission.payload.objective) ?? text(mission.payload.query);
+  if (!objective) throw new Error("API discovery requires a concrete query");
+
+  const discovery = await discoverFreeApis(objective, 8);
+  return {
+    runId: `api-discovery-${mission.taskId}`,
+    status: "completed",
+    output: {
+      title: "APIs públicas encontradas",
+      summary: discovery.candidates.length
+        ? `Encontrei ${discovery.candidates.length} candidatos. Nenhum foi executado automaticamente.`
+        : "Não encontrei um candidato confiável nos catálogos consultados.",
+      artifact: {
+        kind: "api_discovery",
+        title: "APIs públicas encontradas",
+        content: discovery
+      },
+      evidence: {
+        sources: discovery.sources,
+        discoveryOnly: true,
+        autoExecution: false
+      }
+    },
+    usage: null
+  };
 }
 
 function paidMediaPermission(providerAction: string) {
@@ -417,6 +448,9 @@ function planningInstructions(action: string) {
 }
 
 export async function executeWithHermes(mission: HermesMission) {
+  const discovered = await maybeDiscoverPublicApis(mission);
+  if (discovered) return discovered;
+
   const brokered = await maybeExecuteCredentialedAction(mission);
   if (brokered) return brokered;
 

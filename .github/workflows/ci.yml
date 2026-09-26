@@ -118,6 +118,29 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce free API discovery boundary
+        run: |
+          test -f services/worker/src/api-discovery.ts
+          test -f services/worker/test/api-discovery.test.mjs
+          test -f docs/API_DISCOVERY.md
+          grep -q '"api.discover"' packages/core/src/action-registry.ts
+          grep -q '"api.discover"' packages/core/src/routing/types.ts
+          grep -q 'isApiDiscoveryRequest' packages/core/src/routing/request-router.ts
+          grep -q 'public-api-lists.github.io/public-api-lists/api/all.json' services/worker/src/api-discovery.ts
+          grep -q 'api.publicapis.org/entries' services/worker/src/api-discovery.ts
+          grep -q 'api.apis.guru/v2/list.json' services/worker/src/api-discovery.ts
+          grep -q 'discoveryOnly: true' services/worker/src/api-discovery.ts
+          grep -q 'autoExecution: false' services/worker/src/api-discovery.ts
+          grep -q 'maybeDiscoverPublicApis' services/worker/src/hermes.ts
+          if grep -q 'fetch(candidate.url)' services/worker/src/api-discovery.ts; then
+            echo "Discovered API endpoints must not be fetched automatically"
+            exit 1
+          fi
+          if grep -q 'fetch(candidate.openApiUrl)' services/worker/src/api-discovery.ts; then
+            echo "Discovered OpenAPI URLs must not be fetched automatically"
+            exit 1
+          fi
+
       - name: Enforce RiverThree product package
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts

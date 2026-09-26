@@ -3,6 +3,7 @@ import {
   inferMode,
   inferResource,
   inferWatch,
+  isApiDiscoveryRequest,
   planSteps
 } from "./classifiers";
 import { normalizeText, titleFromRequest } from "./text";
@@ -17,8 +18,10 @@ export function routeBusinessRequest(request: string): RequestPlan {
   const mode = inferMode(text);
   const domain = inferDomain(text);
   const monitoring = inferWatch(text);
-  const action = domain === "paid_media" && mode === "observe"
-    ? "paid_media.read"
+  const action = isApiDiscoveryRequest(text)
+    ? "api.discover"
+    : domain === "paid_media" && mode === "observe"
+      ? "paid_media.read"
     : mode === "commit"
       ? "business.commit"
       : mode === "act"

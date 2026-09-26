@@ -53,3 +53,12 @@ test("general work falls back to the research specialist", () => {
   assert.equal(plan.domain, "general");
   assert.equal(agentTemplateForPlan(plan).key, "research");
 });
+
+
+test("free API discovery is a dedicated read-only action", () => {
+  const plan = routeBusinessRequest("Pesquise um repositório que libera APIs de graça para cotação de moedas");
+  assert.equal(plan.domain, "general");
+  assert.equal(plan.resource, "api_directory");
+  assert.equal(plan.action, "api.discover");
+  assert.equal(plan.requiresApproval, false);
+});

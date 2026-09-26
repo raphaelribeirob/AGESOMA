@@ -20,7 +20,7 @@ export type RequestPlan = {
   originalRequest: string;
   domain: RequestDomain;
   mode: RequestMode;
-  action: "business.observe" | "business.work" | "business.act" | "business.commit" | "paid_media.read";
+  action: "business.observe" | "business.work" | "business.act" | "business.commit" | "paid_media.read" | "api.discover";
   operation: "discover" | "prepare" | "act" | "commit";
   resource: string | null;
   requiresApproval: boolean;
