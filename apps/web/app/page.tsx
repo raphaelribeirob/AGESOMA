@@ -53,7 +53,7 @@ async function loadInitialState(tenantId: string) {
     tenantSql<ProactiveRow>(tenantId, `
       select id,summary,kind
       from proactive_interruptions
-      where tenant_id=$1 and status='unread'
+      where tenant_id=$1 and status='unread' and delivery_mode in ('notify','approval')
       order by created_at desc
       limit 1
     `, [tenantId])
