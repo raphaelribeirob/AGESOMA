@@ -69,8 +69,6 @@ const PAID_MEDIA_WRITE_ACTIONS: Record<string, string> = {
   "paid_media.pause_adset": "pause_adset",
   "paid_media.pause_ad": "pause_ad",
   "paid_media.enable_campaign": "enable_campaign",
-  "paid_media.enable_adset": "enable_adset",
-  "paid_media.enable_ad": "enable_ad",
   "paid_media.set_campaign_budget": "set_campaign_budget",
   "paid_media.set_adset_budget": "set_adset_budget"
 };
@@ -91,14 +89,14 @@ async function paidMediaBrokerFetch(
   const brokerToken = process.env.CREDENTIAL_BROKER_SERVICE_TOKEN?.trim();
   if (!brokerToken) throw new Error("Credential broker service token is not configured");
   const brokerUrl = resolveCredentialBrokerBaseUrl(mission);
+  const requestHeaders = new Headers(init?.headers);
+  requestHeaders.set("x-agesoma-broker-token", brokerToken);
+  requestHeaders.set("x-agesoma-task-id", mission.taskId);
+  if (mission.grantRef) requestHeaders.set("x-agesoma-grant-ref", mission.grantRef);
+
   return await fetch(`${brokerUrl}${path}`, {
     ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      "x-agesoma-broker-token": brokerToken,
-      "x-agesoma-task-id": mission.taskId,
-      ...(mission.grantRef ? { "x-agesoma-grant-ref": mission.grantRef } : {})
-    },
+    headers: requestHeaders,
     signal: AbortSignal.timeout(30_000)
   });
 }
@@ -112,7 +110,7 @@ async function loadPaidMediaContext(mission: HermesMission) {
   const parameters = record(mission.payload.parameters) ?? {};
   const datePreset = text(parameters.datePreset) ?? "last_7dT";
   const fields = connector === "facebook"
-    ? "date,account_id,account_name,campaign,campaign_id,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency"
+    ? "date,account_id,account_name,campaign,campaign_id,campaign_daily_budget,campaign_lifetime_budget,campaign_budget_remaining,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency"
     : "date,source,account_id,account_name,campaign,campaign_id,spend,impressions,clicks";
 
   const query = new URLSearchParams({ fields, date_preset: datePreset });
@@ -131,6 +129,36 @@ async function loadPaidMediaContext(mission: HermesMission) {
     fields: fields.split(","),
     rows: Array.isArray(providerResponse) ? providerResponse : providerResponse ?? []
   };
+}
+
+async function verifiedMetaCampaignDailyBudget(
+  mission: HermesMission,
+  account: string,
+  campaignId: string
+) {
+  const query = new URLSearchParams({
+    fields: "campaign_id,campaign_daily_budget",
+    select_accounts: account,
+    date_preset: "last_1dT"
+  });
+  const response = await paidMediaBrokerFetch(
+    mission,
+    `/v1/paid-media/facebook/data?${query.toString()}`
+  );
+  const providerResponse = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(providerResponse)) {
+    throw new Error("Could not verify the current Meta campaign budget");
+  }
+
+  const row = providerResponse.find((item) => {
+    const recordItem = record(item);
+    return text(recordItem?.campaign_id) === campaignId;
+  });
+  const budget = row && record(row) ? Number(record(row)?.campaign_daily_budget) : NaN;
+  if (!Number.isFinite(budget) || budget <= 0) {
+    throw new Error("Meta campaign does not expose a verifiable campaign-level daily budget");
+  }
+  return Math.trunc(budget);
 }
 
 async function maybeExecutePaidMediaAction(mission: HermesMission) {
@@ -158,7 +186,7 @@ async function maybeExecutePaidMediaAction(mission: HermesMission) {
 
   const amountCents = mission.payload.amountCents;
   if (
-    ["enable_campaign", "enable_adset", "enable_ad", "set_campaign_budget", "set_adset_budget"].includes(providerAction) &&
+    ["enable_campaign", "set_campaign_budget", "set_adset_budget"].includes(providerAction) &&
     (typeof amountCents !== "number" || !Number.isFinite(amountCents) || amountCents <= 0)
   ) {
     throw new Error("Spend-capable paid media action requires an explicit approved amount");
@@ -170,6 +198,15 @@ async function maybeExecutePaidMediaAction(mission: HermesMission) {
     parameters.amount !== amountCents
   ) {
     throw new Error("Paid media budget differs from the approved amount");
+  }
+
+  if (providerAction === "enable_campaign") {
+    const campaignId = text(parameters.campaign_id);
+    if (!campaignId) throw new Error("Meta campaign id is required for activation");
+    const currentDailyBudget = await verifiedMetaCampaignDailyBudget(mission, account, campaignId);
+    if (currentDailyBudget !== amountCents) {
+      throw new Error("Meta campaign daily budget differs from the approved activation amount");
+    }
   }
 
   const response = await paidMediaBrokerFetch(mission, "/v1/paid-media/facebook/actions", {
@@ -299,7 +336,7 @@ function planningInstructions(action: string) {
     "Delegated work must never send customer-facing messages, spend money, change commercial terms, alter permissions or create obligations.",
     "Treat prior business memory as context, not as proof; verify time-sensitive facts again when they matter.",
     canDelegate
-      ? "If the user objective ultimately requires an external or consequential side effect, do not perform it in this run. Return a concrete proposedAction. For paid media use a registered paid_media.* action when applicable: paid_media.create_campaign, paid_media.create_adset, paid_media.create_ad, paid_media.update_ad_creative, paid_media.pause_campaign, paid_media.pause_adset, paid_media.pause_ad, paid_media.enable_campaign, paid_media.enable_adset, paid_media.enable_ad, paid_media.set_campaign_budget or paid_media.set_adset_budget. Use resource facebook for Meta Ads, destination as the exact connected ad-account id, operation as the provider action name, and parameters as the exact provider parameters. Creation must remain paused. Any activation or budget action must include amountCents representing the approved financial envelope."
+      ? "If the user objective ultimately requires an external or consequential side effect, do not perform it in this run. Return a concrete proposedAction. For paid media use a registered paid_media.* action when applicable: paid_media.create_campaign, paid_media.create_adset, paid_media.create_ad, paid_media.update_ad_creative, paid_media.pause_campaign, paid_media.pause_adset, paid_media.pause_ad, paid_media.enable_campaign, paid_media.set_campaign_budget or paid_media.set_adset_budget. Use resource facebook for Meta Ads, destination as the exact connected ad-account id, operation as the provider action name, and parameters as the exact provider parameters. Creation must remain paused. Any activation or budget action must include amountCents representing the approved financial envelope."
       : "The supplied payload is the approved capability boundary. Never infer a broader destination, recipient, amount, operation, resource or parameter set.",
     "Return a concise structured result containing: plan, completed work, evidence identifiers, blockers, whether more authority is required, and the next useful action if one exists."
   ].join(" ");
@@ -343,9 +380,9 @@ export async function executeWithHermes(mission: HermesMission) {
       }),
       instructions: [
         "You are the AGESOMA execution substrate, not the authorization authority.",
-        "Operate only on public resources or resources the business has already authorized.",
+        "Operate only on public resources or resources the user has already authorized.",
         "Never bypass authentication, access controls, tenant boundaries or security protections.",
-        "Never seek, expose or reuse credentials outside the connected business context.",
+        "Never seek, expose or reuse credentials outside the connected user context.",
         planningInstructions(mission.action),
         envelopeInstructions(mission.action),
         "If completing the objective would require a higher-impact action than the current envelope permits, stop and return the concrete proposedAction rather than creating the side effect.",
