@@ -151,6 +151,7 @@ async function validGrant(input: AuthorizeRequest, task: TaskRow): Promise<Autho
     from approval_grants
     where id=$1 and tenant_id=$2 and task_id=$3
       and revoked_at is null
+      and consumed_at is not null
       and (expires_at is null or expires_at > now())
     limit 1
   `, [input.grantRef,input.tenantId,input.taskId]);
