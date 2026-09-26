@@ -130,23 +130,29 @@ async function persistResolvedAction(task: ProductTask, output: Record<string, u
   if (!proposed) return;
 
   const action = text(proposed.action);
-  if (action !== "business.act" && action !== "business.commit") return;
+  if (!action) return;
+
+  const policy = getActionPolicy(action);
+  if (!policy || (policy.riskClass !== "R2" && policy.riskClass !== "R3")) return;
 
   const requestedAction = text(task.payload.requestedAction);
-  if ((requestedAction === "business.act" || requestedAction === "business.commit") && action !== requestedAction) return;
+  const requestedPolicy = requestedAction ? getActionPolicy(requestedAction) : null;
+  if (
+    requestedAction &&
+    requestedPolicy &&
+    (requestedPolicy.riskClass === "R2" || requestedPolicy.riskClass === "R3") &&
+    action !== requestedAction
+  ) return;
 
   const destination = text(proposed.destination);
   const operation = text(proposed.operation);
   const resource = text(proposed.resource);
   if (!destination || !operation || !resource) return;
 
-  const policy = getActionPolicy(action);
-  if (!policy || (policy.riskClass !== "R2" && policy.riskClass !== "R3")) return;
-
   const amountCents = proposed.amountCents === undefined
     ? null
     : cents(proposed.amountCents, 1_000_000_000);
-  if (action === "business.commit" && amountCents === null) return;
+  if (policy.riskClass === "R3" && amountCents === null) return;
 
   const existing = await sql<{ id: string }>(`
     select id from tasks
@@ -165,7 +171,7 @@ async function persistResolvedAction(task: ProductTask, output: Record<string, u
   const confidence = Math.max(0, Math.min(1, number(proposed.confidence) ?? 0));
 
   const payload = {
-    objective: text(task.payload.objective) ?? "Complete the resolved business action.",
+    objective: text(task.payload.objective) ?? "Complete the resolved action.",
     destination,
     operation,
     resource,
