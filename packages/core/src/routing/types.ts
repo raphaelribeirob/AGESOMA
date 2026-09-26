@@ -1,6 +1,7 @@
 export type RequestDomain =
   | "sales"
   | "marketing"
+  | "paid_media"
   | "service"
   | "operations"
   | "finance"
@@ -19,7 +20,7 @@ export type RequestPlan = {
   originalRequest: string;
   domain: RequestDomain;
   mode: RequestMode;
-  action: "business.observe" | "business.work" | "business.act" | "business.commit";
+  action: "business.observe" | "business.work" | "business.act" | "business.commit" | "paid_media.read";
   operation: "discover" | "prepare" | "act" | "commit";
   resource: string | null;
   requiresApproval: boolean;
