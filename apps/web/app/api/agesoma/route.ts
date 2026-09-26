@@ -62,6 +62,23 @@ type Snapshot = {
 };
 
 type BrainFact = { fact?: string };
+type PersonalContextRow = {
+  id: string;
+  kind: string;
+  value: string;
+  source_type: string;
+  confidence: string | number;
+  provenance: unknown;
+};
+type ConnectedServiceRow = {
+  id: string;
+  provider: string;
+  external_account_id: string;
+  display_name: string | null;
+  capabilities: unknown;
+  permissions: unknown;
+  status: string;
+};
 
 function list(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -192,6 +209,30 @@ async function firstApproval(tenantId: string) {
   return null;
 }
 
+async function activePersonalContext(tenantId: string) {
+  return await tenantSql<PersonalContextRow>(tenantId, `
+    select id,kind,value,source_type,confidence,provenance
+    from personal_context_entries
+    where tenant_id=$1 and status='active' and deleted_at is null
+    order by case source_type
+      when 'user_correction' then 0
+      when 'user_statement' then 1
+      when 'user_onboarding' then 2
+      else 3
+    end, created_at desc
+    limit 24
+  `, [tenantId]);
+}
+
+async function activeConnections(tenantId: string) {
+  return await tenantSql<ConnectedServiceRow>(tenantId, `
+    select id,provider,external_account_id,display_name,capabilities,permissions,status
+    from connected_services
+    where tenant_id=$1 and status='active'
+    order by provider asc,display_name asc nulls last
+  `, [tenantId]);
+}
+
 async function searchBrain(tenantId: string, query: string) {
   const baseUrl = process.env.AGESOMA_BRAIN_URL?.trim();
   const token = process.env.AGESOMA_BRAIN_INTERNAL_API_TOKEN?.trim();
@@ -228,16 +269,50 @@ function isPaidMediaRequest(message: string) {
   return /trafego pago|paid media|meta ads|facebook ads|instagram ads|google ads|midia paga|gestor de trafego/.test(normalized);
 }
 
+function asksAboutMemory(message: string) {
+  const normalized = message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /o que voce sabe sobre mim|o que sabe sobre mim|minha memoria|minha memoria pessoal|voce lembra de mim|o que voce lembra/.test(normalized);
+}
+
+function asksAboutConnections(message: string) {
+  const normalized = message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /minhas conexoes|meus conectores|o que esta conectado|quais apps estao conectados|quais servicos estao conectados/.test(normalized);
+}
+
 async function answerQuestion(tenantId: string, message: string) {
-  const [state, facts, approval] = await Promise.all([
+  const [state, facts, approval, personalContext, connections] = await Promise.all([
     snapshot(tenantId),
     searchBrain(tenantId, message),
-    firstApproval(tenantId)
+    firstApproval(tenantId),
+    activePersonalContext(tenantId),
+    activeConnections(tenantId)
   ]);
 
   if (asksAboutAgents(message)) {
     return {
       reply: "Eu continuo sendo sua única interface. Por trás da conversa, posso combinar pesquisa, organização, comunicação, documentos e execução digital conforme a tarefa, sem exigir que você escolha agentes ou ferramentas.",
+      approval
+    };
+  }
+
+  if (asksAboutMemory(message)) {
+    const remembered = personalContext.map((entry) => entry.value.trim()).filter(Boolean);
+    return {
+      reply: remembered.length
+        ? `Hoje eu mantenho este contexto ativo sobre você: ${remembered.join(" ")} Você pode corrigir ou apagar qualquer item a qualquer momento.`
+        : "Ainda não tenho contexto pessoal persistente sobre você.",
+      approval
+    };
+  }
+
+  if (asksAboutConnections(message)) {
+    const labels = connections.map((service) => service.display_name
+      ? `${service.provider}: ${service.display_name}`
+      : service.provider);
+    return {
+      reply: labels.length
+        ? `Serviços conectados: ${labels.join(", ")}.`
+        : "Ainda não há serviços conectados a esta conta.",
       approval
     };
   }
@@ -270,14 +345,16 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     return { reply: "Entendi o pedido, mas ainda não consigo transformá-lo em um trabalho seguro. Diga o resultado que você quer em uma frase mais concreta.", approval: await firstApproval(tenantId) };
   }
 
-  const [rows, agents] = await Promise.all([
+  const [rows, agents, personalContext, connections] = await Promise.all([
     tenantSql<TeamRow>(tenantId, `
       select id,name,role_title,department,responsibilities,skills,availability
       from team_members
       where tenant_id=$1 and availability='active'
       order by name asc
     `, [tenantId]),
-    ensureAgentPackage(tenantId)
+    ensureAgentPackage(tenantId),
+    activePersonalContext(tenantId),
+    activeConnections(tenantId)
   ]);
 
   const team: TeamMemberForCoordination[] = rows.map((member) => ({
@@ -345,6 +422,27 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     coordination: decision,
     digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
     teamContext,
+    personalContext: {
+      source: "personal_context_entries",
+      trust: "context-only-not-authorization-or-proof",
+      entries: personalContext.map((entry) => ({
+        id: entry.id,
+        kind: entry.kind,
+        value: entry.value,
+        sourceType: entry.source_type,
+        confidence: Number(entry.confidence),
+        provenance: entry.provenance
+      }))
+    },
+    connectedServices: connections.map((service) => ({
+      id: service.id,
+      provider: service.provider,
+      accountId: service.external_account_id,
+      displayName: service.display_name,
+      capabilities: list(service.capabilities),
+      permissions: service.permissions,
+      status: service.status
+    })),
     requestedBy: actorId,
     ownerRequested: isManager,
     conversationSurface: "agesoma",
