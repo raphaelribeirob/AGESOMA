@@ -38,6 +38,12 @@ type GrantRow = {
   scope_hash: string | null;
 };
 
+type Authority = {
+  id: string;
+  kind: "approval" | "autonomy";
+  scopeHash: string | null;
+};
+
 const port = Number(process.env.PORT ?? 8081);
 const serviceToken = process.env.SENTINEL_SERVICE_TOKEN?.trim() ?? "";
 const tenantId = process.env.AGESOMA_TENANT_ID?.trim() ?? "";
@@ -123,8 +129,23 @@ function unsafeIp(address: string) {
   return true;
 }
 
-async function validGrant(input: AuthorizeRequest, task: TaskRow) {
+async function validGrant(input: AuthorizeRequest, task: TaskRow): Promise<Authority | null> {
   if (!input.grantRef) return null;
+
+  if (input.grantRef.startsWith("autonomy:")) {
+    const ruleId = input.grantRef.slice("autonomy:".length);
+    const [rule] = await sql<{ id: string; action_class: string }>(`
+      select id,action_class
+      from autonomy_rules
+      where id=$1 and tenant_id=$2 and decision='ALLOW'
+        and revoked_at is null
+        and (expires_at is null or expires_at > now())
+      limit 1
+    `, [ruleId,input.tenantId]);
+    if (!rule || rule.action_class !== task.action_type) return null;
+    return { id: rule.id, kind: "autonomy", scopeHash: null };
+  }
+
   const [grant] = await sql<GrantRow>(`
     select id,action_class,scope_hash
     from approval_grants
@@ -135,7 +156,7 @@ async function validGrant(input: AuthorizeRequest, task: TaskRow) {
   `, [input.grantRef,input.tenantId,input.taskId]);
   if (!grant || grant.action_class !== task.action_type) return null;
   if (input.capabilityHash && grant.scope_hash && input.capabilityHash !== grant.scope_hash) return null;
-  return grant;
+  return { id: grant.id, kind: "approval", scopeHash: grant.scope_hash };
 }
 
 async function autonomyDenied(input: AuthorizeRequest, actionClass: string) {
@@ -161,8 +182,9 @@ async function persist(input: AuthorizeRequest, task: TaskRow | null, decision: 
   `, [
     input.tenantId,input.taskId,input.destination,input.operation,task?.action_type ?? "unknown",
     decision,reason,input.capabilityHash ?? null,input.method,input.path ?? null,input.protocol ?? null,
-    input.resolvedIp,input.dataTaint ?? task?.data_taint ?? "clean",JSON.stringify(input.requestMeta ?? {}),
-    input.grantRef ?? null
+    input.resolvedIp,input.dataTaint ?? task?.data_taint ?? "clean",
+    JSON.stringify({ ...(input.requestMeta ?? {}), authorityRef: input.grantRef ?? null }),
+    input.grantRef && !input.grantRef.startsWith("autonomy:") ? input.grantRef : null
   ]);
 
   await sql(`
