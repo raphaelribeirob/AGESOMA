@@ -342,7 +342,8 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       tenantId: data.tenantId,
       action: data.action,
       payload: executionPayload,
-      grantRef
+      grantRef,
+      capabilityHash
     });
 
     await sql(
