@@ -221,11 +221,20 @@ async function execute(callerName:Caller,input:Record<string,unknown>){
     requestMeta
   });
 
+  const wireUrl=new URL(url.toString());
+  if(input.secretQuery&&typeof input.secretQuery==="object"&&!Array.isArray(input.secretQuery)){
+    if(callerName!=="privsep_broker") throw new Error("secret_query_denied");
+    for(const [key,value] of Object.entries(input.secretQuery as Record<string,unknown>)){
+      if(key!=="api_key"||typeof value!=="string"||!value||value.length>8192) throw new Error("invalid_secret_query");
+      wireUrl.searchParams.set(key,value);
+    }
+  }
+
   const maxResponseBytes=typeof input.maxResponseBytes==="number"
     ? Math.max(1,Math.min(4*1024*1024,Math.trunc(input.maxResponseBytes)))
     : 2*1024*1024;
   const response=await pinnedRequest({
-    url,resolvedIp:resolved.address,family:resolved.family,method,headers,body:bodyRaw,maxResponseBytes
+    url:wireUrl,resolvedIp:resolved.address,family:resolved.family,method,headers,body:bodyRaw,maxResponseBytes
   });
   return {...response,decisionId:decision.decisionId??null,resolvedIp:resolved.address};
 }
@@ -239,7 +248,7 @@ const server=createServer(async(req,res)=>{
   }catch(error){
     const message=error instanceof Error?error.message:"egress_gateway_error";
     const status=message.startsWith("sentinel_")?403:
-      ["forbidden","tenant_mismatch","private_destination","https_required","caller_operation_denied"].includes(message)?403:
+      ["forbidden","tenant_mismatch","private_destination","https_required","caller_operation_denied","secret_query_denied"].includes(message)?403:
       message==="request_too_large"?413:400;
     return json(res,status,{error:message});
   }
