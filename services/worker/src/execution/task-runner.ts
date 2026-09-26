@@ -43,6 +43,24 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     payload: task.payload
   };
 
+  const personalContext = data.payload.personalContext && typeof data.payload.personalContext === "object"
+    ? data.payload.personalContext as Record<string, unknown>
+    : null;
+  const personalEntries = Array.isArray(personalContext?.entries) ? personalContext.entries : [];
+  const initialTaint = personalEntries.length ? "personal" : "clean";
+
+  await sql(`
+    update tasks set data_taint=$3,updated_at=now()
+    where id=$1 and tenant_id=$2
+  `, [data.taskId,data.tenantId,initialTaint]);
+
+  if (initialTaint !== "clean") {
+    await sql(`
+      insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
+      values ($1,$2,'data_taint_changed','control','Task received personal context',$3::jsonb)
+    `, [data.tenantId,data.taskId,JSON.stringify({ from: "clean", to: initialTaint, source: "personal_context" })]);
+  }
+
   const capabilityScope = buildCapabilityScope({
     taskId: data.taskId,
     action: data.action,
@@ -231,22 +249,10 @@ export async function executeQueuedTask(queued: ExecuteJob) {
   }
 
   if (data.external) {
-    await sql(
-      `insert into egress_decisions
-       (tenant_id, task_id, destination, operation, action_class, decision, reason, capability_hash)
-       values ($1,$2,$3,$4,$5,'ALLOW',$6,$7)`,
-      [
-        data.tenantId,
-        data.taskId,
-        capabilityScope.destination ?? "authorized-read",
-        capabilityScope.operation,
-        data.action,
-        grantRef
-          ? `Sentinel allowed execution with scoped authority ${grantRef}`
-          : policy.reason,
-        capabilityHash
-      ]
-    );
+    await sql(`
+      insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
+      values ($1,$2,'execution_envelope_allowed','control','Execution envelope passed task policy',$3::jsonb)
+    `, [data.tenantId,data.taskId,JSON.stringify({ capabilityHash, grantRef: grantRef ?? null, action: data.action })]);
   }
 
   await sql(
@@ -336,7 +342,8 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       tenantId: data.tenantId,
       action: data.action,
       payload: executionPayload,
-      grantRef
+      grantRef,
+      capabilityHash
     });
 
     await sql(

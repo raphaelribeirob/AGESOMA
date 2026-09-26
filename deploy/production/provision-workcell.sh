@@ -35,12 +35,15 @@ docker network connect "agesoma-credentials-$TENANT_ID" agesoma-control-worker 2
 
 docker exec agesoma-control-worker node -e "fetch('http://hermes-$TENANT_ID:8642/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec agesoma-control-worker node -e "fetch('http://broker-$TENANT_ID:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec agesoma-control-worker node -e "fetch('http://sentinel-$TENANT_ID:8081/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-browser-broker-1" node -e "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-authd-1" node -e "fetch('http://127.0.0.1:8083/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 RUNTIME_NAMESPACE="cell:$TENANT_ID"
 FILE_NAMESPACE="$RUNTIME_NAMESPACE:files"
 MEMORY_NAMESPACE="$RUNTIME_NAMESPACE:memory"
 CREDENTIAL_NAMESPACE="$RUNTIME_NAMESPACE:credentials"
-CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"egress\":\"sentinel-proxy-v1\",\"isolation\":\"per-tenant-networks\"}"
+CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"authdMode\":\"surrogate-only\",\"egress\":\"sentinel-v2-plus-proxy\",\"isolation\":\"per-tenant-networks\"}"
 
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
@@ -76,6 +79,16 @@ on conflict (tenant_id) do update set
   isolation_status='"'"'ready'"'"',
   config=excluded.config,
   last_seen_at=now(),
+  updated_at=now();
+
+insert into credential_handles (tenant_id,provider,handle,secret_class,status)
+values
+  (:'"'"'tenant'"'"'::uuid,'steel','cred://steel/default','browser_provider','active'),
+  (:'"'"'tenant'"'"'::uuid,'whatsapp','cred://whatsapp/default','provider_token','active'),
+  (:'"'"'tenant'"'"'::uuid,'windsor','cred://windsor/default','api_key','active')
+on conflict (tenant_id,provider,handle) do update set
+  secret_class=excluded.secret_class,
+  status='active',
   updated_at=now();
 SQL'
 
