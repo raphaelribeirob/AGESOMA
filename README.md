@@ -65,7 +65,8 @@ The target interaction is not “chat with AI.” It is “give this to AGESOMA.
 | **PostgreSQL + pgvector** | Operational truth, structured state, registry and vector context |
 | **Graphiti + Neo4j** | Temporal context and memory experiments |
 | **pg-boss** | Durable background jobs and execution coordination |
-| **HERMES** | Isolated browser/API/file/computer execution |
+| **HERMES** | Isolated persistent execution runtime with no direct internet/model secrets |
+| **Model Gateway** | Per-tenant model inference boundary; real model credentials stay outside HERMES |
 | **Sentinel** | Independent policy and authorization boundary |
 | **Work Cells** | Isolated execution environments |
 | **Outcome verification** | Separates execution claims from evidence-backed completion |
@@ -110,7 +111,8 @@ The remaining work is primarily:
 - calendar/email connector contracts;
 - user-controlled memory inspection and forgetting;
 - end-to-end execution verification;
-- production credential isolation and tenant/user binding.
+- connector OAuth/self-service account binding;
+- remaining P1 trust-boundary work such as prompt-injection classifiers and browser subagent hardening.
 
 ## Product doctrine
 
