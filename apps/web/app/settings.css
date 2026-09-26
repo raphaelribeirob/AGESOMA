@@ -1,0 +1,303 @@
+.settingsShell {
+  width: min(980px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 24px 0 96px;
+}
+
+.settingsHeader {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--stone);
+}
+
+.settingsBack {
+  font-size: 12px;
+  color: var(--graphite);
+}
+
+.settingsHero {
+  padding: 66px 0 54px;
+  border-bottom: 1px solid var(--stone);
+}
+
+.settingsHero h1 {
+  max-width: 860px;
+  font-size: clamp(42px, 5.6vw, 72px);
+  margin-bottom: 18px;
+}
+
+.settingsHero p {
+  max-width: 680px;
+  font-size: 15px;
+  color: var(--graphite);
+}
+
+.settingsNotice {
+  margin: 22px 0 0;
+  border: 1px solid var(--stone);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--warm);
+  font-size: 12px;
+  color: var(--graphite);
+}
+
+.settingsSection {
+  display: grid;
+  grid-template-columns: minmax(220px, .62fr) minmax(0, 1.38fr);
+  gap: 48px;
+  padding: 64px 0;
+  border-bottom: 1px solid var(--stone);
+}
+
+.settingsIntro h2 {
+  margin-top: 9px;
+  font-size: 32px;
+}
+
+.settingsIntro p {
+  max-width: 320px;
+  font-size: 13px;
+}
+
+.settingsStack {
+  border-top: 1px solid var(--stone);
+}
+
+.settingsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--stone);
+}
+
+.settingsRow strong {
+  font-size: 14px;
+}
+
+.settingsValue {
+  margin: 5px 0 0;
+  color: var(--graphite);
+  font-size: 14px;
+}
+
+.settingsMeta {
+  display: inline-block;
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--ash);
+}
+
+.settingsActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settingsActions button,
+.settingsConnection button,
+.settingsPrimary {
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settingsActions button.quiet {
+  background: transparent;
+  color: var(--smoke);
+  border: 1px solid var(--stone);
+}
+
+.settingsActions button:disabled,
+.settingsConnection button:disabled,
+.settingsPrimary:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.settingsTextarea {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--stone-strong);
+  border-radius: 14px;
+  padding: 12px 13px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.settingsConnection p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.connectionStatus {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid var(--stone);
+  border-radius: 999px;
+  padding: 0 10px;
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--smoke);
+}
+
+.settingsPanel {
+  border: 1px solid var(--stone);
+  border-radius: 20px;
+  padding: 20px;
+  background: rgba(255,255,255,.6);
+}
+
+.settingsPanel + .settingsPanel {
+  margin-top: 14px;
+}
+
+.settingsToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.settingsFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.settingsFields.compact {
+  margin-top: 12px;
+}
+
+.settingsFields label {
+  display: grid;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--smoke);
+}
+
+.settingsFields input,
+.settingsFields select {
+  min-height: 42px;
+  border: 1px solid var(--stone);
+  border-radius: 12px;
+  background: var(--paper-strong);
+  padding: 0 11px;
+  color: var(--ink);
+}
+
+.settingsPrimary {
+  min-height: 42px;
+}
+
+.watcherList {
+  margin-top: 18px;
+  border-top: 1px solid var(--stone);
+}
+
+.watcherList > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone);
+}
+
+.watcherList strong {
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.watcherList span {
+  font-family: "Geist Mono Variable", ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--ash);
+}
+
+.settingsEmpty {
+  margin: 18px 0;
+  font-size: 13px;
+}
+
+.agesomaHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.agesomaSettingsLink {
+  font-size: 10px;
+  color: var(--smoke);
+  border-bottom: 1px solid transparent;
+}
+
+.agesomaSettingsLink:hover {
+  color: var(--ink);
+  border-bottom-color: var(--stone-strong);
+}
+
+.onboardingError {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #8c2e2e;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .settingsShell {
+    width: calc(100% - 32px);
+    padding-top: 14px;
+  }
+
+  .settingsHero {
+    padding: 46px 0 40px;
+  }
+
+  .settingsSection {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding: 46px 0;
+  }
+
+  .settingsIntro p {
+    max-width: 100%;
+  }
+
+  .settingsRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .settingsActions {
+    justify-content: flex-start;
+  }
+
+  .settingsFields {
+    grid-template-columns: 1fr;
+  }
+
+  .watcherList > div {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
