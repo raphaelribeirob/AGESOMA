@@ -110,6 +110,9 @@ create table if not exists proactive_interruptions (
 
 create index if not exists proactive_interruptions_tenant_status_idx
   on proactive_interruptions (tenant_id, status, created_at desc);
+create unique index if not exists proactive_interruptions_source_task_idx
+  on proactive_interruptions (source_task_id)
+  where source_task_id is not null;
 
 alter table watchers
   add column if not exists connected_service_id uuid references connected_services(id) on delete set null,
