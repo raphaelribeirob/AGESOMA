@@ -188,6 +188,7 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
     let destination:URL;
     try{destination=new URL(input.destination);}catch{return false;}
     if(destination.hostname.toLowerCase()!=="graph.facebook.com") return false;
+    if(destination.search||!/^\/v\d+(?:\.\d+)?\/\d+\/messages$/.test(destination.pathname)) return false;
     if(String(scope.resource??"").toLowerCase()!=="whatsapp") return false;
     const allowedOps=new Set(["send","send_message","send_text","message"]);
     if(!scope.operation||!allowedOps.has(scope.operation.toLowerCase())) return false;
@@ -201,6 +202,7 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
     let destination:URL;
     try{destination=new URL(input.destination);}catch{return false;}
     if(destination.hostname.toLowerCase()!=="connectors.windsor.ai") return false;
+    if(destination.pathname!=="/facebook/actions"||destination.search) return false;
     if(!task.action_type?.startsWith("paid_media.")) return false;
     if(text(meta.account)!==scope.destination) return false;
     if(text(meta.providerAction)!==scope.operation) return false;
@@ -217,7 +219,12 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
     let destination:URL;
     try{destination=new URL(input.destination);}catch{return false;}
     if(destination.hostname.toLowerCase()!=="connectors.windsor.ai"||input.method!=="GET") return false;
-    if(meta.routeKind==="actions") return true;
+    if(meta.routeKind==="actions"){
+      return destination.pathname==="/facebook/actions"&&!destination.search;
+    }
+    if(!["/facebook","/google_ads"].includes(destination.pathname)) return false;
+    const allowedQuery=new Set(["fields","date_preset","select_accounts"]);
+    for(const key of destination.searchParams.keys()) if(!allowedQuery.has(key)) return false;
     return Boolean(scope.destination)&&text(meta.selectAccounts)===scope.destination;
   }
 
@@ -239,6 +246,9 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
 
   if(input.operation==="browser.scrape.control"){
     if(!["business.observe","business.work"].includes(task.action_type??"")) return false;
+    let steel:URL;
+    try{steel=new URL(input.destination);}catch{return false;}
+    if(steel.pathname!=="/v1/scrape"||steel.search) return false;
     const target=text(meta.targetUrl);
     const targetIp=text(meta.targetResolvedIp);
     if(!target||!targetIp||unsafeIp(targetIp)) return false;
@@ -246,7 +256,12 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   }
 
   if(input.operation==="browser.session.create"||input.operation==="browser.session.release"){
-    return ["business.observe","business.work"].includes(task.action_type??"")&&input.effect==="control";
+    if(!["business.observe","business.work"].includes(task.action_type??"")||input.effect!=="control") return false;
+    let steel:URL;
+    try{steel=new URL(input.destination);}catch{return false;}
+    if(steel.search) return false;
+    if(input.operation==="browser.session.create") return steel.pathname==="/v1/sessions";
+    return /^\/v1\/sessions\/[^/]+\/release$/.test(steel.pathname);
   }
 
   return input.effect==="read";
