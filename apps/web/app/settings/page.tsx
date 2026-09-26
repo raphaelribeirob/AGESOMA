@@ -148,6 +148,20 @@ export default function SettingsPage() {
     }
   }
 
+  async function disconnectConnection(id: string) {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/connections?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Não foi possível desconectar esse serviço.");
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível desconectar esse serviço.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function beginConnection(provider: string) {
     setBusy(true);
     setNotice(null);
@@ -212,6 +226,20 @@ export default function SettingsPage() {
       await load();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Não foi possível criar o acompanhamento.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pauseWatcher(id: string) {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/proactivity?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Não foi possível pausar esse acompanhamento.");
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Não foi possível pausar esse acompanhamento.");
     } finally {
       setBusy(false);
     }
@@ -289,7 +317,12 @@ export default function SettingsPage() {
                   <p>{connection ? connection.display_name ?? "Conectado" : "Não conectado"}</p>
                 </div>
                 <div>
-                  {connection ? <span className="connectionStatus">ativo</span> : (
+                  {connection ? (
+                    <div className="settingsActions">
+                      <span className="connectionStatus">ativo</span>
+                      <button className="quiet" disabled={busy} onClick={() => void disconnectConnection(connection.id)}>Desconectar</button>
+                    </div>
+                  ) : (
                     <button disabled={!item.authorizationAvailable || busy} onClick={() => void beginConnection(item.provider)}>
                       {item.authorizationAvailable ? "Conectar" : "OAuth não configurado"}
                     </button>
@@ -330,7 +363,7 @@ export default function SettingsPage() {
             <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label>
           </div>
           <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar acompanhamento</button>
-          {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Acompanhamento"}</strong><span>{watcher.cadence} · {watcher.status}</span></div>)}</div> : null}
+          {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Acompanhamento"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
         </div>
       </section>
 
