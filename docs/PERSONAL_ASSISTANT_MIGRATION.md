@@ -99,6 +99,9 @@ Before production:
 - revocable grants;
 - failure recovery;
 - connector-specific permission boundaries;
+- Authd surrogate-credential boundary;
+- Sentinel v2 structured egress authority;
+- brokered browser access with CDP hidden from the runtime;
 - persistent personal runtime contract;
 - first-class Goals and Activity surfaces;
 - concurrent delegation from the main conversation.
@@ -129,6 +132,7 @@ Before deploying code that reads `personal_context_entries`, `connected_services
 packages/db/migrations/0011_personal_assistant_foundation.sql
 packages/db/migrations/0012_muse_parity_runtime_attention.sql
 packages/db/migrations/0013_api_tool_builder.sql
+packages/db/migrations/0014_muse_trust_boundary.sql
 ```
 
 to the production database.
