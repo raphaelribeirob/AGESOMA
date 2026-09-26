@@ -13,6 +13,16 @@ const providerSchema = z.enum([
   "whatsapp"
 ]);
 
+const PROVIDER_PERMISSIONS: Record<z.infer<typeof providerSchema>, readonly string[]> = {
+  gmail: ["read","search","draft","send","delete"],
+  google_calendar: ["read","create","update","delete"],
+  google_drive: ["read","create","update","delete"],
+  google_contacts: ["read"],
+  meta_ads: ["read","create_drafts","pause","activate","change_budget"],
+  google_ads: ["read","create_drafts","pause","activate","change_budget"],
+  whatsapp: ["read","send"]
+} as const;
+
 const registerSchema = z.object({
   provider: providerSchema,
   externalAccountId: z.string().min(1).max(240),
@@ -22,6 +32,18 @@ const registerSchema = z.object({
   permissions: z.record(z.string(), z.boolean()).default({}),
   metadata: z.record(z.string(), z.unknown()).default({})
 });
+
+const permissionUpdateSchema = z.object({
+  id: z.string().uuid(),
+  permissions: z.record(z.string(), z.boolean())
+});
+
+function normalizePermissions(provider: z.infer<typeof providerSchema>, permissions: Record<string, boolean>) {
+  const allowed = new Set(PROVIDER_PERMISSIONS[provider]);
+  const invalid = Object.keys(permissions).filter((key) => !allowed.has(key));
+  if (invalid.length) throw new Error(`Unsupported permissions: ${invalid.join(", ")}`);
+  return Object.fromEntries(PROVIDER_PERMISSIONS[provider].map((key) => [key, permissions[key] === true]));
+}
 
 function containsSensitiveKey(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(containsSensitiveKey);
@@ -60,7 +82,8 @@ export async function GET() {
 
   const providers = providerSchema.options.map((provider) => ({
     provider,
-    authorizationAvailable: Boolean(authorizationUrl(provider))
+    authorizationAvailable: Boolean(authorizationUrl(provider)),
+    permissionOptions: PROVIDER_PERMISSIONS[provider]
   }));
 
   return NextResponse.json({ services, providers });
@@ -126,7 +149,7 @@ export async function POST(req: Request) {
     input.displayName ?? null,
     input.credentialHandleId ?? null,
     JSON.stringify(input.capabilities),
-    JSON.stringify(input.permissions),
+    JSON.stringify(normalizePermissions(input.provider, input.permissions)),
     input.credentialHandleId ? "active" : "pending",
     JSON.stringify(input.metadata),
     input.credentialHandleId ? new Date() : null
@@ -152,5 +175,50 @@ export async function DELETE(req: Request) {
   `, [authenticated.tenantId, id]);
 
   if (!service) return NextResponse.json({ error: "Conexão não encontrada." }, { status: 404 });
+  return NextResponse.json(service);
+}
+
+
+export async function PATCH(req: Request) {
+  const authenticated = await resolveAuthenticatedWorkspace();
+  if (!authenticated) return NextResponse.json({ error: "Sua sessão expirou. Entre novamente." }, { status: 401 });
+
+  const parsed = permissionUpdateSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Permissões inválidas." }, { status: 400 });
+
+  const [current] = await tenantSql<{ provider: z.infer<typeof providerSchema> }>(authenticated.tenantId, `
+    select provider
+    from connected_services
+    where tenant_id=$1 and id=$2 and status='active'
+    limit 1
+  `, [authenticated.tenantId, parsed.data.id]);
+
+  if (!current || !providerSchema.safeParse(current.provider).success) {
+    return NextResponse.json({ error: "Conexão ativa não encontrada." }, { status: 404 });
+  }
+
+  let normalized: Record<string, boolean>;
+  try {
+    normalized = normalizePermissions(current.provider, parsed.data.permissions);
+  } catch {
+    return NextResponse.json({ error: "Há uma permissão não suportada para esse serviço." }, { status: 400 });
+  }
+
+  const [service] = await tenantSql(authenticated.tenantId, `
+    update connected_services
+    set permissions=$3::jsonb,updated_at=now()
+    where tenant_id=$1 and id=$2 and status='active'
+    returning id,provider,external_account_id,display_name,capabilities,permissions,status,updated_at
+  `, [authenticated.tenantId, parsed.data.id, JSON.stringify(normalized)]);
+
+  await tenantSql(authenticated.tenantId, `
+    insert into activity_events (tenant_id,event_type,title,summary,status,metadata)
+    values ($1,'connection','Permissões atualizadas',$2,'info',$3::jsonb)
+  `, [
+    authenticated.tenantId,
+    `Permissões de ${current.provider} atualizadas.`,
+    JSON.stringify({ serviceId: parsed.data.id, permissions: normalized, requestedBy: authenticated.actorId })
+  ]);
+
   return NextResponse.json(service);
 }
