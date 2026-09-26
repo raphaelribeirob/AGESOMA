@@ -25,6 +25,8 @@ const ACTIONS: Record<string, ActionPolicy> = {
   "business.commit": { type: "business.commit", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
 
   "api.discover": { type: "api.discover", riskClass: "R0", reversible: true, external: true, maxPayloadBytes: 16_384 },
+  "api.tool_build": { type: "api.tool_build", riskClass: "R0", reversible: true, external: true, maxPayloadBytes: 16_384 },
+  "api.tool_read": { type: "api.tool_read", riskClass: "R0", reversible: true, external: true, maxPayloadBytes: 16_384 },
 
   "paid_media.read": { type: "paid_media.read", riskClass: "R0", reversible: true, external: true, maxPayloadBytes: 32_768 },
   "paid_media.create_campaign": { type: "paid_media.create_campaign", riskClass: "R2", reversible: false, external: true, maxPayloadBytes: 32_768 },

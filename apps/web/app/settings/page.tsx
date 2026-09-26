@@ -71,6 +71,29 @@ type Interruption = {
   created_at: string;
 };
 
+type ToolRecipe = {
+  id: string;
+  name: string;
+  description: string;
+  status: "draft" | "validated" | "approved" | "disabled";
+  tool_kind: string;
+  source_url: string | null;
+  spec_url: string | null;
+  base_url: string | null;
+  risk_class: string;
+  auth_mode: string;
+  validation: {
+    contractValid?: boolean;
+    readOnly?: boolean;
+    externalExecutionTested?: boolean;
+    testMode?: string;
+    notes?: string[];
+  };
+  permissions: Record<string, boolean>;
+  approved_at: string | null;
+  last_tested_at: string | null;
+};
+
 const providerLabels: Record<string, string> = {
   gmail: "Gmail",
   google_calendar: "Google Calendar",
@@ -111,6 +134,7 @@ export default function SettingsPage() {
   });
   const [watchers, setWatchers] = useState<Watcher[]>([]);
   const [interruptions, setInterruptions] = useState<Interruption[]>([]);
+  const [tools, setTools] = useState<ToolRecipe[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [goalTitle, setGoalTitle] = useState("");
@@ -122,12 +146,13 @@ export default function SettingsPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
-    const [contextResponse, connectionsResponse, proactivityResponse, goalsResponse, activityResponse] = await Promise.all([
+    const [contextResponse, connectionsResponse, proactivityResponse, goalsResponse, activityResponse, toolsResponse] = await Promise.all([
       fetch("/api/personal-context", { cache: "no-store" }),
       fetch("/api/connections", { cache: "no-store" }),
       fetch("/api/proactivity", { cache: "no-store" }),
       fetch("/api/goals", { cache: "no-store" }),
-      fetch("/api/activity?limit=30", { cache: "no-store" })
+      fetch("/api/activity?limit=30", { cache: "no-store" }),
+      fetch("/api/tools", { cache: "no-store" })
     ]);
 
     if (
@@ -135,17 +160,19 @@ export default function SettingsPage() {
       !connectionsResponse.ok ||
       !proactivityResponse.ok ||
       !goalsResponse.ok ||
-      !activityResponse.ok
+      !activityResponse.ok ||
+      !toolsResponse.ok
     ) {
       throw new Error("Não foi possível carregar seus ajustes.");
     }
 
-    const [contextBody, connectionsBody, proactivityBody, goalsBody, activityBody] = await Promise.all([
+    const [contextBody, connectionsBody, proactivityBody, goalsBody, activityBody, toolsBody] = await Promise.all([
       contextResponse.json(),
       connectionsResponse.json(),
       proactivityResponse.json(),
       goalsResponse.json(),
-      activityResponse.json()
+      activityResponse.json(),
+      toolsResponse.json()
     ]);
 
     setContext(contextBody.entries ?? []);
@@ -156,6 +183,7 @@ export default function SettingsPage() {
     setInterruptions(proactivityBody.interruptions ?? []);
     setGoals(goalsBody.goals ?? []);
     setActivity(activityBody.activity ?? []);
+    setTools(toolsBody.tools ?? []);
   }
 
   useEffect(() => {
@@ -266,6 +294,31 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Não foi possível atualizar essa permissão.");
       await load();
     }, "Não foi possível atualizar essa permissão.");
+  }
+
+  async function approveTool(id: string) {
+    await run(async () => {
+      const response = await fetch("/api/tools", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, action: "approve" })
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error ?? "Não foi possível aprovar essa ferramenta.");
+      await load();
+    }, "Não foi possível aprovar essa ferramenta.");
+  }
+
+  async function disableTool(id: string) {
+    await run(async () => {
+      const response = await fetch("/api/tools", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, action: "disable" })
+      });
+      if (!response.ok) throw new Error("Não foi possível desativar essa ferramenta.");
+      await load();
+    }, "Não foi possível desativar essa ferramenta.");
   }
 
   async function savePreferences() {
@@ -453,6 +506,40 @@ export default function SettingsPage() {
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="settingsSection">
+        <div className="settingsIntro">
+          <span className="monoLabel">FERRAMENTAS</span>
+          <h2>Ferramentas que aprendi</h2>
+          <p>APIs descobertas podem virar ferramentas read-only. Nada é reutilizado até você aprovar.</p>
+        </div>
+        <div className="settingsStack">
+          {tools.length ? tools.map((tool) => (
+            <article className="settingsRow" key={tool.id}>
+              <div>
+                <span className="settingsMeta">{tool.status} · {tool.risk_class} · {tool.auth_mode}</span>
+                <strong>{tool.name}</strong>
+                <p className="settingsValue">{tool.description}</p>
+                {tool.validation?.testMode ? (
+                  <p className="settingsValue">
+                    Validação: {tool.validation.testMode === "contract_only" ? "contrato OpenAPI" : tool.validation.testMode}
+                    {tool.validation.externalExecutionTested ? " · chamada externa testada" : " · sem chamada externa automática"}
+                  </p>
+                ) : null}
+              </div>
+              <div className="settingsActions">
+                {tool.status === "validated" ? (
+                  <button disabled={busy} onClick={() => void approveTool(tool.id)}>Aprovar</button>
+                ) : null}
+                {tool.status === "approved" ? <span className="connectionStatus">aprovada</span> : null}
+                {tool.status !== "disabled" ? (
+                  <button className="quiet" disabled={busy} onClick={() => void disableTool(tool.id)}>Desativar</button>
+                ) : <span className="connectionStatus">desativada</span>}
+              </div>
+            </article>
+          )) : <p className="settingsEmpty">Nenhuma ferramenta aprendida ainda.</p>}
         </div>
       </section>
 

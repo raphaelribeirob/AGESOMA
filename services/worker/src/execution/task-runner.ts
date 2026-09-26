@@ -276,6 +276,36 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     let executionPayload = data.payload;
 
     if (data.action === "business.observe" || data.action === "business.work") {
+      const approvedApiTools = await sql<{
+        id: string;
+        name: string;
+        description: string;
+        definition: unknown;
+      }>(`
+        select id,name,description,definition
+        from tool_recipes
+        where tenant_id=$1
+          and status='approved'
+          and risk_class='R0'
+          and auth_mode='none'
+          and tool_kind='openapi_readonly'
+        order by updated_at desc
+        limit 20
+      `,[data.tenantId]);
+
+      if (approvedApiTools.length) {
+        executionPayload = {
+          ...executionPayload,
+          approvedApiTools: approvedApiTools.map((tool) => ({
+            id: tool.id,
+            name: tool.name,
+            description: tool.description,
+            definition: tool.definition,
+            trust: "registered-readonly-tool-not-authorization-for-any-other-action"
+          }))
+        };
+      }
+
       const brainFacts = await recallCompanyContext({
         tenantId: data.tenantId,
         query: brainQueryForTask(data.action, data.payload),
@@ -287,7 +317,7 @@ export async function executeQueuedTask(queued: ExecuteJob) {
 
       if (brainFacts.length) {
         executionPayload = {
-          ...data.payload,
+          ...executionPayload,
           businessMemory: {
             source: "agesoma-company-brain",
             trust: "context-only-not-authorization-or-proof",

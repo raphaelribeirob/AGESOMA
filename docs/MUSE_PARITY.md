@@ -104,3 +104,14 @@ This layer requires:
 3. application deployment
 
 The repository still does not automatically execute SQL migrations during the web build. Apply both migrations before deploying code that reads these schemas.
+
+
+## Dynamic tool creation
+
+AGESOMA now supports a constrained self-tooling loop for public APIs:
+
+```text
+Discover → OpenAPI build → contract validation → user approval → R0 reuse → run audit
+```
+
+Only no-auth GET/HEAD tools can enter the generic dynamic runtime. Write operations remain blocked and must be implemented through explicit R2/R3 provider actions. This keeps self-tooling separate from authority.
