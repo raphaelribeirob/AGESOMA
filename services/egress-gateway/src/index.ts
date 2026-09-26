@@ -198,7 +198,7 @@ async function execute(callerName:Caller,input:Record<string,unknown>){
   const operation=typeof input.operation==="string"?input.operation:"";
   const method=typeof input.method==="string"?input.method.toUpperCase():"";
   const effect=typeof input.effect==="string"?input.effect as Effect:"read";
-  const dataTaint=typeof input.dataTaint==="string"?input.dataTaint as Taint:"clean";
+  const dataTaint=typeof input.dataTaint==="string"?input.dataTaint as Taint:undefined;
   if(requestTenant!==tenantId) throw new Error("tenant_mismatch");
   if(!taskId||!destination||!operation||!["GET","HEAD","POST"].includes(method)) throw new Error("invalid_request");
   if(!callerMayUse(callerName,operation)) throw new Error("caller_operation_denied");
