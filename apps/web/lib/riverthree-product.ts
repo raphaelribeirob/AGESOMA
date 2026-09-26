@@ -22,9 +22,9 @@ export const agesomaPackage = {
   product: {
     id: "agesoma",
     name: "AGESOMA",
-    category: "smb-operating-intelligence",
-    audience: "small and medium business owners",
-    onboardingMode: "businessConsumerized" as RiverThreeOnboardingMode
+    category: "personal-executive-assistant",
+    audience: "people who want to delegate digital work and personal administration",
+    onboardingMode: "consumerFast" as RiverThreeOnboardingMode
   },
   identity: {
     wordmark: "/agesoma-wordmark.jpeg",
@@ -44,20 +44,18 @@ export const agesomaPackage = {
     motionPersonality: "contextual" as const
   },
   promise: {
-    headline: "Converse com a inteligência da sua empresa.",
-    outcome: "A AGESOMA entende a empresa, coordena pessoas e agentes, faz o trabalho avançar e relata naturalmente o que mudou.",
-    firstValueDefinition: "O dono consegue perguntar o que está acontecendo ou pedir trabalho em linguagem natural, sem navegar por um sistema."
+    headline: "Your life, handled.",
+    outcome: "AGESOMA remembers context, organizes what matters and executes authorized digital work for you.",
+    firstValueDefinition: "The user delegates one real task in ordinary language and understands that AGESOMA will own the coordination."
   },
   onboarding: {
     progressModel: "fixedKnownPath" as const,
     steps: [
       { id: "welcome", type: "welcome", required: true, advanceMode: "explicit" },
-      { id: "company_context", type: "text", required: true, advanceMode: "explicit" },
-      { id: "team_size", type: "numeric", required: true, advanceMode: "explicit" },
-      { id: "team_structure", type: "text", required: true, advanceMode: "explicit" },
-      { id: "coordination_problem", type: "single", required: true, advanceMode: "auto" },
-      { id: "desired_outcome", type: "text", required: true, advanceMode: "explicit" },
-      { id: "coordination_preview", type: "result", required: true, advanceMode: "explicit" },
+      { id: "personal_context", type: "text", required: true, advanceMode: "explicit" },
+      { id: "priority_area", type: "single", required: true, advanceMode: "auto" },
+      { id: "first_request", type: "text", required: true, advanceMode: "explicit" },
+      { id: "assistant_preview", type: "result", required: true, advanceMode: "explicit" },
       { id: "first_execution", type: "firstAction", required: true, advanceMode: "explicit" }
     ] satisfies RiverThreeStep[]
   },
@@ -92,8 +90,8 @@ export const agesomaPackage = {
   },
   home: {
     mode: "agesomaConversation" as RiverThreeHomeMode,
-    primaryOutcome: "natural_company_conversation_and_verified_results",
-    nextBestAction: "answer_or_act_without_exposing_system_complexity",
+    primaryOutcome: "personal_delegation_and_verified_completion",
+    nextBestAction: "handle_the_next_useful_task_without_exposing_system_complexity",
     supportingMetricsMax: 0
   },
   runtime: {

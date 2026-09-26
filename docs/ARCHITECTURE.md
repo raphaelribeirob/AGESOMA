@@ -2,100 +2,128 @@
 
 ## Product rule
 
-AGESOMA has one job: act as the operating intelligence of a small or medium business.
+AGESOMA has one job: act as a personal executive assistant.
 
-It understands the company, organizes people and work, decides what should happen next, delegates digital execution to HERMES when appropriate, follows progress, verifies results and involves the owner only when authority or judgment is actually required.
-
-There are no separate AGESOMA products for sales, finance, service, recruiting or other verticals. Specialized knowledge may exist internally as work methods, but the customer always uses the same AGESOMA.
+It remembers useful context, understands the user's current situation, plans work, delegates to internal capabilities, executes authorized digital actions, verifies completion and interrupts the user only when judgment or permission is required.
 
 ## Canonical chain
 
 ```text
-Owner / business objective
+User / desired outcome
         ↓
-AGESOMA business state + priorities
+Personal context + current commitments
         ↓
-AGESOMA decides next work
+AGESOMA plans the work
         ↓
-┌───────────────────────┬────────────────────────┐
-│ Human employee        │ HERMES                 │
-│ assignment + followup │ isolated execution     │
-└───────────────────────┴────────────────────────┘
+Capability selection
         ↓
-AGESOMA verifies progress and result
+Isolated digital execution
         ↓
-Owner sees only what matters
+Policy + scoped authorization
         ↓
-AGESOMA learns how the company operates
+Completion verification
+        ↓
+AGESOMA reports what matters
+        ↓
+Memory learns from corrections and outcomes
 ```
 
 ## Responsibilities
 
 AGESOMA owns:
 
-- company context and goals;
-- employees, roles, responsibilities and workload;
-- prioritization and assignment of work;
-- business memory;
-- policy and authorization;
-- decisions that require the owner;
-- task and outcome state;
-- verification of results;
-- learning from completed work and owner corrections.
+- user-facing conversation;
+- personal context;
+- memory and retrieval;
+- task planning and coordination;
+- prioritization;
+- permission requests;
+- approval state;
+- recurring routines;
+- completion verification;
+- preference learning;
+- deciding when the user should be interrupted.
 
-HERMES owns only execution inside the capability granted by AGESOMA:
+The execution substrate owns only the digital work explicitly delegated to it:
 
 - browser work;
 - computer use;
 - APIs;
 - files and transformations;
-- messaging and other connected digital operations.
+- messaging;
+- calendar operations;
+- connected-service actions.
 
-HERMES is never the authority and never the owner-facing product.
+The execution layer is never the authorization authority.
+
+## Personal context model
+
+Personal context is broader than preferences. It can include:
+
+- current projects;
+- recurring commitments;
+- important people;
+- work context;
+- communication patterns;
+- travel and logistical context;
+- decisions and corrections;
+- user-defined goals;
+- connected-service state.
+
+Every memory should have provenance, scope and a path for correction or deletion.
 
 ## Authority rule
 
 The executor is never its own authorization authority.
 
-AGESOMA/Sentinel defines what impact is allowed. HERMES receives only the minimum authority needed for the active task. Consequential actions remain bound to exact approved destination, operation, resource and parameters.
+AGESOMA may prepare, draft, research and organize with low friction. External side effects must respect a risk policy and, when required, a scoped grant containing the concrete destination, operation, resource and parameters.
 
-## Human coordination
-
-A human employee and HERMES are both execution resources from the perspective of AGESOMA.
-
-AGESOMA chooses the route based on responsibility, available context, authorization, cost, reversibility and required human judgment. The owner should not need to decide whether a task is “AI work” or “human work”.
-
-## Tenant Work Cell
-
-Each company receives isolated execution state: runtime, browser profile, files, memory and credential namespaces. Business credentials remain outside HERMES wherever possible and are brokered only for the approved operation.
+Inference can help determine what the user probably wants. It cannot replace consent.
 
 ## Operating loop
 
 ```text
-Understand company state
+Understand the user's state
   ↓
-Identify what needs to happen
+Identify what can be taken off their plate
   ↓
 Prioritize
   ↓
-Assign to a person or HERMES
+Plan and choose capabilities
   ↓
-Monitor progress
+Execute what is authorized
   ↓
-Ask owner only when needed
+Ask only when judgment/permission is required
   ↓
-Verify completion/result
+Verify completion
   ↓
-Learn
+Report concisely
+  ↓
+Learn from correction
   ↺
 ```
 
+## Core capability domains
+
+P0 prioritizes:
+
+- calendar;
+- email and messaging;
+- research;
+- documents;
+- personal administration;
+- recurring monitoring.
+
+Finance can provide visibility and administrative preparation before any money-moving capability is considered.
+
 ## Customer-facing simplicity
 
-The canonical owner experience is one AGESOMA conversation.
+The canonical experience is one AGESOMA conversation.
 
-Work state, approvals, team context, recommendations and verified results should appear contextually inside that conversation instead of requiring the owner to navigate across operational dashboards.
+Technical concepts such as HERMES, Sentinel, Work Cells, models, agents, workflows and routing must remain outside the normal user experience.
 
-Account and advanced settings may exist outside the core conversation when necessary.
+## Migration rule
 
-Technical concepts such as HERMES, Sentinel, Work Cell, models, agents, workflows and internal work methods must remain outside the normal owner experience.
+The previous SME operating-intelligence implementation contains valuable execution, authorization and durable-work primitives. Those primitives are retained where useful, but business-specific semantics are being removed from the product surface.
+
+Internal legacy names are migration debt, not product doctrine.

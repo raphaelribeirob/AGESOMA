@@ -23,7 +23,7 @@ jobs:
       - name: Enforce single AGESOMA purpose
         run: |
           test -f docs/PRODUCT_SCOPE.md
-          grep -q 'AI operating intelligence for SMEs' docs/PRODUCT_SCOPE.md
+          grep -q 'personal executive assistant' docs/PRODUCT_SCOPE.md
           test -f packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists team_members' packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists work_assignments' packages/db/migrations/0007_team_coordination.sql
@@ -50,26 +50,22 @@ jobs:
             exit 1
           fi
 
-      - name: Enforce AGESOMA digital workforce
+      - name: Enforce AGESOMA capability boundary
         run: |
           test -f packages/core/src/agent-registry.ts
           test -f packages/db/migrations/0010_agent_registry.sql
           grep -q 'DEFAULT_AGENT_PACKAGE' packages/core/src/agent-registry.ts
-          grep -q 'Agente de Vendas' packages/core/src/agent-registry.ts
-          grep -q 'Agente de Marketing' packages/core/src/agent-registry.ts
-          grep -q 'Agente de Atendimento' packages/core/src/agent-registry.ts
-          grep -q 'Agente Financeiro' packages/core/src/agent-registry.ts
-          grep -q 'Agente de Operações' packages/core/src/agent-registry.ts
-          grep -q 'Agente de Pesquisa' packages/core/src/agent-registry.ts
           grep -q 'create table if not exists digital_agents' packages/db/migrations/0010_agent_registry.sql
           grep -q 'create table if not exists agent_task_assignments' packages/db/migrations/0010_agent_registry.sql
           grep -q 'agentTemplateForPlan' apps/web/app/api/agesoma/route.ts
           grep -q 'ensureAgentPackage' apps/web/app/api/agesoma/route.ts
-          grep -q 'agent_task_assignments' apps/web/app/api/agesoma/route.ts
           grep -q 'runtime: "hermes-work-cell"' apps/web/app/api/agesoma/route.ts
-          grep -q 'digitalAgent' services/worker/src/company-brain.ts
           if grep -n -E 'digital_agents|agent_task_assignments|hermes-work-cell' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
-            echo "Digital workforce implementation details must stay behind the AGESOMA surface"
+            echo "Internal capability implementation details must stay behind the AGESOMA surface"
+            exit 1
+          fi
+          if grep -n -Ei 'sua empresa|na sua empresa|converse com sua empresa' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
+            echo "Legacy business positioning must not return to the personal assistant surface"
             exit 1
           fi
 
@@ -77,18 +73,17 @@ jobs:
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
           grep -q 'name: "AGESOMA"' apps/web/lib/riverthree-product.ts
-          grep -q 'category: "smb-operating-intelligence"' apps/web/lib/riverthree-product.ts
+          grep -q 'category: "personal-executive-assistant"' apps/web/lib/riverthree-product.ts
           grep -q 'wordmark: "/agesoma-wordmark.jpeg"' apps/web/lib/riverthree-product.ts
           test -f apps/web/public/agesoma-wordmark.jpeg
-          grep -q 'onboardingMode: "businessConsumerized"' apps/web/lib/riverthree-product.ts
+          grep -q 'onboardingMode: "consumerFast"' apps/web/lib/riverthree-product.ts
           grep -q 'intelligenceOrb: "contextual"' apps/web/lib/riverthree-product.ts
           grep -q 'genZ: "subtle"' apps/web/lib/riverthree-product.ts
           grep -q 'mode: "agesomaConversation"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "company_context"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "team_size"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "team_structure"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "coordination_problem"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "coordination_preview"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "personal_context"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "priority_area"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "first_request"' apps/web/lib/riverthree-product.ts
+          grep -q 'id: "assistant_preview"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "first_execution"' apps/web/lib/riverthree-product.ts
           grep -q 'activationEvent: "first_agesoma_request_accepted"' apps/web/lib/riverthree-product.ts
           grep -q 'r3ProgressHeader' apps/web/app/onboarding/page.tsx

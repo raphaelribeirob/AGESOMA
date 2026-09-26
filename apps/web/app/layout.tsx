@@ -11,7 +11,7 @@ import "./agesoma-conversation.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
-  description: "Converse com a inteligência da sua empresa."
+  description: "Seu assistente pessoal para organizar, pesquisar e executar."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

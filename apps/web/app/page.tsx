@@ -69,17 +69,17 @@ export default async function Home() {
   const firstName = authenticated.user.name?.trim().split(/\s+/)[0] || "";
 
   const parts: string[] = [];
-  if (active) parts.push(`${active} trabalho${active === 1 ? " está" : "s estão"} em andamento`);
-  if (blocked) parts.push(`${blocked} ${blocked === 1 ? "está travado" : "estão travados"}`);
+  if (active) parts.push(`${active} tarefa${active === 1 ? " está" : "s estão"} em andamento`);
+  if (blocked) parts.push(`${blocked} ${blocked === 1 ? "está travada" : "estão travadas"}`);
   if (approvals) parts.push(`${approvals} decisão${approvals === 1 ? " precisa" : "ões precisam"} de você`);
-  if (verified) parts.push(`${money(value)} de impacto já foi confirmado`);
-  if (!parts.length) parts.push("Sua empresa está tranquila neste momento. Ainda não há trabalho ativo nem decisões pendentes");
+  if (verified) parts.push(`${verified} resultado${verified === 1 ? " foi verificado" : "s foram verificados"}`);
+  if (!parts.length) parts.push("Nada exige sua atenção agora");
 
   return (
     <AgesomaClient
       initial={{
         greeting: firstName ? `Olá, ${firstName}.` : "Olá.",
-        brief: `${parts.join(". ")}. O que você quer saber ou fazer?`,
+        brief: `${parts.join(". ")}. O que você quer que eu resolva?`,
         activeWork: active,
         verifiedResults: verified,
         verifiedValue: money(value),

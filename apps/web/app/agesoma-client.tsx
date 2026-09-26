@@ -168,7 +168,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
           <span className="agesomaOrbLobe agesomaOrbLobeB" />
           <span className="agesomaOrbGrain" />
         </div>
-        <div className="agesomaStateText">{pending ? "Pensando…" : listening ? "Ouvindo…" : "Converse com sua empresa."}</div>
+        <div className="agesomaStateText">{pending ? "Pensando…" : listening ? "Ouvindo…" : "Pronto para cuidar do que você precisar."}</div>
       </section>
 
       <section className="agesomaConversation">
@@ -203,7 +203,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="O que você quer saber ou fazer na sua empresa?"
+          placeholder="O que você quer que eu resolva?"
           aria-label="Mensagem para AGESOMA"
           autoComplete="off"
         />
