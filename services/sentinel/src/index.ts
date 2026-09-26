@@ -75,8 +75,8 @@ function parse(value:unknown):AuthorizeRequest{
   }
   const effect=String(input.effect) as Effect;
   if(!["read","control","write","commit"].includes(effect)) throw new Error("invalid_effect");
-  const dataTaint=(typeof input.dataTaint==="string"?input.dataTaint:"clean") as Taint;
-  if(!["clean","public","personal","sensitive","credential"].includes(dataTaint)) throw new Error("invalid_taint");
+  const dataTaint=typeof input.dataTaint==="string"?input.dataTaint as Taint:undefined;
+  if(dataTaint&&!["clean","public","personal","sensitive","credential"].includes(dataTaint)) throw new Error("invalid_taint");
   return {
     tenantId:String(input.tenantId),taskId:String(input.taskId),destination:String(input.destination),
     operation:String(input.operation),method:String(input.method).toUpperCase(),
