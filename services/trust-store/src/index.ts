@@ -27,8 +27,10 @@ function text(input:Record<string,unknown>,key:string){
   return typeof value==="string"&&value.trim()?value.trim():null;
 }
 
-function tenantToken(tenantId:string){
-  return createHmac("sha256",masterSecret).update(tenantId).digest("hex");
+type TrustCaller="sentinel"|"authd"|"browser_broker";
+
+function tenantToken(caller:TrustCaller,tenantId:string){
+  return createHmac("sha256",masterSecret).update(`${caller}:${tenantId}`).digest("hex");
 }
 
 function sameSecret(a:string,b:string){
@@ -38,11 +40,19 @@ function sameSecret(a:string,b:string){
 
 function authorizeTenant(req:IncomingMessage,input:Record<string,unknown>){
   const tenantId=text(input,"tenantId");
+  const caller=req.headers["x-agesoma-trust-caller"];
   const supplied=req.headers["x-agesoma-trust-token"];
-  if(!tenantId||typeof supplied!=="string"||!sameSecret(supplied,tenantToken(tenantId))) {
+  if((caller!=="sentinel"&&caller!=="authd"&&caller!=="browser_broker")||!tenantId||typeof supplied!=="string") {
     throw new Error("forbidden");
   }
-  return tenantId;
+  if(!sameSecret(supplied,tenantToken(caller,tenantId))) throw new Error("forbidden");
+  return {tenantId,caller:caller as TrustCaller};
+}
+
+function callerMayUse(caller:TrustCaller,path:string){
+  if(caller==="sentinel") return path.startsWith("/v1/sentinel/");
+  if(caller==="authd") return path.startsWith("/v1/authd/");
+  return path.startsWith("/v1/browser/");
 }
 
 async function sentinelContext(input:Record<string,unknown>){
@@ -252,7 +262,8 @@ const server=createServer(async(req,res)=>{
     if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,mode:"control-plane-only"});
     if(req.method!=="POST") return json(res,405,{error:"method_not_allowed"});
     const input=await readJson(req);
-    authorizeTenant(req,input);
+    const auth=authorizeTenant(req,input);
+    if(!callerMayUse(auth.caller,req.url??"")) return json(res,403,{error:"forbidden"});
 
     if(req.url==="/v1/sentinel/context") return json(res,200,await sentinelContext(input));
     if(req.url==="/v1/sentinel/record") return json(res,200,await sentinelRecord(input));
