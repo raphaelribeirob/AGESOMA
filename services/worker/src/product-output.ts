@@ -247,6 +247,215 @@ async function persistResolvedAction(task: ProductTask, output: Record<string, u
   ]);
 }
 
+async function queueApiToolBuild(task: ProductTask, content: unknown) {
+  if (task.action_type !== "api.discover") return;
+  const discovery = record(content);
+  const candidates = Array.isArray(discovery?.candidates) ? discovery!.candidates : [];
+  const candidate = candidates
+    .map((item) => record(item))
+    .find((item) => text(item?.openApiUrl) && text(item?.url) && text(item?.name));
+  if (!candidate) return;
+
+  const specUrl = text(candidate.openApiUrl)!;
+  const sourceUrl = text(candidate.url)!;
+  const candidateName = text(candidate.name)!;
+  const candidateAuth = text(candidate.auth) ?? "Unknown";
+  const objective = text(discovery?.query) ?? text(task.payload.objective) ?? candidateName;
+  const policy = getActionPolicy("api.tool_build");
+  if (!policy) return;
+
+  const [existing] = await sql<{ id: string }>(`
+    select id from tasks
+    where tenant_id=$1
+      and action_type='api.tool_build'
+      and payload->>'parentTaskId'=$2
+      and payload->>'specUrl'=$3
+      and status not in ('failed','denied')
+    limit 1
+  `,[task.tenant_id,task.id,specUrl]);
+  if (existing) return;
+
+  await sql(`
+    insert into tasks (
+      tenant_id,workflow_id,status,action_type,risk_class,reversible,external,
+      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload,dispatched_at
+    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb,now())
+  `,[
+    task.tenant_id,
+    task.workflow_id,
+    policy.type,
+    policy.riskClass,
+    policy.reversible,
+    policy.external,
+    JSON.stringify({
+      objective,
+      candidateName,
+      sourceUrl,
+      specUrl,
+      candidateAuth,
+      parentTaskId: task.id,
+      requestedBy: text(task.payload.requestedBy),
+      outputContract: {
+        toolRecipe: "Return only a read-only recipe derived from the supplied APIs.guru OpenAPI contract."
+      }
+    })
+  ]);
+}
+
+async function persistApiToolRecipe(task: ProductTask, output: Record<string, unknown>) {
+  const recipe = record(output.toolRecipe);
+  const recipeName = text(recipe?.name);
+  const recipeDescription = text(recipe?.description);
+  if (!recipeName || !recipeDescription) return;
+
+  if (task.action_type !== "api.tool_build") {
+    if (task.action_type !== "business.observe" && task.action_type !== "business.work") return;
+    await sql(`
+      insert into tool_recipes (tenant_id,name,description,definition,status,created_from_task_id)
+      values ($1,$2,$3,$4::jsonb,'draft',$5)
+      on conflict (tenant_id,name) do update set
+        description=excluded.description,
+        definition=excluded.definition,
+        status='draft',
+        created_from_task_id=excluded.created_from_task_id,
+        updated_at=now()
+    `,[task.tenant_id,recipeName,recipeDescription,JSON.stringify(recipe),task.id]);
+    return;
+  }
+
+  const definition = record(recipe?.definition);
+  const validation = record(recipe?.validation) ?? {};
+  const requestedStatus = text(recipe?.status);
+  const riskClass = text(recipe?.riskClass) ?? "R1";
+  const authMode = text(recipe?.authMode) ?? "unknown";
+  const safeValidated = requestedStatus === "validated"
+    && definition?.kind === "openapi_readonly"
+    && validation.contractValid === true
+    && validation.readOnly === true
+    && riskClass === "R0"
+    && authMode === "none";
+
+  await sql(`
+    insert into tool_recipes (
+      tenant_id,name,description,definition,status,created_from_task_id,
+      tool_kind,source_url,spec_url,base_url,risk_class,auth_mode,validation,permissions,last_tested_at
+    ) values (
+      $1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14::jsonb,now()
+    )
+    on conflict (tenant_id,name) do update set
+      description=excluded.description,
+      definition=excluded.definition,
+      status=excluded.status,
+      created_from_task_id=excluded.created_from_task_id,
+      tool_kind=excluded.tool_kind,
+      source_url=excluded.source_url,
+      spec_url=excluded.spec_url,
+      base_url=excluded.base_url,
+      risk_class=excluded.risk_class,
+      auth_mode=excluded.auth_mode,
+      validation=excluded.validation,
+      permissions=excluded.permissions,
+      approved_by=null,
+      approved_at=null,
+      last_tested_at=excluded.last_tested_at,
+      updated_at=now()
+  `,[
+    task.tenant_id,
+    recipeName,
+    recipeDescription,
+    JSON.stringify(definition ?? {}),
+    safeValidated ? "validated" : "draft",
+    task.id,
+    text(recipe?.toolKind) ?? "generic",
+    text(recipe?.sourceUrl),
+    text(recipe?.specUrl),
+    text(recipe?.baseUrl),
+    riskClass,
+    authMode,
+    JSON.stringify(validation),
+    JSON.stringify(record(recipe?.permissions) ?? { read: true,write: false })
+  ]);
+}
+
+async function persistToolInvocation(task: ProductTask, output: Record<string, unknown>) {
+  if (task.action_type !== "business.observe" && task.action_type !== "business.work") return;
+  const invocation = record(output.toolInvocation);
+  if (!invocation) return;
+
+  const recipeId = text(invocation.recipeId);
+  const operationId = text(invocation.operationId);
+  if (!recipeId || !operationId) return;
+  const args = record(invocation.arguments) ?? {};
+
+  const [recipe] = await sql<{
+    id: string;
+    base_url: string | null;
+    definition: unknown;
+  }>(`
+    select id,base_url,definition
+    from tool_recipes
+    where tenant_id=$1
+      and id=$2
+      and status='approved'
+      and risk_class='R0'
+      and auth_mode='none'
+      and tool_kind='openapi_readonly'
+    limit 1
+  `,[task.tenant_id,recipeId]);
+  if (!recipe?.base_url) return;
+
+  const definition = record(recipe.definition);
+  const operations = Array.isArray(definition?.operations) ? definition!.operations : [];
+  const operation = operations
+    .map((item) => record(item))
+    .find((item) => text(item?.operationId) === operationId);
+  const method = text(operation?.method)?.toUpperCase();
+  if (method !== "GET" && method !== "HEAD") return;
+
+  const policy = getActionPolicy("api.tool_read");
+  if (!policy) return;
+
+  const [existing] = await sql<{ id: string }>(`
+    select id from tasks
+    where tenant_id=$1
+      and action_type='api.tool_read'
+      and payload->>'parentTaskId'=$2
+      and payload->>'recipeId'=$3
+      and payload->>'operationId'=$4
+      and status not in ('failed','denied')
+    limit 1
+  `,[task.tenant_id,task.id,recipeId,operationId]);
+  if (existing) return;
+
+  await sql(`
+    insert into tasks (
+      tenant_id,workflow_id,status,action_type,risk_class,reversible,external,
+      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload,dispatched_at
+    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb,now())
+  `,[
+    task.tenant_id,
+    task.workflow_id,
+    policy.type,
+    policy.riskClass,
+    policy.reversible,
+    policy.external,
+    JSON.stringify({
+      objective: text(invocation.summary) ?? text(task.payload.objective) ?? "Consultar ferramenta aprovada.",
+      recipeId,
+      operationId,
+      arguments: args,
+      destination: recipe.base_url,
+      operation: method.toLowerCase(),
+      resource: recipeId,
+      parentTaskId: task.id,
+      requestedBy: text(task.payload.requestedBy),
+      outputContract: {
+        artifact: "Return the provider response with the dynamic tool run id as evidence."
+      }
+    })
+  ]);
+}
+
 export async function persistProductOutput(task: ProductTask, result: HermesResult) {
   const output = record(result.output);
   if (!output) return;
@@ -260,6 +469,8 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
   await sql(`insert into artifacts (tenant_id, task_id, kind, title, content, evidence) values ($1,$2,$3,$4,$5::jsonb,$6::jsonb)`, [
     task.tenant_id, task.id, kind, title, JSON.stringify(content), JSON.stringify(evidence)
   ]);
+
+  await queueApiToolBuild(task,content);
 
   const opportunities = Array.isArray(output.opportunities) ? output.opportunities : [];
   let firstActionableSummary: string | null = null;
@@ -377,12 +588,6 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
     `, [task.tenant_id, task.id]);
   }
 
-  const recipe = record(output.toolRecipe);
-  const recipeName = text(recipe?.name);
-  const recipeDescription = text(recipe?.description);
-  if ((task.action_type === "business.observe" || task.action_type === "business.work") && recipeName && recipeDescription) {
-    await sql(`insert into tool_recipes (tenant_id, name, description, definition, status, created_from_task_id) values ($1,$2,$3,$4::jsonb,'draft',$5) on conflict (tenant_id, name) do update set description=excluded.description, definition=excluded.definition, status='draft', created_from_task_id=excluded.created_from_task_id, updated_at=now()`, [
-      task.tenant_id, recipeName, recipeDescription, JSON.stringify(recipe), task.id
-    ]);
-  }
+  await persistApiToolRecipe(task,output);
+  await persistToolInvocation(task,output);
 }
