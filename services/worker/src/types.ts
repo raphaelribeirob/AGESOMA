@@ -19,4 +19,6 @@ export type DueWatcher = {
   goal_id: string | null;
   cadence: string | null;
   config: Record<string, unknown>;
+  connected_service_id: string | null;
+  interrupt_policy: "silent" | "only_if_actionable" | "always";
 };
