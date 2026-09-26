@@ -9,7 +9,12 @@ type Taint="clean"|"public"|"personal"|"sensitive"|"credential";
 
 const port=Number(process.env.PORT??8085);
 const tenantId=process.env.AGESOMA_TENANT_ID?.trim()??"";
-const gatewayToken=process.env.EGRESS_GATEWAY_SERVICE_TOKEN?.trim()??"";
+type Caller="browser_broker"|"privsep_broker"|"control_worker";
+const callerTokens:Record<Caller,string>={
+  browser_broker:process.env.EGRESS_BROWSER_TOKEN?.trim()??"",
+  privsep_broker:process.env.EGRESS_PRIVSEP_TOKEN?.trim()??"",
+  control_worker:process.env.EGRESS_CONTROL_TOKEN?.trim()??""
+};
 const sentinelUrl=(process.env.SENTINEL_URL??"http://sentinel:8081").replace(/\/$/,"");
 const sentinelToken=process.env.SENTINEL_SERVICE_TOKEN?.trim()??"";
 
@@ -24,9 +29,18 @@ function sameSecret(a:string,b:string){
   return left.length===right.length&&left.length>0&&timingSafeEqual(left,right);
 }
 
-function authorized(req:IncomingMessage){
-  const supplied=req.headers["x-agesoma-egress-token"];
-  return typeof supplied==="string"&&sameSecret(supplied,gatewayToken);
+function caller(req:IncomingMessage):Caller{
+  const name=req.headers["x-agesoma-egress-caller"];
+  const token=req.headers["x-agesoma-egress-token"];
+  if((name!=="browser_broker"&&name!=="privsep_broker"&&name!=="control_worker")||typeof token!=="string") throw new Error("forbidden");
+  if(!sameSecret(token,callerTokens[name])) throw new Error("forbidden");
+  return name;
+}
+
+function callerMayUse(name:Caller,operation:string){
+  if(name==="browser_broker") return operation.startsWith("browser.");
+  if(name==="privsep_broker") return operation==="whatsapp.send"||operation==="paid_media.read"||operation==="paid_media.write";
+  return operation.startsWith("api.tool_read:");
 }
 
 async function readJson(req:IncomingMessage,max=5*1024*1024){
@@ -177,7 +191,7 @@ async function pinnedRequest(input:{
   });
 }
 
-async function execute(input:Record<string,unknown>){
+async function execute(callerName:Caller,input:Record<string,unknown>){
   const requestTenant=typeof input.tenantId==="string"?input.tenantId:"";
   const taskId=typeof input.taskId==="string"?input.taskId:"";
   const destination=typeof input.destination==="string"?input.destination:"";
@@ -187,6 +201,7 @@ async function execute(input:Record<string,unknown>){
   const dataTaint=typeof input.dataTaint==="string"?input.dataTaint as Taint:"clean";
   if(requestTenant!==tenantId) throw new Error("tenant_mismatch");
   if(!taskId||!destination||!operation||!["GET","HEAD","POST"].includes(method)) throw new Error("invalid_request");
+  if(!callerMayUse(callerName,operation)) throw new Error("caller_operation_denied");
 
   const url=new URL(destination);
   if(url.protocol!=="https:"||url.username||url.password) throw new Error("https_required");
@@ -217,20 +232,20 @@ async function execute(input:Record<string,unknown>){
 
 const server=createServer(async(req,res)=>{
   try{
-    if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,mode:"forced-sentinel-egress"});
-    if(!authorized(req)) return json(res,403,{error:"forbidden"});
+    if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,mode:"forced-sentinel-egress",callerScoped:true});
     if(req.method!=="POST"||req.url!=="/v1/fetch") return json(res,404,{error:"not_found"});
-    return json(res,200,await execute(await readJson(req)));
+    const callerName=caller(req);
+    return json(res,200,await execute(callerName,await readJson(req)));
   }catch(error){
     const message=error instanceof Error?error.message:"egress_gateway_error";
     const status=message.startsWith("sentinel_")?403:
-      ["tenant_mismatch","private_destination","https_required"].includes(message)?403:
+      ["forbidden","tenant_mismatch","private_destination","https_required","caller_operation_denied"].includes(message)?403:
       message==="request_too_large"?413:400;
     return json(res,status,{error:message});
   }
 });
 
 if(!tenantId) throw new Error("AGESOMA_TENANT_ID is required");
-if(!gatewayToken) throw new Error("EGRESS_GATEWAY_SERVICE_TOKEN is required");
+if(!callerTokens.browser_broker||!callerTokens.privsep_broker||!callerTokens.control_worker) throw new Error("Caller-scoped egress tokens are required");
 if(!sentinelToken) throw new Error("SENTINEL_SERVICE_TOKEN is required");
 server.listen(port,"0.0.0.0",()=>console.log(`AGESOMA egress gateway listening on ${port}`));
