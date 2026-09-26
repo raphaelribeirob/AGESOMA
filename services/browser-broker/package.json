@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@agesoma/db": "0.1.0",
-    "steel-sdk": "0.20.0"
+    "steel-sdk": "^0.18.0"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
