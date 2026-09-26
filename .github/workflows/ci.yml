@@ -356,7 +356,22 @@ jobs:
             exit 1
           fi
           if printf '%s\n' "$egress_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
-            echo "Egress Gateway must receive credentials only per reque      - name: Validate production topology
+            echo "Egress Gateway must receive credentials only per request"
+            exit 1
+          fi
+
+          grep -q 'http_access deny all' deploy/production/sentinel-egress.conf
+          grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'trust-store-$TENANT_ID' deploy/production/provision-workcell.sh
+          grep -q 'derive_token sentinel' deploy/production/provision-workcell.sh
+          grep -q 'derive_token authd-browser' deploy/production/provision-workcell.sh
+          grep -q 'derive_token egress-browser' deploy/production/provision-workcell.sh
+          grep -q 'cred://steel/default' deploy/production/provision-workcell.sh
+          grep -q 'cred://whatsapp/default' deploy/production/provision-workcell.sh
+          grep -q 'cred://windsor/default' deploy/production/provision-workcell.sh
+
+      - name: Validate production topology
         run: |
           sh -n deploy/production/provision-workcell.sh
           DATABASE_URL=postgresql://user:pass@db.example.invalid/agesoma \
