@@ -103,7 +103,22 @@ async function sentinelContext(input:Record<string,unknown>){
       `,[tenantId,task.action_type])
     : [];
 
-  return {task:task??null,approvalGrant,autonomyGrant,autonomyRules};
+  let toolRecipe:null|Record<string,unknown>=null;
+  if(task?.action_type==="api.tool_read"){
+    const recipeId=task.payload&&typeof task.payload==="object"&&!Array.isArray(task.payload)
+      && typeof task.payload.recipeId==="string" ? task.payload.recipeId : null;
+    if(recipeId){
+      const [recipe]=await sql(`
+        select id,status,risk_class,auth_mode,base_url,definition
+        from tool_recipes
+        where tenant_id=$1 and id=$2
+        limit 1
+      `,[tenantId,recipeId]);
+      toolRecipe=recipe??null;
+    }
+  }
+
+  return {task:task??null,approvalGrant,autonomyGrant,autonomyRules,toolRecipe};
 }
 
 async function sentinelRecord(input:Record<string,unknown>){
