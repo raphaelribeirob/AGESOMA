@@ -34,7 +34,11 @@ async function readJson(req:IncomingMessage,max=64*1024){
 async function trust(path:string,body:Record<string,unknown>){
   const response=await fetch(`${trustStoreUrl}${path}`,{
     method:"POST",
-    headers:{"content-type":"application/json","x-agesoma-trust-token":trustStoreToken},
+    headers:{
+      "content-type":"application/json",
+      "x-agesoma-trust-caller":"browser_broker",
+      "x-agesoma-trust-token":trustStoreToken
+    },
     body:JSON.stringify({tenantId,...body}),
     signal:AbortSignal.timeout(10_000)
   });
