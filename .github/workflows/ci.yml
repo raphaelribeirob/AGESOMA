@@ -156,7 +156,8 @@ jobs:
           grep -q 'Automatic tool building only accepts APIs.guru specifications' services/worker/src/api-tool-builder.ts
           grep -q 'Dynamic API tool is not approved' services/worker/src/api-tool-runtime.ts
           grep -q 'Dynamic API runtime only permits GET/HEAD operations' services/worker/src/api-tool-runtime.ts
-          grep -q 'redirect: "error"' services/worker/src/api-tool-runtime.ts
+          grep -q 'gatewayRead' services/worker/src/api-tool-runtime.ts
+          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
           grep -q 'approvedApiTools' services/worker/src/execution/task-runner.ts
           grep -q 'toolInvocation' services/worker/src/product-output.ts
           grep -q 'status=.approved.' apps/web/app/api/tools/route.ts
@@ -165,44 +166,61 @@ jobs:
             echo "Generic dynamic API writes must remain disabled"
             exit 1
           fi
-          if grep -q 'method: "POST"' services/worker/src/api-tool-runtime.ts; then
-            echo "Dynamic API runtime must not issue POST requests"
+          if grep -q 'fetch(url.toString())' services/worker/src/api-tool-runtime.ts; then
+            echo "Dynamic API runtime must not fetch provider URLs directly"
             exit 1
           fi
 
       - name: Enforce MUSE trust boundary
         run: |
           test -f packages/db/migrations/0014_muse_trust_boundary.sql
+          test -f packages/db/migrations/0015_forced_egress_and_authd_acl.sql
           test -f services/sentinel/src/index.ts
           test -f services/authd/src/index.ts
           test -f services/privsep-broker/src/index.ts
           test -f services/browser-broker/src/index.ts
-          test -f services/worker/src/sentinel-client.ts
+          test -f services/egress-gateway/src/index.ts
+          test -f services/trust-store/src/index.ts
+          test ! -f services/worker/src/sentinel-client.ts
           test -f docs/MUSE_TRUST_BOUNDARY.md
           grep -q 'create table if not exists browser_sessions' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'create table if not exists runtime_events' packages/db/migrations/0014_muse_trust_boundary.sql
-          grep -q 'surrogate_id uuid' packages/db/migrations/0014_muse_trust_boundary.sql
-          grep -q 'data_taint text' packages/db/migrations/0014_muse_trust_boundary.sql
-          grep -q '/v1/authorize' services/sentinel/src/index.ts
-          grep -q 'insert into egress_decisions' services/sentinel/src/index.ts
-          grep -q 'consumed_at is not null' services/sentinel/src/index.ts
-          grep -q 'credential_handles' services/authd/src/index.ts
-          grep -q 'cred://steel/default' services/browser-broker/src/index.ts
-          grep -q 'cred://whatsapp/default' services/privsep-broker/src/index.ts
+          grep -q 'credential_handles_scopes_array_check' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'buildCapabilityScope' services/sentinel/src/index.ts
+          grep -q 'concreteRequestMatches' services/sentinel/src/index.ts
+          grep -q 'capability_hash_mismatch' services/sentinel/src/index.ts
+          grep -q 'matchAutonomyRule' services/sentinel/src/index.ts
+          grep -q 'x-agesoma-trust-caller' services/trust-store/src/index.ts
+          grep -q 'caller_provider_scope_denied' services/authd/src/index.ts
+          grep -q 'browser_broker:browser.provider' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'privsep_broker:whatsapp.send' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'callerMayUse' services/egress-gateway/src/index.ts
+          grep -q 'lookup:(_hostname,_options,callback)' services/egress-gateway/src/index.ts
+          grep -q 'secretQuery' services/egress-gateway/src/index.ts
+          grep -q 'EGRESS_GATEWAY_URL' services/browser-broker/src/index.ts
+          grep -q 'EGRESS_GATEWAY_URL' services/privsep-broker/src/index.ts
           grep -q 'external_untrusted' services/browser-broker/src/index.ts
-          grep -q 'authorizeEgress' services/worker/src/api-tool-runtime.ts
+          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
           grep -q 'browserAccess' services/worker/src/hermes.ts
           grep -q 'external_untrusted' services/worker/src/hermes.ts
-          if grep -q 'insert into egress_decisions' services/worker/src/execution/task-runner.ts; then
-            echo "Only Sentinel v2 may persist actual egress decisions"
+          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/privsep-broker services/egress-gateway; then
+            echo "Work Cell trust-boundary services must not have database credentials"
             exit 1
           fi
-          if grep -Eq 'sessionViewerUrl|debugUrl|websocketUrl|connectUrl' services/browser-broker/src/index.ts; then
+          if grep -q 'DATABASE_URL' deploy/production/workcell-compose.yml; then
+            echo "Work Cell compose must not inject database credentials"
+            exit 1
+          fi
+          if grep -R -n -E 'sessionViewerUrl|debugUrl|websocketUrl|connectUrl' services/browser-broker; then
             echo "Browser provider viewer/CDP URLs must not escape the Browser Broker"
             exit 1
           fi
           if grep -q 'STEEL_API_KEY' services/browser-broker/src/index.ts; then
-            echo "Browser Broker must resolve Steel through Authd, not read the secret directly"
+            echo "Browser Broker must resolve Steel through Authd"
+            exit 1
+          fi
+          if grep -R -n -E 'lookup|httpsRequest' services/browser-broker/src services/privsep-broker/src services/authd/src services/sentinel/src; then
+            echo "Only the Egress Gateway may resolve or open privileged internet connections"
             exit 1
           fi
 
@@ -288,8 +306,8 @@ jobs:
           grep -q 'HERMES_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
           grep -q 'Tenant-routed Hermes Work Cell is required; shared Hermes is disabled' services/worker/src/hermes.ts
           grep -q 'CREDENTIAL_BROKER_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
-          grep -q 'maybeExecuteCredentialedAction' services/worker/src/hermes.ts
-          grep -q 'SENTINEL_BASE_URL_TEMPLATE' deploy/production/docker-compose.yml
+          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' deploy/production/docker-compose.yml
+          grep -q 'TRUST_STORE_MASTER_SECRET' deploy/production/docker-compose.yml
           grep -q 'AGESOMA_ALLOW_SHARED_HERMES: "false"' deploy/production/docker-compose.yml
           if grep -q '^  hermes:' deploy/production/docker-compose.yml; then
             echo "Canonical control plane must not embed a shared Hermes executor"
@@ -297,59 +315,67 @@ jobs:
           fi
 
           hermes_block="$(awk '/^  hermes:/{flag=1} /^networks:/{if(flag)flag=0} flag' deploy/production/workcell-compose.yml)"
-          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|CREDENTIAL_BROKER_SERVICE_TOKEN|AUTHD_SERVICE_TOKEN|SENTINEL_SERVICE_TOKEN'; then
+          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|CREDENTIAL_BROKER_SERVICE_TOKEN|AUTHD_|SENTINEL_SERVICE_TOKEN|TRUST_STORE_'; then
             echo "User/provider and trust-boundary secrets must never be injected into Hermes"
             exit 1
           fi
 
+          sentinel_block="$(awk '/^  sentinel:/{flag=1} /^  authd:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          authd_block="$(awk '/^  authd:/{flag=1} /^  egress-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          egress_block="$(awk '/^  egress-gateway:/{flag=1} /^  credential-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           broker_block="$(awk '/^  credential-broker:/{flag=1} /^  browser-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+
+          printf '%s\n' "$egress_block" | grep -q 'privileged_outbound'
+          for block in "$sentinel_block" "$authd_block" "$broker_block" "$browser_block"; do
+            if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|runtime_outbound'; then
+              echo "Only Egress Gateway may have privileged outbound networking"
+              exit 1
+            fi
+          done
+
           if printf '%s\n' "$broker_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
-            echo "Privsep Broker must use surrogate credentials through Authd"
+            echo "Privsep Broker must use caller-scoped Authd credentials"
             exit 1
           fi
-          printf '%s\n' "$broker_block" | grep -q 'CREDENTIAL_BROKER_SERVICE_TOKEN'
-          printf '%s\n' "$broker_block" | grep -q 'credential_cell'
+          printf '%s\n' "$broker_block" | grep -q 'AUTHD_PRIVSEP_TOKEN'
+          printf '%s\n' "$broker_block" | grep -q 'EGRESS_PRIVSEP_TOKEN'
 
-          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           if printf '%s\n' "$browser_block" | grep -q 'STEEL_API_KEY'; then
             echo "Browser Broker must not receive the Steel key directly"
             exit 1
           fi
-          printf '%s\n' "$browser_block" | grep -q 'AUTHD_URL'
-          printf '%s\n' "$browser_block" | grep -q 'SENTINEL_URL'
+          printf '%s\n' "$browser_block" | grep -q 'AUTHD_BROWSER_TOKEN'
+          printf '%s\n' "$browser_block" | grep -q 'EGRESS_BROWSER_TOKEN'
 
-          authd_block="$(awk '/^  authd:/{flag=1} /^  credential-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           printf '%s\n' "$authd_block" | grep -q 'WHATSAPP_CLOUD_ACCESS_TOKEN'
           printf '%s\n' "$authd_block" | grep -q 'WINDSOR_API_KEY'
           printf '%s\n' "$authd_block" | grep -q 'STEEL_API_KEY'
-
-          sentinel_block="$(awk '/^  sentinel:/{flag=1} /^  authd:/{flag=0} flag' deploy/production/workcell-compose.yml)"
-          printf '%s\n' "$sentinel_block" | grep -q 'SENTINEL_SERVICE_TOKEN'
           if printf '%s\n' "$sentinel_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
             echo "Sentinel must never receive provider credentials"
             exit 1
           fi
-
-          grep -q 'http_access deny all' deploy/production/sentinel-egress.conf
-          grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
-          grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
-          grep -q 'cred://steel/default' deploy/production/provision-workcell.sh
-          grep -q 'cred://whatsapp/default' deploy/production/provision-workcell.sh
-          grep -q 'cred://windsor/default' deploy/production/provision-workcell.sh
-          grep -q 'agesoma-control-worker' deploy/production/provision-workcell.sh
-
-      - name: Validate production topology
+          if printf '%s\n' "$egress_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
+            echo "Egress Gateway must receive credentials only per reque      - name: Validate production topology
         run: |
           sh -n deploy/production/provision-workcell.sh
-          SENTINEL_SERVICE_TOKEN=test-sentinel-token \
-          docker compose -f deploy/production/docker-compose.yml config >/dev/null
           DATABASE_URL=postgresql://user:pass@db.example.invalid/agesoma \
+          TRUST_STORE_MASTER_SECRET=test-trust-master \
+          EGRESS_CONTROL_TOKEN=test-control-egress \
+          docker compose -f deploy/production/docker-compose.yml config >/dev/null
           AGESOMA_TENANT_ID=00000000-0000-0000-0000-000000000001 \
           WORKCELL_ALLOWLIST_FILE="$PWD/deploy/production/approved-domains.txt" \
           HERMES_SERVICE_TOKEN=test-hermes-token \
           CREDENTIAL_BROKER_SERVICE_TOKEN=test-broker-token \
           SENTINEL_SERVICE_TOKEN=test-sentinel-token \
-          AUTHD_SERVICE_TOKEN=test-authd-token \
+          TRUST_STORE_SENTINEL_TOKEN=test-trust-sentinel \
+          TRUST_STORE_AUTHD_TOKEN=test-trust-authd \
+          TRUST_STORE_BROWSER_TOKEN=test-trust-browser \
+          AUTHD_BROWSER_TOKEN=test-authd-browser \
+          AUTHD_PRIVSEP_TOKEN=test-authd-privsep \
+          EGRESS_BROWSER_TOKEN=test-egress-browser \
+          EGRESS_PRIVSEP_TOKEN=test-egress-privsep \
+          EGRESS_CONTROL_TOKEN=test-control-egress \
           STEEL_API_KEY=test-steel-key \
           WINDSOR_API_KEY=test-windsor-key \
           WHATSAPP_GRAPH_VERSION=v23.0 \
@@ -382,6 +408,8 @@ jobs:
           grep -q 'alter table runtime_events force row level security' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'credential_handles_surrogate_idx' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'tasks_data_taint_check' packages/db/migrations/0014_muse_trust_boundary.sql
+          grep -q 'credential_handles_scopes_array_check' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'sentinel-v3' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web
