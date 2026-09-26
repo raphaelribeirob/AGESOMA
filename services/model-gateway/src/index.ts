@@ -1,49 +1,16 @@
 import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import { request as httpsRequest } from "node:https";
-
-type Provider = "openai" | "anthropic" | "nous";
-
-type ProviderConfig = {
-  host: string;
-  secret: string;
-  paths: RegExp[];
-};
+import { parseModelRoute, type ModelProvider } from "./policy";
 
 const port = Number(process.env.PORT ?? 8086);
 const gatewayToken = process.env.MODEL_GATEWAY_TOKEN?.trim() ?? "";
 const maxRequestBytes = Number(process.env.MODEL_GATEWAY_MAX_REQUEST_BYTES ?? 16 * 1024 * 1024);
 
-const providers: Record<Provider, ProviderConfig> = {
-  openai: {
-    host: "api.openai.com",
-    secret: process.env.MODEL_OPENAI_API_KEY?.trim() ?? "",
-    paths: [
-      /^\/v1\/chat\/completions$/,
-      /^\/v1\/responses$/,
-      /^\/v1\/models(?:\/[^/]+)?$/,
-      /^\/v1\/embeddings$/
-    ]
-  },
-  anthropic: {
-    host: "api.anthropic.com",
-    secret: process.env.MODEL_ANTHROPIC_API_KEY?.trim() ?? "",
-    paths: [
-      /^\/v1\/messages$/,
-      /^\/v1\/models(?:\/[^/]+)?$/
-    ]
-  },
-  nous: {
-    host: "inference-api.nousresearch.com",
-    secret: process.env.MODEL_NOUS_API_KEY?.trim() ?? "",
-    paths: [
-      /^\/v1\/chat\/completions$/,
-      /^\/v1\/responses$/,
-      /^\/v1\/messages$/,
-      /^\/v1\/models(?:\/[^/]+)?$/,
-      /^\/v1\/embeddings$/
-    ]
-  }
+const providerSecrets: Record<ModelProvider,string> = {
+  openai: process.env.MODEL_OPENAI_API_KEY?.trim() ?? "",
+  anthropic: process.env.MODEL_ANTHROPIC_API_KEY?.trim() ?? "",
+  nous: process.env.MODEL_NOUS_API_KEY?.trim() ?? ""
 };
 
 function json(res: ServerResponse, status: number, value: unknown) {
@@ -79,18 +46,7 @@ function authenticate(req: IncomingMessage) {
   );
 }
 
-function parseRoute(rawUrl: string) {
-  const url = new URL(rawUrl, "http://model-gateway.internal");
-  const match = /^\/(openai|anthropic|nous)(\/.*)$/.exec(url.pathname);
-  if (!match) throw new Error("unknown_provider_route");
-  const provider = match[1] as Provider;
-  const path = match[2];
-  const config = providers[provider];
-  if (!config.paths.some((pattern) => pattern.test(path))) throw new Error("provider_path_denied");
-  return { provider, config, path: `${path}${url.search}` };
-}
-
-function requestHeaders(req: IncomingMessage, provider: Provider, secret: string) {
+function requestHeaders(req: IncomingMessage, provider: ModelProvider, secret: string) {
   const output: Record<string, string> = {};
   const contentType = req.headers["content-type"];
   const accept = req.headers.accept;
@@ -166,14 +122,15 @@ function proxy(req: IncomingMessage, res: ServerResponse) {
 
   let route: ReturnType<typeof parseRoute>;
   try {
-    route = parseRoute(req.url);
+    route = parseModelRoute(req.url);
   } catch (error) {
     const message = error instanceof Error ? error.message : "route_error";
     json(res, message === "provider_path_denied" ? 403 : 404, { error: message });
     return;
   }
 
-  if (!route.config.secret) {
+  const providerSecret=providerSecrets[route.provider];
+  if (!providerSecret) {
     json(res, 503, { error: `${route.provider}_provider_not_configured` });
     return;
   }
@@ -187,12 +144,12 @@ function proxy(req: IncomingMessage, res: ServerResponse) {
   const startedAt = Date.now();
   const upstream = httpsRequest({
     protocol: "https:",
-    hostname: route.config.host,
+    hostname: route.host,
     port: 443,
     method: req.method,
-    path: route.path,
-    headers: requestHeaders(req, route.provider, route.config.secret),
-    servername: route.config.host
+    path: route.upstreamPath,
+    headers: requestHeaders(req, route.provider, providerSecret),
+    servername: route.host
   }, (upstreamRes) => {
     res.writeHead(upstreamRes.statusCode ?? 502, responseHeaders(upstreamRes.headers));
     upstreamRes.pipe(res);
@@ -201,7 +158,7 @@ function proxy(req: IncomingMessage, res: ServerResponse) {
         event: "model_gateway_request",
         provider: route.provider,
         method: req.method,
-        path: route.path.split("?")[0],
+        path: route.path,
         status: upstreamRes.statusCode ?? 502,
         durationMs: Date.now() - startedAt
       }));
@@ -243,9 +200,9 @@ const server = createServer((req, res) => {
       mode: "fixed-provider-model-gateway",
       realProviderSecretsInRuntime: false,
       providers: {
-        openai: Boolean(providers.openai.secret),
-        anthropic: Boolean(providers.anthropic.secret),
-        nous: Boolean(providers.nous.secret)
+        openai: Boolean(providerSecrets.openai),
+        anthropic: Boolean(providerSecrets.anthropic),
+        nous: Boolean(providerSecrets.nous)
       }
     });
   }
