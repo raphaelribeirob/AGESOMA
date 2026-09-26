@@ -35,8 +35,8 @@ export function inferMode(text: string): RequestMode {
     "compre", "comprar", "contrate", "contratar", "assine contrato", "mude o preco", "mudar o preco",
     "altere o preco", "alterar o preco", "desconto", "condicao comercial", "condição comercial",
     "mude a senha", "alterar senha", "permissao", "permissão", "publique", "publicar",
-    "aumente o orçamento", "aumentar o orçamento", "mude o orçamento", "mudar o orçamento",
-    "altere o orçamento", "alterar o orçamento", "ative a campanha", "ativar a campanha"
+    "aumente o orcamento", "aumentar o orcamento", "mude o orcamento", "mudar o orcamento",
+    "altere o orcamento", "alterar o orcamento", "ative a campanha", "ativar a campanha"
   ];
   if (includesAny(text, commitTerms)) return "commit";
 
@@ -44,8 +44,7 @@ export function inferMode(text: string): RequestMode {
     "responda", "responder", "envie", "enviar", "mande mensagem", "mandar mensagem", "fale com",
     "agende", "agendar", "marque reuniao", "marcar reuniao", "marque reunião", "marcar reunião",
     "atualize o crm", "atualizar o crm", "whatsapp",
-    "pause a campanha", "pausar a campanha", "pause o anuncio", "pausar o anuncio",
-    "pause o anúncio", "pausar o anúncio"
+    "pause a campanha", "pausar a campanha", "pause o anuncio", "pausar o anuncio"
   ];
   if (includesAny(text, actTerms)) return "act";
 
