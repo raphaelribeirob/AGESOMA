@@ -43,6 +43,14 @@ export async function GET() {
     order by created_at desc
   `, [authenticated.tenantId]);
 
+  const interruptions = await tenantSql(authenticated.tenantId, `
+    select id,watcher_id,source_task_id,kind,summary,status,created_at,read_at
+    from proactive_interruptions
+    where tenant_id=$1
+    order by created_at desc
+    limit 50
+  `, [authenticated.tenantId]);
+
   return NextResponse.json({
     preferences: preferences ?? {
       enabled: false,
@@ -52,7 +60,8 @@ export async function GET() {
       max_interruptions_per_day: 3,
       allowed_kinds: ["calendar", "communication", "paid_media", "general"]
     },
-    watchers
+    watchers,
+    interruptions
   });
 }
 
@@ -147,4 +156,26 @@ export async function DELETE(req: Request) {
 
   if (!watcher) return NextResponse.json({ error: "Monitoramento ativo não encontrado." }, { status: 404 });
   return NextResponse.json(watcher);
+}
+
+
+export async function PUT(req: Request) {
+  const authenticated = await resolveAuthenticatedWorkspace();
+  if (!authenticated) return NextResponse.json({ error: "Sua sessão expirou. Entre novamente." }, { status: 401 });
+
+  const parsed = z.object({
+    id: z.string().uuid(),
+    status: z.enum(["read", "dismissed"])
+  }).safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Atualização inválida." }, { status: 400 });
+
+  const [interruption] = await tenantSql(authenticated.tenantId, `
+    update proactive_interruptions
+    set status=$3,read_at=case when $3='read' then now() else read_at end
+    where tenant_id=$1 and id=$2
+    returning id,status,read_at
+  `, [authenticated.tenantId, parsed.data.id, parsed.data.status]);
+
+  if (!interruption) return NextResponse.json({ error: "Aviso não encontrado." }, { status: 404 });
+  return NextResponse.json(interruption);
 }
