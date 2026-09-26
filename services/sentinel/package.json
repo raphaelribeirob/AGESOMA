@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@agesoma/db": "0.1.0"
+    "@agesoma/core": "0.1.0"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
