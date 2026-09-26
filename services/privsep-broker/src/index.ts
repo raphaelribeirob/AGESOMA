@@ -54,7 +54,7 @@ async function publicIp(hostname:string) {
 async function authorize(input:{
   taskId:string; destination:string; operation:string; method:string;
   effect:"read"|"control"|"write"|"commit"; grantRef?:string|null;
-  containsUserData?:boolean; requestMeta?:Record<string,unknown>;
+  capabilityHash?:string|null; containsUserData?:boolean; requestMeta?:Record<string,unknown>;
 }) {
   const url=new URL(input.destination);
   const resolvedIp=await publicIp(url.hostname);
@@ -65,7 +65,8 @@ async function authorize(input:{
       tenantId,taskId:input.taskId,destination:input.destination,
       operation:input.operation,method:input.method,path:`${url.pathname}${url.search}`,
       protocol:url.protocol.replace(":",""),resolvedIp,effect:input.effect,
-      grantRef:input.grantRef??null,containsUserData:input.containsUserData===true,
+      grantRef:input.grantRef??null,capabilityHash:input.capabilityHash??null,
+      containsUserData:input.containsUserData===true,
       requestMeta:input.requestMeta??{}
     }),
     signal:AbortSignal.timeout(10_000)
@@ -101,12 +102,13 @@ async function whatsapp(req:IncomingMessage,res:ServerResponse) {
   if(req.method!=="POST") return json(res,405,{error:"method_not_allowed"});
   const taskId=header(req,"x-agesoma-task-id");
   const grantRef=header(req,"x-agesoma-grant-ref");
+  const capabilityHash=header(req,"x-agesoma-capability-hash");
   if(!taskId||!grantRef) return json(res,403,{error:"scoped_grant_required"});
   if(!whatsappPhoneId) return json(res,503,{error:"whatsapp_phone_not_configured"});
 
   const raw=await readBody(req);
   const destination=`https://graph.facebook.com/${whatsappVersion}/${whatsappPhoneId}/messages`;
-  await authorize({taskId,destination,operation:"whatsapp.send",method:"POST",effect:"write",grantRef,containsUserData:true});
+  await authorize({taskId,destination,operation:"whatsapp.send",method:"POST",effect:"write",grantRef,capabilityHash,containsUserData:true});
   const token=await credential(taskId,"cred://whatsapp/default","whatsapp.send");
   const response=await fetch(destination,{
     method:"POST",
@@ -128,6 +130,7 @@ function windsorConnector(pathname:string) {
 async function windsor(req:IncomingMessage,res:ServerResponse,url:URL,route:{connector:string;write:boolean}) {
   const taskId=header(req,"x-agesoma-task-id");
   const grantRef=header(req,"x-agesoma-grant-ref");
+  const capabilityHash=header(req,"x-agesoma-capability-hash");
   if(!taskId) return json(res,403,{error:"task_id_required"});
   if(route.write&&(!grantRef||req.method!=="POST")) return json(res,403,{error:"scoped_grant_required"});
   if(!route.write&&req.method!=="GET") return json(res,405,{error:"method_not_allowed"});
@@ -140,6 +143,7 @@ async function windsor(req:IncomingMessage,res:ServerResponse,url:URL,route:{con
     method:route.write?"POST":"GET",
     effect:route.write?"write":"read",
     grantRef:grantRef??null,
+    capabilityHash:capabilityHash??null,
     containsUserData:false,
     requestMeta:{connector:route.connector}
   });
