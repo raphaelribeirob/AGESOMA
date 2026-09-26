@@ -102,6 +102,11 @@ async function createSession(input:Record<string,unknown>){
   const taskId=typeof input.taskId==="string"?input.taskId:"";
   if(!taskId) throw new Error("task_id_required");
   const task=await taskContext(taskId);
+  const [sessionUsage]=await sql<{ count: string | number }>(`
+    select count(*) as count from browser_sessions
+    where tenant_id=$1 and task_id=$2
+  `,[tenantId,taskId]);
+  if(Number(sessionUsage?.count??0)>=2) throw new Error("browser_session_limit_reached");
 
   const controlUrl=`${steelBaseUrl}/v1/sessions`;
   await authorize({
@@ -180,6 +185,11 @@ async function scrape(input:Record<string,unknown>){
   const targetRaw=typeof input.url==="string"?input.url:"";
   if(!taskId||!targetRaw) throw new Error("task_and_url_required");
   const task=await taskContext(taskId);
+  const [scrapeUsage]=await sql<{ count: string | number }>(`
+    select count(*) as count from runtime_events
+    where tenant_id=$1 and task_id=$2 and event_type='browser_scrape'
+  `,[tenantId,taskId]);
+  if(Number(scrapeUsage?.count??0)>=20) throw new Error("browser_scrape_limit_reached");
 
   const target=new URL(targetRaw);
   if(target.protocol!=="https:") throw new Error("https_required");
@@ -215,7 +225,13 @@ async function scrape(input:Record<string,unknown>){
     insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
     values ($1,$2,'browser_scrape','browser_broker','Brokered browser scrape completed',$3::jsonb)
   `,[tenantId,taskId,JSON.stringify({host:target.hostname,dataTaint:task.data_taint})]);
-  return {provider:"steel",target:target.toString(),result};
+  return {
+    provider:"steel",
+    target:target.toString(),
+    trust:"external_untrusted",
+    instructionsAreAuthority:false,
+    result
+  };
 }
 
 const server=createServer(async(req,res)=>{
