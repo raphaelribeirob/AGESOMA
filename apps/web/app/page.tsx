@@ -18,6 +18,12 @@ type ApprovalRow = {
   payload: Record<string, unknown>;
 };
 
+type ProactiveRow = {
+  id: string;
+  summary: string;
+  kind: string;
+};
+
 function money(value: string | number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -36,17 +42,27 @@ async function loadInitialState(tenantId: string) {
       (select coalesce(sum(net_value_cents),0) from outcome_events where tenant_id=$1) as net_value_cents
   `, [tenantId]);
 
-  const [approval] = await tenantSql<ApprovalRow>(tenantId, `
-    select id,payload
-    from tasks
-    where tenant_id=$1 and status='awaiting_approval'
-    order by created_at asc
-    limit 1
-  `, [tenantId]);
+  const [[approval], [interruption]] = await Promise.all([
+    tenantSql<ApprovalRow>(tenantId, `
+      select id,payload
+      from tasks
+      where tenant_id=$1 and status='awaiting_approval'
+      order by created_at asc
+      limit 1
+    `, [tenantId]),
+    tenantSql<ProactiveRow>(tenantId, `
+      select id,summary,kind
+      from proactive_interruptions
+      where tenant_id=$1 and status='unread'
+      order by created_at desc
+      limit 1
+    `, [tenantId])
+  ]);
 
   return {
     summary: summary ?? { active_work: 0, blocked_work: 0, approvals: 0, verified_count: 0, net_value_cents: 0 },
-    approval: approval ?? null
+    approval: approval ?? null,
+    interruption: interruption ?? null
   };
 }
 
@@ -79,7 +95,9 @@ export default async function Home() {
     <AgesomaClient
       initial={{
         greeting: firstName ? `Olá, ${firstName}.` : "Olá.",
-        brief: `${parts.join(". ")}. O que você quer que eu resolva?`,
+        brief: state.interruption
+          ? `${state.interruption.summary} ${parts.join(". ")}. O que você quer que eu resolva?`
+          : `${parts.join(". ")}. O que você quer que eu resolva?`,
         activeWork: active,
         verifiedResults: verified,
         verifiedValue: money(value),
