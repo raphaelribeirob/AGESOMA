@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 type ContextEntry = {
   id: string;
@@ -16,12 +16,33 @@ type Connection = {
   provider: string;
   external_account_id: string;
   display_name: string | null;
+  permissions: Record<string, boolean>;
   status: string;
 };
 
 type ProviderOption = {
   provider: string;
   authorizationAvailable: boolean;
+  permissionOptions: string[];
+};
+
+type Goal = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: "low" | "normal" | "high";
+  progress: number | string;
+  due_at: string | null;
+};
+
+type Activity = {
+  id: string;
+  event_type: string;
+  title: string;
+  summary: string | null;
+  status: string;
+  created_at: string;
 };
 
 type Preferences = {
@@ -46,6 +67,7 @@ type Interruption = {
   kind: string;
   summary: string;
   status: string;
+  delivery_mode?: string;
   created_at: string;
 };
 
@@ -59,10 +81,26 @@ const providerLabels: Record<string, string> = {
   whatsapp: "WhatsApp"
 };
 
+const permissionLabels: Record<string, string> = {
+  read: "Ler",
+  search: "Pesquisar",
+  draft: "Criar rascunhos",
+  send: "Enviar",
+  delete: "Excluir",
+  create: "Criar",
+  update: "Alterar",
+  create_drafts: "Criar rascunhos",
+  pause: "Pausar",
+  activate: "Ativar",
+  change_budget: "Alterar orçamento"
+};
+
 export default function SettingsPage() {
   const [context, setContext] = useState<ContextEntry[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [activity, setActivity] = useState<Activity[]>([]);
   const [preferences, setPreferences] = useState<Preferences>({
     enabled: false,
     timezone: "UTC",
@@ -75,6 +113,8 @@ export default function SettingsPage() {
   const [interruptions, setInterruptions] = useState<Interruption[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [goalTitle, setGoalTitle] = useState("");
+  const [goalPriority, setGoalPriority] = useState<Goal["priority"]>("normal");
   const [watchObjective, setWatchObjective] = useState("");
   const [watchKind, setWatchKind] = useState("general");
   const [watchCadence, setWatchCadence] = useState("6h");
@@ -82,19 +122,31 @@ export default function SettingsPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
-    const [contextResponse, connectionsResponse, proactivityResponse] = await Promise.all([
+    const [contextResponse, connectionsResponse, proactivityResponse, goalsResponse, activityResponse] = await Promise.all([
       fetch("/api/personal-context", { cache: "no-store" }),
       fetch("/api/connections", { cache: "no-store" }),
-      fetch("/api/proactivity", { cache: "no-store" })
+      fetch("/api/proactivity", { cache: "no-store" }),
+      fetch("/api/goals", { cache: "no-store" }),
+      fetch("/api/activity?limit=30", { cache: "no-store" })
     ]);
 
-    if (!contextResponse.ok || !connectionsResponse.ok || !proactivityResponse.ok) {
+    if (
+      !contextResponse.ok ||
+      !connectionsResponse.ok ||
+      !proactivityResponse.ok ||
+      !goalsResponse.ok ||
+      !activityResponse.ok
+    ) {
       throw new Error("Não foi possível carregar seus ajustes.");
     }
 
-    const contextBody = await contextResponse.json();
-    const connectionsBody = await connectionsResponse.json();
-    const proactivityBody = await proactivityResponse.json();
+    const [contextBody, connectionsBody, proactivityBody, goalsBody, activityBody] = await Promise.all([
+      contextResponse.json(),
+      connectionsResponse.json(),
+      proactivityResponse.json(),
+      goalsResponse.json(),
+      activityResponse.json()
+    ]);
 
     setContext(contextBody.entries ?? []);
     setConnections(connectionsBody.services ?? []);
@@ -102,6 +154,8 @@ export default function SettingsPage() {
     setPreferences(proactivityBody.preferences);
     setWatchers(proactivityBody.watchers ?? []);
     setInterruptions(proactivityBody.interruptions ?? []);
+    setGoals(goalsBody.goals ?? []);
+    setActivity(activityBody.activity ?? []);
   }
 
   useEffect(() => {
@@ -113,11 +167,21 @@ export default function SettingsPage() {
     [connections]
   );
 
-  async function correctMemory(entry: ContextEntry) {
-    if (!editingValue.trim()) return;
+  async function run(action: () => Promise<void>, fallback: string) {
     setBusy(true);
     setNotice(null);
     try {
+      await action();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : fallback);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function correctMemory(entry: ContextEntry) {
+    if (!editingValue.trim()) return;
+    await run(async () => {
       const response = await fetch("/api/personal-context", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -127,39 +191,50 @@ export default function SettingsPage() {
       setEditingId(null);
       setEditingValue("");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível corrigir esse contexto.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível corrigir esse contexto.");
   }
 
   async function forgetMemory(id: string) {
-    setBusy(true);
-    setNotice(null);
-    try {
+    await run(async () => {
       const response = await fetch(`/api/personal-context?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Não foi possível apagar esse contexto.");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível apagar esse contexto.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível apagar esse contexto.");
+  }
+
+  async function createGoal() {
+    if (goalTitle.trim().length < 2) return;
+    await run(async () => {
+      const response = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: goalTitle.trim(), priority: goalPriority })
+      });
+      if (!response.ok) throw new Error("Não foi possível criar essa meta.");
+      setGoalTitle("");
+      setGoalPriority("normal");
+      await load();
+    }, "Não foi possível criar essa meta.");
+  }
+
+  async function setGoalStatus(id: string, status: "active" | "paused" | "completed") {
+    await run(async () => {
+      const response = await fetch("/api/goals", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, status, ...(status === "completed" ? { progress: 1 } : {}) })
+      });
+      if (!response.ok) throw new Error("Não foi possível atualizar essa meta.");
+      await load();
+    }, "Não foi possível atualizar essa meta.");
   }
 
   async function disconnectConnection(id: string) {
-    setBusy(true);
-    setNotice(null);
-    try {
+    await run(async () => {
       const response = await fetch(`/api/connections?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Não foi possível desconectar esse serviço.");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível desconectar esse serviço.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível desconectar esse serviço.");
   }
 
   async function beginConnection(provider: string) {
@@ -180,10 +255,21 @@ export default function SettingsPage() {
     }
   }
 
+  async function setConnectionPermission(connection: Connection, key: string, enabled: boolean) {
+    const nextPermissions = { ...(connection.permissions ?? {}), [key]: enabled };
+    await run(async () => {
+      const response = await fetch("/api/connections", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: connection.id, permissions: nextPermissions })
+      });
+      if (!response.ok) throw new Error("Não foi possível atualizar essa permissão.");
+      await load();
+    }, "Não foi possível atualizar essa permissão.");
+  }
+
   async function savePreferences() {
-    setBusy(true);
-    setNotice(null);
-    try {
+    await run(async () => {
       const response = await fetch("/api/proactivity", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -199,18 +285,12 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Não foi possível salvar a proatividade.");
       setNotice("Preferências salvas.");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível salvar a proatividade.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível salvar a proatividade.");
   }
 
   async function addWatcher() {
     if (watchObjective.trim().length < 3) return;
-    setBusy(true);
-    setNotice(null);
-    try {
+    await run(async () => {
       const response = await fetch("/api/proactivity", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -224,25 +304,15 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error("Não foi possível criar o acompanhamento.");
       setWatchObjective("");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível criar o acompanhamento.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível criar o acompanhamento.");
   }
 
   async function pauseWatcher(id: string) {
-    setBusy(true);
-    setNotice(null);
-    try {
+    await run(async () => {
       const response = await fetch(`/api/proactivity?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Não foi possível pausar esse acompanhamento.");
       await load();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Não foi possível pausar esse acompanhamento.");
-    } finally {
-      setBusy(false);
-    }
+    }, "Não foi possível pausar esse acompanhamento.");
   }
 
   async function markInterruption(id: string, status: "read" | "dismissed") {
@@ -258,12 +328,12 @@ export default function SettingsPage() {
     <main className="settingsShell">
       <header className="settingsHeader">
         <Link href="/" className="settingsBack">← AGESOMA</Link>
-        <span className="monoLabel">CONTEXTO E CONEXÕES</span>
+        <span className="monoLabel">MEMÓRIA · METAS · ATIVIDADE</span>
       </header>
 
       <section className="settingsHero">
-        <h1>Você controla o que eu sei e o que posso acessar.</h1>
-        <p>Memória ajuda a entender contexto. Conexões dão acesso a serviços. Nenhuma das duas amplia permissões para ações consequenciais.</p>
+        <h1>Você controla o que eu sei, persigo e posso acessar.</h1>
+        <p>Memória descreve contexto. Metas orientam trabalho contínuo. Conexões definem acesso. Permissão para uma ação continua sendo uma decisão separada.</p>
       </section>
 
       {notice ? <div className="settingsNotice" role="status">{notice}</div> : null}
@@ -303,31 +373,83 @@ export default function SettingsPage() {
 
       <section className="settingsSection">
         <div className="settingsIntro">
+          <span className="monoLabel">METAS</span>
+          <h2>O que estou tentando alcançar por você</h2>
+          <p>Metas são objetivos persistentes. Elas não concedem permissão automática para ações externas.</p>
+        </div>
+        <div>
+          <div className="settingsPanel goalComposer">
+            <input className="settingsTextInput" value={goalTitle} onChange={(event) => setGoalTitle(event.target.value)} placeholder="Ex.: reduzir o custo por aquisição do InstantSpeak" />
+            <select value={goalPriority} onChange={(event) => setGoalPriority(event.target.value as Goal["priority"])}>
+              <option value="low">Baixa prioridade</option>
+              <option value="normal">Prioridade normal</option>
+              <option value="high">Alta prioridade</option>
+            </select>
+            <button className="settingsPrimary" disabled={busy || goalTitle.trim().length < 2} onClick={() => void createGoal()}>Criar meta</button>
+          </div>
+          <div className="settingsStack">
+            {goals.length ? goals.map((goal) => (
+              <article className="settingsRow" key={goal.id}>
+                <div>
+                  <span className="settingsMeta">{goal.priority} · {Math.round(Number(goal.progress) * 100)}%</span>
+                  <strong>{goal.title}</strong>
+                  {goal.description ? <p className="settingsValue">{goal.description}</p> : null}
+                </div>
+                <div className="settingsActions">
+                  {goal.status !== "completed" ? <button onClick={() => void setGoalStatus(goal.id, "completed")}>Concluir</button> : <span className="connectionStatus">concluída</span>}
+                  {goal.status === "active" ? <button className="quiet" onClick={() => void setGoalStatus(goal.id, "paused")}>Pausar</button> : null}
+                  {goal.status === "paused" ? <button className="quiet" onClick={() => void setGoalStatus(goal.id, "active")}>Retomar</button> : null}
+                </div>
+              </article>
+            )) : <p className="settingsEmpty">Nenhuma meta ativa ainda.</p>}
+          </div>
+        </div>
+      </section>
+
+      <section className="settingsSection">
+        <div className="settingsIntro">
           <span className="monoLabel">CONEXÕES</span>
-          <h2>Serviços</h2>
-          <p>As credenciais ficam fora do agente. A AGESOMA recebe apenas a conexão e as permissões concedidas.</p>
+          <h2>Serviços e permissões</h2>
+          <p>As credenciais ficam fora do executor. Você define separadamente o que cada serviço pode permitir.</p>
         </div>
         <div className="settingsStack">
           {providers.map((item) => {
             const connection = activeConnections.get(item.provider);
             return (
-              <article className="settingsRow settingsConnection" key={item.provider}>
-                <div>
-                  <strong>{providerLabels[item.provider] ?? item.provider}</strong>
-                  <p>{connection ? connection.display_name ?? "Conectado" : "Não conectado"}</p>
+              <article className="settingsConnectionCard" key={item.provider}>
+                <div className="settingsConnectionHeader">
+                  <div>
+                    <strong>{providerLabels[item.provider] ?? item.provider}</strong>
+                    <p>{connection ? connection.display_name ?? "Conectado" : "Não conectado"}</p>
+                  </div>
+                  <div>
+                    {connection ? (
+                      <div className="settingsActions">
+                        <span className="connectionStatus">ativo</span>
+                        <button className="quiet" disabled={busy} onClick={() => void disconnectConnection(connection.id)}>Desconectar</button>
+                      </div>
+                    ) : (
+                      <button disabled={!item.authorizationAvailable || busy} onClick={() => void beginConnection(item.provider)}>
+                        {item.authorizationAvailable ? "Conectar" : "OAuth não configurado"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {connection ? (
-                    <div className="settingsActions">
-                      <span className="connectionStatus">ativo</span>
-                      <button className="quiet" disabled={busy} onClick={() => void disconnectConnection(connection.id)}>Desconectar</button>
-                    </div>
-                  ) : (
-                    <button disabled={!item.authorizationAvailable || busy} onClick={() => void beginConnection(item.provider)}>
-                      {item.authorizationAvailable ? "Conectar" : "OAuth não configurado"}
-                    </button>
-                  )}
-                </div>
+                {connection ? (
+                  <div className="permissionGrid">
+                    {item.permissionOptions.map((permission) => (
+                      <label key={permission} className="permissionOption">
+                        <input
+                          type="checkbox"
+                          checked={connection.permissions?.[permission] === true}
+                          disabled={busy}
+                          onChange={(event) => void setConnectionPermission(connection, permission, event.target.checked)}
+                        />
+                        <span>{permissionLabels[permission] ?? permission}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
               </article>
             );
           })}
@@ -338,46 +460,47 @@ export default function SettingsPage() {
         <div className="settingsIntro">
           <span className="monoLabel">PROATIVIDADE</span>
           <h2>Quando devo agir sozinho?</h2>
-          <p>Trabalho em segundo plano pode continuar sem interromper você. Os limites abaixo controlam quando a AGESOMA pode chamar sua atenção.</p>
+          <p>O Attention Engine decide entre guardar, incluir no resumo, avisar agora ou pedir aprovação.</p>
         </div>
-        <div className="settingsPanel">
-          <label className="settingsToggle">
-            <input type="checkbox" checked={preferences.enabled} onChange={(event) => setPreferences({ ...preferences, enabled: event.target.checked })} />
-            <span>Permitir acompanhamento proativo</span>
-          </label>
-
-          <div className="settingsFields">
-            <label>Fuso horário<input value={preferences.timezone} onChange={(event) => setPreferences({ ...preferences, timezone: event.target.value })} /></label>
-            <label>Máximo de interrupções/dia<input type="number" min={0} max={24} value={preferences.max_interruptions_per_day} onChange={(event) => setPreferences({ ...preferences, max_interruptions_per_day: Number(event.target.value) })} /></label>
-            <label>Silêncio a partir de<input type="time" value={preferences.quiet_hours_start ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_start: event.target.value || null })} /></label>
-            <label>Silêncio até<input type="time" value={preferences.quiet_hours_end ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_end: event.target.value || null })} /></label>
+        <div>
+          <div className="settingsPanel">
+            <label className="settingsToggle">
+              <input type="checkbox" checked={preferences.enabled} onChange={(event) => setPreferences({ ...preferences, enabled: event.target.checked })} />
+              <span>Permitir acompanhamento proativo</span>
+            </label>
+            <div className="settingsFields">
+              <label>Fuso horário<input value={preferences.timezone} onChange={(event) => setPreferences({ ...preferences, timezone: event.target.value })} /></label>
+              <label>Máximo de interrupções/dia<input type="number" min={0} max={24} value={preferences.max_interruptions_per_day} onChange={(event) => setPreferences({ ...preferences, max_interruptions_per_day: Number(event.target.value) })} /></label>
+              <label>Silêncio a partir de<input type="time" value={preferences.quiet_hours_start ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_start: event.target.value || null })} /></label>
+              <label>Silêncio até<input type="time" value={preferences.quiet_hours_end ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_end: event.target.value || null })} /></label>
+            </div>
+            <button className="settingsPrimary" disabled={busy} onClick={() => void savePreferences()}>Salvar proatividade</button>
           </div>
-          <button className="settingsPrimary" disabled={busy} onClick={() => void savePreferences()}>Salvar proatividade</button>
-        </div>
 
-        <div className="settingsPanel">
-          <span className="monoLabel">NOVO ACOMPANHAMENTO</span>
-          <textarea className="settingsTextarea" rows={3} placeholder="Ex.: Acompanhe meu Meta Ads e só me avise se houver desperdício relevante ou uma decisão que precise de mim." value={watchObjective} onChange={(event) => setWatchObjective(event.target.value)} />
-          <div className="settingsFields compact">
-            <label>Tipo<select value={watchKind} onChange={(event) => setWatchKind(event.target.value)}><option value="general">Geral</option><option value="calendar">Agenda</option><option value="communication">Comunicação</option><option value="paid_media">Tráfego pago</option></select></label>
-            <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label>
+          <div className="settingsPanel">
+            <span className="monoLabel">NOVO ACOMPANHAMENTO</span>
+            <textarea className="settingsTextarea" rows={3} placeholder="Ex.: acompanhe meu Meta Ads e me avise somente se houver desperdício relevante ou uma decisão que precise de mim." value={watchObjective} onChange={(event) => setWatchObjective(event.target.value)} />
+            <div className="settingsFields compact">
+              <label>Tipo<select value={watchKind} onChange={(event) => setWatchKind(event.target.value)}><option value="general">Geral</option><option value="calendar">Agenda</option><option value="communication">Comunicação</option><option value="paid_media">Tráfego pago</option></select></label>
+              <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label>
+            </div>
+            <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar acompanhamento</button>
+            {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Acompanhamento"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
           </div>
-          <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar acompanhamento</button>
-          {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Acompanhamento"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
         </div>
       </section>
 
       <section className="settingsSection">
         <div className="settingsIntro">
           <span className="monoLabel">ATENÇÃO</span>
-          <h2>Avisos recentes</h2>
-          <p>Somente itens que passaram pela política de interrupção aparecem aqui.</p>
+          <h2>O que merece interromper você</h2>
+          <p>Avisos imediatos e itens de resumo vêm de uma decisão explícita de atenção.</p>
         </div>
         <div className="settingsStack">
           {interruptions.length ? interruptions.map((item) => (
             <article className="settingsRow" key={item.id}>
               <div>
-                <span className="settingsMeta">{item.kind}</span>
+                <span className="settingsMeta">{item.delivery_mode ?? "notify"} · {item.kind}</span>
                 <p className="settingsValue">{item.summary}</p>
               </div>
               <div className="settingsActions">
@@ -385,6 +508,26 @@ export default function SettingsPage() {
               </div>
             </article>
           )) : <p className="settingsEmpty">Nenhum aviso proativo ainda.</p>}
+        </div>
+      </section>
+
+      <section className="settingsSection">
+        <div className="settingsIntro">
+          <span className="monoLabel">ATIVIDADE</span>
+          <h2>O que foi feito</h2>
+          <p>Registro recente de pedidos, conclusões, metas, conexões e decisões de atenção.</p>
+        </div>
+        <div className="settingsStack">
+          {activity.length ? activity.map((item) => (
+            <article className="settingsRow" key={item.id}>
+              <div>
+                <span className="settingsMeta">{item.event_type} · {new Date(item.created_at).toLocaleString("pt-BR")}</span>
+                <strong>{item.title}</strong>
+                {item.summary ? <p className="settingsValue">{item.summary}</p> : null}
+              </div>
+              <span className="connectionStatus">{item.status}</span>
+            </article>
+          )) : <p className="settingsEmpty">Nenhuma atividade registrada ainda.</p>}
         </div>
       </section>
     </main>
