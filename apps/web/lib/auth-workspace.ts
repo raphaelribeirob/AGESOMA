@@ -19,7 +19,7 @@ export async function resolveAuthenticatedWorkspace() {
       organization = await auth.api.createOrganization({
         headers: requestHeaders,
         body: {
-          name: "Minha empresa",
+          name: "Meu espaço",
           slug: workspaceSlug(session.user.id),
           keepCurrentActiveOrganization: false
         }
