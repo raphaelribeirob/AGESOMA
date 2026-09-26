@@ -104,6 +104,7 @@ Before production:
 - forced Egress Gateway as the only privileged Work Cell internet path;
 - control-plane Trust Store so Work Cell services receive no database credential;
 - caller-scoped Authd and Trust Store credentials;
+- per-tenant Model Gateway with opaque runtime tokens and no direct HERMES internet egress;
 - brokered browser access with CDP hidden from the runtime;
 - persistent personal runtime contract;
 - first-class Goals and Activity surfaces;
