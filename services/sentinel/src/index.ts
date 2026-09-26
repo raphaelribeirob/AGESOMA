@@ -216,7 +216,9 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   if(input.operation==="paid_media.read"){
     let destination:URL;
     try{destination=new URL(input.destination);}catch{return false;}
-    return destination.hostname.toLowerCase()==="connectors.windsor.ai"&&input.method==="GET";
+    if(destination.hostname.toLowerCase()!=="connectors.windsor.ai"||input.method!=="GET") return false;
+    if(meta.routeKind==="actions") return true;
+    return Boolean(scope.destination)&&text(meta.selectAccounts)===scope.destination;
   }
 
   if(input.operation.startsWith("api.tool_read:")){
