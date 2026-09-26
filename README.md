@@ -6,151 +6,116 @@
 
 [![AGESOMA CI](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml/badge.svg)](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml)
 
-**AI-native business operations platform for small and medium-sized businesses.**
+**Personal executive assistant for delegated digital work.**
 
-AGESOMA is designed to act as an operating intelligence layer for a company: it understands business context, prioritizes work, coordinates human and digital specialists, routes approved actions to an isolated execution layer, and reports meaningful outcomes through a single conversational experience.
+AGESOMA is being built around one simple idea: a useful assistant should not merely answer questions. It should remember relevant context, organize the work behind an outcome, execute what is authorized and return when a decision or completed result matters.
 
-> Product principle: AI should not only recommend what a business should do — it should help coordinate and execute the work while preserving human authority.
-
-## 30-second overview
-
-| | |
-|---|---|
-| **Role** | AI Product Lead & Agentic Systems Designer |
-| **Focus** | Product strategy, agent architecture, workflow design, UX direction, orchestration and AI safety |
-| **Product** | AI business operations / agentic SaaS |
-| **Primary users** | Owners and operators of small and medium-sized businesses |
-| **Stage** | Active prototype / pre-production |
-| **Core stack** | Next.js, React, TypeScript, PostgreSQL, pgvector, Graphiti, Neo4j, pg-boss, HERMES |
-| **CI** | Typecheck, behavioral test, architecture invariants, production-topology validation and web build |
-
-## The problem
-
-Small businesses often operate across disconnected tools, inboxes, spreadsheets, CRM systems and informal processes. Traditional software gives the owner more dashboards to manage; general-purpose AI can provide advice but usually lacks persistent business state, scoped authority, execution controls and result verification.
-
-AGESOMA explores a different model: one business intelligence surface that can understand the company, decide what requires attention, delegate work and involve the owner only when judgment or authorization is required.
-
-## My role
-
-As **AI Product Lead & Agentic Systems Designer**, I led the product definition and system direction across:
-
-- AI product strategy and scope;
-- multi-agent and orchestration architecture;
-- owner-facing conversational UX;
-- business workflow and automation design;
-- agent roles, routing and persistent business context;
-- authorization, approval and execution boundaries;
-- outcome verification and ROI-oriented product logic;
-- technical stack selection and product/engineering coordination.
-
-The project demonstrates product leadership across the full path from business problem to agentic system architecture rather than positioning my contribution as traditional software engineering alone.
+> Product principle: the user delegates the outcome; AGESOMA owns the coordination while the user retains authority.
 
 ## Product model
 
-AGESOMA presents **one intelligence to the owner** while coordinating specialized capabilities behind the scenes.
-
 ```text
-Owner / business objective
+User / desired outcome
         ↓
-AGESOMA understands company state and priorities
+AGESOMA understands personal context
         ↓
-AGESOMA selects the next action
+AGESOMA plans and selects capabilities
         ↓
-Human employee or digital specialist owns the work
+Authorized digital execution
         ↓
-HERMES executes approved digital actions
+Policy + scoped user authority
         ↓
-Sentinel enforces authority and approval boundaries
+Completion verification
         ↓
-AGESOMA verifies the result and updates business memory
+AGESOMA reports what matters
         ↓
-Owner receives only the information or decision that matters
+Memory learns from corrections and outcomes
 ```
 
-## Key product decisions
+## What the product is for
 
-### 1. Single-agent experience, multi-agent architecture
-The customer interacts with one AGESOMA intelligence instead of managing a marketplace of bots. Specialist agents for sales, marketing, customer service, finance, operations and research remain implementation details.
+AGESOMA is intended to help with work that normally remains fragmented across tools and mental overhead:
 
-### 2. Persistent company context
-Business state, goals, work history, roles, approvals and outcomes are treated as persistent product data rather than temporary prompt context.
+- calendar and commitments;
+- email and communication;
+- research and decision preparation;
+- documents and knowledge work;
+- personal administration;
+- recurring routines and monitoring;
+- connected digital actions that can be safely delegated.
 
-### 3. Execution is separated from authority
-HERMES can execute digital work, but it is not allowed to define its own permissions. Consequential actions are governed by AGESOMA/Sentinel and scoped owner authority.
+The canonical experience is one conversation. Internal models, agents, runtimes, routing and policy systems are implementation details.
 
-### 4. Outcomes matter more than task completion
-The architecture distinguishes “work was performed” from “a business result was verified,” allowing the product to evolve toward auditable ROI and economic attribution.
+## P0 thesis
 
-### 5. Zero-learning-curve UX
-The primary experience is conversational. Technical concepts such as models, prompts, work cells, routing and orchestration should remain invisible to the business owner.
+The first product does not need dozens of integrations. It needs a few loops that work together reliably:
+
+1. remember useful context;
+2. understand calendar-related work;
+3. understand communication-related work;
+4. research, prepare and execute digital tasks with explicit authorization when needed.
+
+The target interaction is not “chat with AI.” It is “give this to AGESOMA.”
 
 ## Technical architecture
 
 | Layer | Responsibility |
 |---|---|
-| **Next.js + React + TypeScript** | Owner-facing conversational product and authenticated API surface |
-| **PostgreSQL + pgvector** | Operational truth, structured business state, agent registry and vector context |
-| **Graphiti + Neo4j** | Temporal Company Brain context |
+| **Next.js + React + TypeScript** | User-facing conversation and authenticated API surface |
+| **PostgreSQL + pgvector** | Operational truth, structured state, registry and vector context |
+| **Graphiti + Neo4j** | Temporal context and memory experiments |
 | **pg-boss** | Durable background jobs and execution coordination |
 | **HERMES** | Isolated browser/API/file/computer execution |
 | **Sentinel** | Independent policy and authorization boundary |
-| **Work Cells** | Tenant-scoped execution environments |
-| **Outcome verification** | Separates execution claims from provider-backed business evidence |
+| **Work Cells** | Isolated execution environments |
+| **Outcome verification** | Separates execution claims from evidence-backed completion |
 
-**Internal vocabulary:** RiverThree is R3’s product/design contract, HERMES is the execution substrate, Sentinel is the authorization boundary, and Work Cells are tenant-scoped execution environments. These implementation concepts are intentionally hidden from the normal owner experience.
+HERMES, Sentinel and Work Cells are internal implementation concepts and must not appear in normal user-facing product copy.
+
+## Current migration status
+
+AGESOMA originated as an AI operating system for small businesses. The repository contains useful execution, authorization, durable-task and verification primitives from that architecture.
+
+The product direction has changed to a personal executive assistant.
+
+The current migration therefore follows this rule:
+
+- retain reusable infrastructure;
+- remove business-specific semantics from the product surface;
+- migrate routing, memory and data models incrementally;
+- do not present legacy `business.*` action names or company-oriented schema concepts to users.
+
+See [`docs/PERSONAL_ASSISTANT_MIGRATION.md`](docs/PERSONAL_ASSISTANT_MIGRATION.md).
 
 ## Repository tour
 
-For recruiters and technical reviewers, these are the fastest entry points:
-
-- [`apps/web`](apps/web) — AGESOMA owner experience and API endpoints.
+- [`apps/web`](apps/web) — AGESOMA conversation and onboarding.
 - [`apps/web/app/api/agesoma/route.ts`](apps/web/app/api/agesoma/route.ts) — conversational orchestration surface.
 - [`packages/core/src/request-router.ts`](packages/core/src/request-router.ts) — request and capability routing.
-- [`packages/core/src/agent-registry.ts`](packages/core/src/agent-registry.ts) — persistent specialist-agent model.
-- [`packages/core/src/sentinel.ts`](packages/core/src/sentinel.ts) — policy and authorization logic.
-- [`packages/core/src/outcomes.ts`](packages/core/src/outcomes.ts) — outcome verification model.
-- [`packages/db/migrations`](packages/db/migrations) — operational data model.
+- [`packages/core/src/agent-registry.ts`](packages/core/src/agent-registry.ts) — internal capability registry during migration.
+- [`packages/core/src/sentinel.ts`](packages/core/src/sentinel.ts) — authorization logic.
+- [`packages/core/src/outcomes.ts`](packages/core/src/outcomes.ts) — completion/outcome verification model.
 - [`services/worker`](services/worker) — durable coordination and execution adapter.
 - [`deploy/production`](deploy/production) — production-oriented execution and isolation configuration.
+- [`docs`](docs) — product, architecture, safety and release documentation.
 
 ## Current implementation status
 
-The repository contains working product and architecture components, including the conversational shell, routing, agent registry, authorization logic, durable job dispatch, database schema, onboarding surfaces and execution adapters.
+The repository is **pre-production**. The conversation shell, routing, authorization, durable job dispatch, database state and execution adapters already exist, but the personal-assistant migration is incomplete.
 
-The project is intentionally labeled **pre-production**. Remaining release gates include production tenant isolation, complete authentication-to-tenant binding, provider-backed credential isolation, real-source activation flows and repeated end-to-end verification of business outcomes. See [`docs/RELEASE_GATES.md`](docs/RELEASE_GATES.md).
+The remaining work is primarily:
 
-This distinction is deliberate: the repository separates implemented architecture from claims that still require production evidence.
+- personal-context schema and memory semantics;
+- personal capability routing instead of business domains;
+- calendar/email connector contracts;
+- user-controlled memory inspection and forgetting;
+- end-to-end execution verification;
+- production credential isolation and tenant/user binding.
 
-## Skills demonstrated
+## Product doctrine
 
-**AI Product Management · Agentic AI · AI Automation · Product Strategy · Workflow Automation · SaaS Product Design · UX/UI Direction · System Architecture · AI Safety · Business Process Automation**
-
-## Documentation
-
-- [`docs/README.md`](docs/README.md) — documentation map for reviewers.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system responsibilities and operating loop.
-- [`docs/AGENT_ARCHITECTURE_AUDIT.md`](docs/AGENT_ARCHITECTURE_AUDIT.md) — agent-model audit.
-- [`docs/company-brain.md`](docs/company-brain.md) — persistent company intelligence model.
-- [`docs/company-ontology.md`](docs/company-ontology.md) — business ontology.
-- [`docs/OWNER_MODEL.md`](docs/OWNER_MODEL.md) — owner authority and product model.
-- [`docs/ZERO_LEARNING_CURVE.md`](docs/ZERO_LEARNING_CURVE.md) — UX doctrine.
-- [`docs/VISUAL_SYSTEM.md`](docs/VISUAL_SYSTEM.md) — AGESOMA visual-system rules.
-- [`docs/TESTING.md`](docs/TESTING.md) — behavioral testing and CI strategy.
-- [`.github/SECURITY.md`](.github/SECURITY.md) — vulnerability reporting and security boundaries.
-- [`docs/RELEASE_GATES.md`](docs/RELEASE_GATES.md) — what is implemented vs. still release-gated.
-- [`docs/PRODUCT_DOCTRINE.md`](docs/PRODUCT_DOCTRINE.md) — original detailed product doctrine.
-
-## Repository structure
-
-```text
-apps/web            Owner-facing AGESOMA product and authenticated APIs
-packages/core       Routing, policies, agent registry and business logic
-packages/db         Database migrations and operational state
-services/worker     Durable coordination and execution integration
-deploy/production   Deployment, Work Cells and execution boundaries
-docs                Product, architecture, safety and release documentation
-```
+**One assistant outside. Many capabilities inside. User authority always.**
 
 ---
 
-**AGESOMA** — one conversational operating intelligence for the business, backed by persistent context, specialized agents, scoped execution and human authority.
+**AGESOMA — Your life, handled.**
