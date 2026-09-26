@@ -224,11 +224,13 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
   ]);
 
   const opportunities = Array.isArray(output.opportunities) ? output.opportunities : [];
+  let firstActionableSummary: string | null = null;
   for (const raw of opportunities.slice(0, 10)) {
     const item = record(raw);
     const itemTitle = text(item?.title);
     const summary = text(item?.summary);
     if (!itemTitle || !summary) continue;
+    if (!firstActionableSummary) firstActionableSummary = `${itemTitle}: ${summary}`;
     await sql(`insert into opportunities (tenant_id, watcher_id, goal_id, source_task_id, title, summary, proposed_action, evidence, confidence, status) values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,'open')`, [
       task.tenant_id,
       typeof task.payload.watcherId === "string" ? task.payload.watcherId : null,
@@ -240,6 +242,43 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
       JSON.stringify(record(item?.evidence) ?? {}),
       Math.max(0, Math.min(1, number(item?.confidence) ?? 0))
     ]);
+  }
+
+  const watcherId = typeof task.payload.watcherId === "string" ? task.payload.watcherId : null;
+  const interruptPolicy = typeof task.payload.interruptPolicy === "string"
+    ? task.payload.interruptPolicy
+    : "only_if_actionable";
+  const suppressInterruptions = task.payload.suppressInterruptions === true;
+  const timezone = typeof task.payload.timezone === "string" && task.payload.timezone.trim()
+    ? task.payload.timezone.trim()
+    : "UTC";
+  const maxInterruptions = typeof task.payload.maxInterruptionsPerDay === "number"
+    ? Math.max(0, Math.min(24, Math.trunc(task.payload.maxInterruptionsPerDay)))
+    : 3;
+  const proactiveKind = typeof task.payload.proactivityKind === "string"
+    ? task.payload.proactivityKind
+    : "general";
+  const fallbackSummary = text(output.summary) ?? title;
+  const interruptionSummary = interruptPolicy === "always"
+    ? firstActionableSummary ?? fallbackSummary
+    : firstActionableSummary;
+
+  if (watcherId && !suppressInterruptions && interruptPolicy !== "silent" && interruptionSummary && maxInterruptions > 0) {
+    const [usage] = await sql<{ count: string | number }>(`
+      select count(*) as count
+      from proactive_interruptions
+      where tenant_id=$1
+        and created_at >= (date_trunc('day', now() at time zone $2) at time zone $2)
+    `, [task.tenant_id, timezone]);
+
+    if (Number(usage?.count ?? 0) < maxInterruptions) {
+      await sql(`
+        insert into proactive_interruptions (
+          tenant_id,watcher_id,source_task_id,kind,summary,status
+        ) values ($1,$2,$3,$4,$5,'unread')
+        on conflict do nothing
+      `, [task.tenant_id, watcherId, task.id, proactiveKind, interruptionSummary]);
+    }
   }
 
   await persistHumanAssignments(task, output);

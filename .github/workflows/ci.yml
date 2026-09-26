@@ -45,7 +45,7 @@ jobs:
             echo "Niche product routing must not return to canonical AGESOMA flows"
             exit 1
           fi
-          if grep -n -E 'HERMES|Hermes' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
+          if grep -n -E 'HERMES|Hermes' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx apps/web/app/settings/page.tsx; then
             echo "HERMES must remain invisible in owner-facing AGESOMA UI"
             exit 1
           fi
@@ -63,14 +63,33 @@ jobs:
           grep -q 'paid_media.read' packages/core/src/action-registry.ts
           grep -q 'paid_media.set_campaign_budget' packages/core/src/action-registry.ts
           grep -q 'loadPaidMediaContext' services/worker/src/hermes.ts
-          if grep -n -E 'digital_agents|agent_task_assignments|hermes-work-cell' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
+          if grep -n -E 'digital_agents|agent_task_assignments|hermes-work-cell' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx apps/web/app/settings/page.tsx; then
             echo "Internal capability implementation details must stay behind the AGESOMA surface"
             exit 1
           fi
-          if grep -n -Ei 'sua empresa|na sua empresa|converse com sua empresa' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx; then
+          if grep -n -Ei 'sua empresa|na sua empresa|converse com sua empresa' apps/web/app/page.tsx apps/web/app/agesoma-client.tsx apps/web/app/onboarding/page.tsx apps/web/app/settings/page.tsx; then
             echo "Legacy business positioning must not return to the personal assistant surface"
             exit 1
           fi
+
+      - name: Enforce personal assistant runtime foundation
+        run: |
+          test -f packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'create table if not exists personal_context_entries' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'create table if not exists connected_services' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'create table if not exists proactivity_preferences' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'create table if not exists proactive_interruptions' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'digital_agents_domain_check' packages/db/migrations/0011_personal_assistant_foundation.sql
+          test -f apps/web/app/api/personal-context/route.ts
+          test -f apps/web/app/api/connections/route.ts
+          test -f apps/web/app/api/proactivity/route.ts
+          test -f apps/web/app/settings/page.tsx
+          grep -q 'context-only-not-authorization-or-proof' apps/web/app/api/agesoma/route.ts
+          grep -q 'containsSensitiveKey' apps/web/app/api/connections/route.ts
+          grep -q 'maxInterruptionsPerDay' apps/web/app/api/proactivity/route.ts
+          grep -q 'proactive_interruptions' services/worker/src/product-output.ts
+          grep -q 'suppressInterruptions' services/worker/src/dispatch/watchers.ts
+          grep -q 'href="/settings"' apps/web/app/agesoma-client.tsx
 
       - name: Enforce RiverThree product package
         run: |
@@ -202,6 +221,10 @@ jobs:
           grep -q 'alter table agent_task_assignments force row level security' packages/db/migrations/0010_agent_registry.sql
           grep -q 'foreign key (tenant_id, agent_id)' packages/db/migrations/0010_agent_registry.sql
           grep -q 'foreign key (tenant_id, task_id)' packages/db/migrations/0010_agent_registry.sql
+          grep -q 'alter table personal_context_entries force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'alter table connected_services force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'alter table proactivity_preferences force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'alter table proactive_interruptions force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web
