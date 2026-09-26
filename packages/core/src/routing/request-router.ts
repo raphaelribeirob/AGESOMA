@@ -15,19 +15,22 @@ export function routeBusinessRequest(request: string): RequestPlan {
 
   const text = normalizeText(originalRequest);
   const mode = inferMode(text);
+  const domain = inferDomain(text);
   const monitoring = inferWatch(text);
-  const action = mode === "commit"
-    ? "business.commit"
-    : mode === "act"
-      ? "business.act"
-      : mode === "work"
-        ? "business.work"
-        : "business.observe";
+  const action = domain === "paid_media" && mode === "observe"
+    ? "paid_media.read"
+    : mode === "commit"
+      ? "business.commit"
+      : mode === "act"
+        ? "business.act"
+        : mode === "work"
+          ? "business.work"
+          : "business.observe";
 
   return {
     title: titleFromRequest(originalRequest),
     originalRequest,
-    domain: inferDomain(text),
+    domain,
     mode,
     action,
     operation: mode === "observe"

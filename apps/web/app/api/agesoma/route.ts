@@ -223,6 +223,11 @@ function asksAboutAgents(message: string) {
   return /\bagente|agentes|equipe digital|especialistas digitais|especialista digital/.test(normalized);
 }
 
+function isPaidMediaRequest(message: string) {
+  const normalized = message.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return /trafego pago|paid media|meta ads|facebook ads|instagram ads|google ads|midia paga|gestor de trafego/.test(normalized);
+}
+
 async function answerQuestion(tenantId: string, message: string) {
   const [state, facts, approval] = await Promise.all([
     snapshot(tenantId),
@@ -334,6 +339,9 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   const payload = JSON.stringify({
     objective: plan.originalRequest,
     requestedAction: plan.action,
+    requestPlan: plan,
+    resource: plan.resource,
+    operation: plan.operation,
     coordination: decision,
     digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
     teamContext,
@@ -429,7 +437,7 @@ export async function POST(req: Request) {
     return approveTask(authenticated.tenantId, authenticated.actorId, authenticated.role, parsed.data.taskId);
   }
 
-  const result = looksLikeQuestion(parsed.data.message)
+  const result = looksLikeQuestion(parsed.data.message) && !isPaidMediaRequest(parsed.data.message)
     ? await answerQuestion(authenticated.tenantId, parsed.data.message)
     : await createWork(authenticated.tenantId, authenticated.actorId, authenticated.role, parsed.data.message);
 

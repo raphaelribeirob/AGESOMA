@@ -21,10 +21,26 @@ test("marketing requests route to the marketing specialist", () => {
   assert.equal(agentTemplateForPlan(plan).key, "marketing");
 });
 
-test("AGESOMA package contains the canonical six specialists", () => {
+test("paid media questions route to read-only paid media", () => {
+  const plan = routeBusinessRequest("Como está meu tráfego pago no Meta Ads?");
+  assert.equal(plan.domain, "paid_media");
+  assert.equal(plan.resource, "facebook");
+  assert.equal(plan.action, "paid_media.read");
+  assert.equal(agentTemplateForPlan(plan).key, "paid_media");
+});
+
+test("budget changes remain consequential", () => {
+  const plan = routeBusinessRequest("Aumente o orçamento do Meta Ads");
+  assert.equal(plan.domain, "paid_media");
+  assert.equal(plan.mode, "commit");
+  assert.equal(plan.action, "business.commit");
+});
+
+test("AGESOMA package contains the internal capability specialists", () => {
   assert.deepEqual(DEFAULT_AGENT_PACKAGE.map((agent) => agent.key), [
     "sales",
     "marketing",
+    "paid_media",
     "service",
     "finance",
     "operations",
