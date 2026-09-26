@@ -60,6 +60,157 @@ function normalizeRecipient(value: string) {
   return value.replace(/^whatsapp:/i, "").replace(/\D/g, "");
 }
 
+const PAID_MEDIA_WRITE_ACTIONS: Record<string, string> = {
+  "paid_media.create_campaign": "create_campaign",
+  "paid_media.create_adset": "create_adset",
+  "paid_media.create_ad": "create_ad",
+  "paid_media.update_ad_creative": "update_ad_creative",
+  "paid_media.pause_campaign": "pause_campaign",
+  "paid_media.pause_adset": "pause_adset",
+  "paid_media.pause_ad": "pause_ad",
+  "paid_media.enable_campaign": "enable_campaign",
+  "paid_media.enable_adset": "enable_adset",
+  "paid_media.enable_ad": "enable_ad",
+  "paid_media.set_campaign_budget": "set_campaign_budget",
+  "paid_media.set_adset_budget": "set_adset_budget"
+};
+
+function paidMediaConnector(value: unknown) {
+  const provider = text(value)?.toLowerCase();
+  if (!provider || provider === "paid_media" || provider === "all") return "all";
+  if (["facebook", "meta", "meta_ads", "instagram", "instagram_ads"].includes(provider)) return "facebook";
+  if (["google", "google_ads"].includes(provider)) return "google_ads";
+  return null;
+}
+
+async function paidMediaBrokerFetch(
+  mission: HermesMission,
+  path: string,
+  init?: RequestInit
+) {
+  const brokerToken = process.env.CREDENTIAL_BROKER_SERVICE_TOKEN?.trim();
+  if (!brokerToken) throw new Error("Credential broker service token is not configured");
+  const brokerUrl = resolveCredentialBrokerBaseUrl(mission);
+  return await fetch(`${brokerUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      "x-agesoma-broker-token": brokerToken,
+      "x-agesoma-task-id": mission.taskId,
+      ...(mission.grantRef ? { "x-agesoma-grant-ref": mission.grantRef } : {})
+    },
+    signal: AbortSignal.timeout(30_000)
+  });
+}
+
+async function loadPaidMediaContext(mission: HermesMission) {
+  if (mission.action !== "paid_media.read") return null;
+
+  const connector = paidMediaConnector(mission.payload.resource);
+  if (!connector) throw new Error("Paid media provider is not supported");
+
+  const parameters = record(mission.payload.parameters) ?? {};
+  const datePreset = text(parameters.datePreset) ?? "last_7dT";
+  const fields = connector === "facebook"
+    ? "date,account_id,account_name,campaign,campaign_id,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency"
+    : "date,source,account_id,account_name,campaign,campaign_id,spend,impressions,clicks";
+
+  const query = new URLSearchParams({ fields, date_preset: datePreset });
+  const response = await paidMediaBrokerFetch(
+    mission,
+    `/v1/paid-media/${connector}/data?${query.toString()}`
+  );
+  const providerResponse = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`Paid media data provider rejected read: ${response.status}`);
+  }
+
+  return {
+    connector,
+    datePreset,
+    fields: fields.split(","),
+    rows: Array.isArray(providerResponse) ? providerResponse : providerResponse ?? []
+  };
+}
+
+async function maybeExecutePaidMediaAction(mission: HermesMission) {
+  const providerAction = PAID_MEDIA_WRITE_ACTIONS[mission.action];
+  if (!providerAction) return null;
+  if (!mission.grantRef) throw new Error("Approved paid media action is missing scoped authority");
+
+  const connector = paidMediaConnector(mission.payload.resource);
+  if (connector !== "facebook") {
+    throw new Error("Paid media writes currently support Meta Ads through the secured broker; other providers remain read-only");
+  }
+
+  const account = text(mission.payload.destination);
+  if (!account) throw new Error("Paid media account is missing from the approved destination");
+
+  const rawParameters = record(mission.payload.parameters) ?? {};
+  const parameters: Record<string, unknown> = { ...rawParameters };
+
+  if (["create_campaign", "create_adset", "create_ad"].includes(providerAction)) {
+    if (text(parameters.status)?.toLowerCase() === "active") {
+      throw new Error("New paid media objects must be created paused; activation requires separate R3 approval");
+    }
+    parameters.status = "paused";
+  }
+
+  const amountCents = mission.payload.amountCents;
+  if (
+    ["enable_campaign", "enable_adset", "enable_ad", "set_campaign_budget", "set_adset_budget"].includes(providerAction) &&
+    (typeof amountCents !== "number" || !Number.isFinite(amountCents) || amountCents <= 0)
+  ) {
+    throw new Error("Spend-capable paid media action requires an explicit approved amount");
+  }
+
+  if (
+    ["set_campaign_budget", "set_adset_budget"].includes(providerAction) &&
+    typeof parameters.amount === "number" &&
+    parameters.amount !== amountCents
+  ) {
+    throw new Error("Paid media budget differs from the approved amount");
+  }
+
+  const response = await paidMediaBrokerFetch(mission, "/v1/paid-media/facebook/actions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      account,
+      action: providerAction,
+      params: parameters
+    })
+  });
+  const providerResponse = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`Paid media provider rejected action: ${response.status}`);
+  }
+
+  return {
+    runId: `windsor-${mission.taskId}`,
+    status: "completed",
+    output: {
+      artifact: {
+        kind: "provider_action",
+        title: "Ação de mídia paga executada",
+        content: {
+          provider: "windsor",
+          connector: "facebook",
+          action: providerAction,
+          account
+        }
+      },
+      evidence: {
+        provider: "windsor",
+        connector: "facebook",
+        action: providerAction,
+        providerResponse
+      }
+    },
+    usage: null
+  };
+}
+
 async function maybeExecuteCredentialedAction(mission: HermesMission) {
   if (mission.action !== "business.act" && mission.action !== "business.commit") return null;
   if (text(mission.payload.resource)?.toLowerCase() !== "whatsapp") return null;
@@ -119,6 +270,9 @@ async function maybeExecuteCredentialedAction(mission: HermesMission) {
 }
 
 function envelopeInstructions(action: string) {
+  if (action === "paid_media.read") {
+    return "Read and analyze paid-media reporting data only. Do not create, activate, pause or modify campaigns, ads, bids or budgets in this run.";
+  }
   if (action === "business.observe") {
     return "You may discover and navigate any public resource or resource already authorized by the business that is useful to the objective. Read and analyze only. Do not create external side effects.";
   }
@@ -145,7 +299,7 @@ function planningInstructions(action: string) {
     "Delegated work must never send customer-facing messages, spend money, change commercial terms, alter permissions or create obligations.",
     "Treat prior business memory as context, not as proof; verify time-sensitive facts again when they matter.",
     canDelegate
-      ? "If the owner objective ultimately requires an external or consequential side effect, do not perform it in this run. Return proposedAction with action business.act or business.commit, a concrete destination, operation, resource, parameters, a concise summary, supporting evidence identifiers, confidence, expected cost/value when reasonably estimable, and amountCents for any commitment."
+      ? "If the user objective ultimately requires an external or consequential side effect, do not perform it in this run. Return a concrete proposedAction. For paid media use a registered paid_media.* action when applicable: paid_media.create_campaign, paid_media.create_adset, paid_media.create_ad, paid_media.update_ad_creative, paid_media.pause_campaign, paid_media.pause_adset, paid_media.pause_ad, paid_media.enable_campaign, paid_media.enable_adset, paid_media.enable_ad, paid_media.set_campaign_budget or paid_media.set_adset_budget. Use resource facebook for Meta Ads, destination as the exact connected ad-account id, operation as the provider action name, and parameters as the exact provider parameters. Creation must remain paused. Any activation or budget action must include amountCents representing the approved financial envelope."
       : "The supplied payload is the approved capability boundary. Never infer a broader destination, recipient, amount, operation, resource or parameter set.",
     "Return a concise structured result containing: plan, completed work, evidence identifiers, blockers, whether more authority is required, and the next useful action if one exists."
   ].join(" ");
@@ -154,6 +308,21 @@ function planningInstructions(action: string) {
 export async function executeWithHermes(mission: HermesMission) {
   const brokered = await maybeExecuteCredentialedAction(mission);
   if (brokered) return brokered;
+
+  const paidMediaAction = await maybeExecutePaidMediaAction(mission);
+  if (paidMediaAction) return paidMediaAction;
+
+  const paidMediaContext = await loadPaidMediaContext(mission);
+  const executionPayload = paidMediaContext
+    ? {
+        ...mission.payload,
+        paidMediaData: {
+          source: "windsor",
+          trust: "provider-reporting-data-not-authorization",
+          ...paidMediaContext
+        }
+      }
+    : mission.payload;
 
   const baseUrl = resolveWorkCellBaseUrl(mission);
   const token = process.env.HERMES_SERVICE_TOKEN;
@@ -169,7 +338,7 @@ export async function executeWithHermes(mission: HermesMission) {
       session_id: `agesoma-${mission.taskId}`,
       input: JSON.stringify({
         action: mission.action,
-        payload: mission.payload,
+        payload: executionPayload,
         authorization: { grantRef: mission.grantRef ?? null }
       }),
       instructions: [
