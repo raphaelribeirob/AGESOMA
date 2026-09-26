@@ -236,6 +236,7 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   }
 
   if(input.operation==="browser.scrape.control"){
+    if(!["business.observe","business.work"].includes(task.action_type??"")) return false;
     const target=text(meta.targetUrl);
     const targetIp=text(meta.targetResolvedIp);
     if(!target||!targetIp||unsafeIp(targetIp)) return false;
@@ -243,7 +244,7 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   }
 
   if(input.operation==="browser.session.create"||input.operation==="browser.session.release"){
-    return input.effect==="control";
+    return ["business.observe","business.work"].includes(task.action_type??"")&&input.effect==="control";
   }
 
   return input.effect==="read";
