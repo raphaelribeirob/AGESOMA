@@ -404,7 +404,7 @@ export async function executeWithHermes(mission: HermesMission) {
     method: "POST",
     headers: headers(token, mission),
     body: JSON.stringify({
-      session_id: `agesoma-runtime-${mission.tenantId}`,
+      session_id: `agesoma-runtime-${mission.tenantId}:task-${mission.taskId}`,
       input: JSON.stringify({
         action: mission.action,
         payload: executionPayload,
