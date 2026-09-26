@@ -33,8 +33,6 @@ const ACTIONS: Record<string, ActionPolicy> = {
   "paid_media.pause_adset": { type: "paid_media.pause_adset", riskClass: "R2", reversible: true, external: true, maxPayloadBytes: 16_384 },
   "paid_media.pause_ad": { type: "paid_media.pause_ad", riskClass: "R2", reversible: true, external: true, maxPayloadBytes: 16_384 },
   "paid_media.enable_campaign": { type: "paid_media.enable_campaign", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
-  "paid_media.enable_adset": { type: "paid_media.enable_adset", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
-  "paid_media.enable_ad": { type: "paid_media.enable_ad", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
   "paid_media.set_campaign_budget": { type: "paid_media.set_campaign_budget", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
   "paid_media.set_adset_budget": { type: "paid_media.set_adset_budget", riskClass: "R3", reversible: false, external: true, maxPayloadBytes: 16_384 },
 
