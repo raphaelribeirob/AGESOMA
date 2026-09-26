@@ -125,6 +125,22 @@ async function sentinelRecord(input:Record<string,unknown>){
   const tenantId=text(input,"tenantId")!;
   const taskId=text(input,"taskId");
   if(!taskId) throw new Error("task_id_required");
+
+  const [task]=await sql<{id:string}>(`
+    select id from tasks where tenant_id=$1 and id=$2 limit 1
+  `,[tenantId,taskId]);
+  if(!task) throw new Error("task_not_found");
+
+  const grantRef=text(input,"grantRef");
+  if(grantRef){
+    const [grant]=await sql<{id:string}>(`
+      select id from approval_grants
+      where tenant_id=$1 and task_id=$2 and id=$3
+      limit 1
+    `,[tenantId,taskId,grantRef]);
+    if(!grant) throw new Error("grant_not_found");
+  }
+
   const [row]=await sql<{id:string}>(`
     insert into egress_decisions (
       tenant_id,task_id,destination,operation,action_class,decision,reason,capability_hash,
@@ -137,7 +153,7 @@ async function sentinelRecord(input:Record<string,unknown>){
     text(input,"reason")??"unspecified",text(input,"capabilityHash"),
     text(input,"method"),text(input,"path"),text(input,"protocol"),text(input,"resolvedIp"),
     text(input,"dataTaint")??"clean",JSON.stringify(input.requestMeta??{}),
-    text(input,"grantRef"),text(input,"policyVersion")??"sentinel-v3"
+    grantRef,text(input,"policyVersion")??"sentinel-v3"
   ]);
 
   await sql(`
