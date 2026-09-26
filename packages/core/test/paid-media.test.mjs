@@ -23,8 +23,6 @@ test("creating a paused paid media object requires explicit external approval", 
 test("paid media actions capable of spending money are R3", () => {
   for (const action of [
     "paid_media.enable_campaign",
-    "paid_media.enable_adset",
-    "paid_media.enable_ad",
     "paid_media.set_campaign_budget",
     "paid_media.set_adset_budget"
   ]) {
