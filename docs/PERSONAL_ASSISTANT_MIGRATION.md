@@ -6,7 +6,7 @@ Transform AGESOMA from SME operating intelligence into a personal executive assi
 
 ## Phase 0 — Product surface
 
-Status: in progress on `feat/personal-assistant-foundation`.
+Status: implemented on `main`.
 
 - personal-assistant positioning;
 - personal onboarding;
@@ -32,7 +32,9 @@ Compatibility aliases may remain temporarily, but user-facing behavior must neve
 
 ## Phase 2 — Personal Context
 
-Introduce a first-class personal context model with provenance and user control.
+Status: foundation implemented in `0011_personal_assistant_foundation.sql`.
+
+A first-class personal context model now persists onboarding/user context with provenance, correction and forgetting. Context is passed to planning as descriptive information only and never expands authorization.
 
 Minimum objects:
 
@@ -57,6 +59,8 @@ Requirements:
 
 ## Phase 3 — Core integrations
 
+Status: connection registry + user control surface implemented; provider OAuth callbacks and connector-specific execution remain.
+
 Prioritize connectors that complete high-frequency assistant loops:
 
 1. calendar;
@@ -68,6 +72,8 @@ Prioritize connectors that complete high-frequency assistant loops:
 Messaging and finance actions come later because they have higher consequence and permission complexity.
 
 ## Phase 4 — Proactivity
+
+Status: bounded watcher runtime implemented with explicit opt-in, allowed categories, quiet hours, daily interruption cap, revocation and an interruption log.
 
 Add recurring observation only after the reactive loops are reliable.
 
@@ -108,3 +114,18 @@ They are compatibility debt, not canonical product concepts. New user-facing fea
 ## Exit criterion
 
 The migration is complete when a new user can delegate a personal task involving context + a connected service + execution without seeing or configuring business-oriented concepts anywhere in the flow.
+
+
+## Deployment gate for Phase 2–4
+
+The repository does not currently run SQL migrations automatically during the web deployment.
+
+Before deploying code that reads `personal_context_entries`, `connected_services`, `proactivity_preferences` or `proactive_interruptions`, apply:
+
+```text
+packages/db/migrations/0011_personal_assistant_foundation.sql
+```
+
+to the production database.
+
+The application build can succeed without that schema being present, so database migration is a release prerequisite rather than a build-time guarantee.
