@@ -117,21 +117,7 @@ services:
   hermes:
     image: nousresearch/hermes-agent:v2026.9.7
     restart: unless-stopped
-    command:
-      - /bin/sh
-      - -ec
-      - |
-        umask 077
-        cat > /opt/data/.env <<EOF
-        OPENAI_API_KEY=$OPENAI_API_KEY
-        OPENAI_BASE_URL=$OPENAI_BASE_URL
-        ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
-        ANTHROPIC_BASE_URL=$ANTHROPIC_BASE_URL
-        NOUS_API_KEY=$NOUS_API_KEY
-        NOUS_INFERENCE_BASE_URL=$NOUS_INFERENCE_BASE_URL
-        EOF
-        rm -f /opt/data/.op.env
-        exec hermes gateway run
+    command: ["/bin/sh", "/usr/local/bin/agesoma-hermes-entrypoint"]
     environment:
       HERMES_HOME: /opt/data
       API_SERVER_ENABLED: "true"
@@ -157,6 +143,7 @@ services:
     volumes:
       - hermes_data:/opt/data
       - ./hermes-config.yaml:/opt/data/config.yaml:ro
+      - ./hermes-entrypoint.sh:/usr/local/bin/agesoma-hermes-entrypoint:ro
     networks:
       tenant_cell:
         aliases:
