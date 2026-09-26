@@ -107,7 +107,11 @@ function unsafeIp(address:string){
 async function trust(path:string,body:Record<string,unknown>){
   const response=await fetch(`${trustStoreUrl}${path}`,{
     method:"POST",
-    headers:{"content-type":"application/json","x-agesoma-trust-token":trustStoreToken},
+    headers:{
+      "content-type":"application/json",
+      "x-agesoma-trust-caller":"sentinel",
+      "x-agesoma-trust-token":trustStoreToken
+    },
     body:JSON.stringify({tenantId,...body}),
     signal:AbortSignal.timeout(10_000)
   });
