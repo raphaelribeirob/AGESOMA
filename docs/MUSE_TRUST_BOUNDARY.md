@@ -55,7 +55,7 @@ The gateway:
 
 This removes the previous "ask Sentinel, then fetch independently" bypass.
 
-HERMES keeps a separate allowlisted Squid proxy for its model-provider compatibility path. User/provider actions and dynamic API reads do not use that route.
+HERMES no longer has a direct internet proxy. Model inference is routed to an internal per-tenant Model Gateway, and external web access remains brokered.
 
 ## Sentinel v3
 
@@ -192,6 +192,30 @@ The runtime never receives Steel API keys, CDP/WebSocket URLs or viewer/debug UR
 
 Returned page data is always labeled `external_untrusted`.
 
+## Model Gateway
+
+Real model-provider credentials are outside HERMES.
+
+HERMES receives only a per-tenant opaque token and internal base URLs:
+
+- OpenAI-compatible calls → `model-gateway-<tenant>/openai/v1`;
+- Anthropic native calls → `model-gateway-<tenant>/anthropic`;
+- Nous inference → `model-gateway-<tenant>/nous/v1`.
+
+Only Model Gateway joins `model_outbound`.
+
+The gateway:
+
+- accepts the opaque tenant token in the provider's normal auth location;
+- permits only fixed OpenAI, Anthropic and Nous inference hosts;
+- permits only narrow inference/model-listing paths;
+- replaces the opaque token with the real provider secret;
+- streams requests/responses without logging prompt bodies.
+
+HERMES has no direct `HTTP_PROXY`/internet path and no real OpenAI, Anthropic or Nous credential.
+
+See `docs/MODEL_GATEWAY.md`.
+
 ## Dynamic API tools
 
 `api.tool_read` no longer performs provider fetches directly from the control worker.
@@ -219,7 +243,7 @@ New control-plane configuration:
 
 Per-tenant Authd/Trust Store/egress caller tokens are derived during Work Cell provisioning.
 
-Existing provider secrets remain configured only for Authd.
+User/provider connector secrets remain configured only for Authd. Model-provider secrets are configured only on Model Gateway.
 
 ## Remaining gaps
 
@@ -227,7 +251,6 @@ The P0 audit findings above are closed by this architecture, but this is still n
 
 Remaining work:
 
-- model-provider keys behind a model gateway;
 - interactive browser subagent with accessibility-tree interface;
 - secure human takeover;
 - OTP/magic-link/password-reset filtering;
