@@ -1,130 +1,108 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
-import { sql } from "@agesoma/db";
 
-type ResolveRequest = {
-  tenantId: string;
-  taskId: string;
-  surrogate: string;
-  purpose: string;
+type Caller="browser_broker"|"privsep_broker";
+
+const port=Number(process.env.PORT??8083);
+const tenantId=process.env.AGESOMA_TENANT_ID?.trim()??"";
+const trustStoreUrl=(process.env.TRUST_STORE_URL??"http://trust-store:8084").replace(/\/$/,"");
+const trustStoreToken=process.env.TRUST_STORE_TENANT_TOKEN?.trim()??"";
+const callerTokens:Record<Caller,string>={
+  browser_broker:process.env.AUTHD_BROWSER_TOKEN?.trim()??"",
+  privsep_broker:process.env.AUTHD_PRIVSEP_TOKEN?.trim()??""
 };
 
-const port = Number(process.env.PORT ?? 8083);
-const serviceToken = process.env.AUTHD_SERVICE_TOKEN?.trim() ?? "";
-const tenantId = process.env.AGESOMA_TENANT_ID?.trim() ?? "";
-
-function json(res: ServerResponse, status: number, value: unknown) {
-  const body = JSON.stringify(value);
-  res.writeHead(status, { "content-type": "application/json", "content-length": Buffer.byteLength(body) });
-  res.end(body);
-}
-
-function sameSecret(a: string, b: string) {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  return left.length === right.length && left.length > 0 && timingSafeEqual(left,right);
-}
-
-function authorized(req: IncomingMessage) {
-  const supplied = req.headers["x-agesoma-authd-token"];
-  return typeof supplied === "string" && sameSecret(supplied,serviceToken);
-}
-
-async function body(req: IncomingMessage) {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    const data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += data.length;
-    if (size > 16 * 1024) throw new Error("request_too_large");
-    chunks.push(data);
+const policy:Record<Caller,Record<string,Set<string>>>={
+  browser_broker:{steel:new Set(["browser.provider"])},
+  privsep_broker:{
+    whatsapp:new Set(["whatsapp.send"]),
+    windsor:new Set(["paid_media.read","paid_media.write"])
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+};
+
+function json(res:ServerResponse,status:number,value:unknown){
+  const raw=JSON.stringify(value);
+  res.writeHead(status,{"content-type":"application/json","content-length":Buffer.byteLength(raw)});
+  res.end(raw);
 }
 
-function parse(value: unknown): ResolveRequest {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid_request");
-  const input = value as Record<string, unknown>;
-  for (const key of ["tenantId","taskId","surrogate","purpose"]) {
-    if (typeof input[key] !== "string" || !(input[key] as string).trim()) throw new Error("invalid_request");
+function sameSecret(a:string,b:string){
+  const left=Buffer.from(a);const right=Buffer.from(b);
+  return left.length===right.length&&left.length>0&&timingSafeEqual(left,right);
+}
+
+function caller(req:IncomingMessage){
+  const name=req.headers["x-agesoma-authd-caller"];
+  const token=req.headers["x-agesoma-authd-token"];
+  if((name!=="browser_broker"&&name!=="privsep_broker")||typeof token!=="string") throw new Error("forbidden");
+  if(!sameSecret(token,callerTokens[name])) throw new Error("forbidden");
+  return name as Caller;
+}
+
+async function readJson(req:IncomingMessage){
+  const chunks:Buffer[]=[];let size=0;
+  for await(const chunk of req){
+    const data=Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk);
+    size+=data.length;if(size>16*1024) throw new Error("request_too_large");chunks.push(data);
   }
-  const surrogate = String(input.surrogate);
-  if (!/^cred:\/\/[a-z0-9_-]+\/[a-z0-9._-]+$/i.test(surrogate)) throw new Error("invalid_surrogate");
-  return {
-    tenantId: String(input.tenantId),
-    taskId: String(input.taskId),
-    surrogate,
-    purpose: String(input.purpose)
-  };
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string,unknown>;
 }
 
-function providerFromSurrogate(surrogate: string) {
+function providerFromSurrogate(surrogate:string){
   return surrogate.slice("cred://".length).split("/")[0].toLowerCase();
 }
 
-function secretFor(provider: string) {
-  if (provider === "steel") return process.env.STEEL_API_KEY?.trim() ?? "";
-  if (provider === "whatsapp") return process.env.WHATSAPP_CLOUD_ACCESS_TOKEN?.trim() ?? "";
-  if (provider === "windsor") return process.env.WINDSOR_API_KEY?.trim() ?? "";
+function secretFor(provider:string){
+  if(provider==="steel") return process.env.STEEL_API_KEY?.trim()??"";
+  if(provider==="whatsapp") return process.env.WHATSAPP_CLOUD_ACCESS_TOKEN?.trim()??"";
+  if(provider==="windsor") return process.env.WINDSOR_API_KEY?.trim()??"";
   return "";
 }
 
-async function resolveCredential(input: ResolveRequest) {
-  if (input.tenantId !== tenantId) throw new Error("tenant_mismatch");
-
-  const provider = providerFromSurrogate(input.surrogate);
-  const [task] = await sql<{ id: string }>(`
-    select id from tasks
-    where tenant_id=$1 and id=$2 and status in ('running','queued')
-    limit 1
-  `,[input.tenantId,input.taskId]);
-  if (!task) throw new Error("task_not_executable");
-
-  const [handle] = await sql<{ id: string }>(`
-    select id from credential_handles
-    where tenant_id=$1 and provider=$2 and handle=$3 and status='active'
-    limit 1
-  `,[input.tenantId,provider,input.surrogate]);
-  if (!handle) throw new Error("surrogate_not_active");
-
-  const credential = secretFor(provider);
-  if (!credential) throw new Error("credential_not_configured");
-
-  await sql(`
-    update credential_handles set last_used_at=now(),updated_at=now()
-    where tenant_id=$1 and id=$2
-  `,[input.tenantId,handle.id]);
-
-  await sql(`
-    insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
-    values ($1,$2,'credential_resolved','authd',$3,$4::jsonb)
-  `,[
-    input.tenantId,input.taskId,`Resolved surrogate for ${provider}`,
-    JSON.stringify({ provider,surrogate:input.surrogate,purpose:input.purpose,credentialExposedToRuntime:false })
-  ]);
-
-  return { provider,credential };
+async function trust(body:Record<string,unknown>){
+  const response=await fetch(`${trustStoreUrl}/v1/authd/context`,{
+    method:"POST",
+    headers:{"content-type":"application/json","x-agesoma-trust-token":trustStoreToken},
+    body:JSON.stringify({tenantId,...body}),
+    signal:AbortSignal.timeout(10_000)
+  });
+  const result=await response.json().catch(()=>null);
+  if(!response.ok) throw new Error(`trust_store_rejected:${response.status}`);
+  return result;
 }
 
-const server = createServer(async (req,res) => {
-  try {
-    if (req.method === "GET" && req.url === "/health") return json(res,200,{ok:true,mode:"surrogate-only"});
-    if (!authorized(req)) return json(res,403,{error:"forbidden"});
-    if (req.method !== "POST" || req.url !== "/v1/resolve") return json(res,404,{error:"not_found"});
+async function resolveCredential(req:IncomingMessage,input:Record<string,unknown>){
+  const requestTenant=typeof input.tenantId==="string"?input.tenantId:"";
+  const taskId=typeof input.taskId==="string"?input.taskId:"";
+  const surrogate=typeof input.surrogate==="string"?input.surrogate:"";
+  const purpose=typeof input.purpose==="string"?input.purpose:"";
+  if(requestTenant!==tenantId) throw new Error("tenant_mismatch");
+  if(!taskId||!/^cred:\/\/[a-z0-9_-]+\/[a-z0-9._-]+$/i.test(surrogate)||!purpose) throw new Error("invalid_request");
 
-    const input = parse(await body(req));
-    const result = await resolveCredential(input);
-    return json(res,200,result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "authd_error";
-    const status = message === "credential_not_configured" ? 503
-      : message === "request_too_large" ? 413
-      : ["tenant_mismatch","task_not_executable","surrogate_not_active"].includes(message) ? 403
-      : 400;
+  const callerName=caller(req);
+  const provider=providerFromSurrogate(surrogate);
+  if(!policy[callerName][provider]?.has(purpose)) throw new Error("caller_provider_scope_denied");
+
+  await trust({taskId,provider,handle:surrogate,caller:callerName,purpose});
+  const credential=secretFor(provider);
+  if(!credential) throw new Error("credential_not_configured");
+  return {provider,credential};
+}
+
+const server=createServer(async(req,res)=>{
+  try{
+    if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,mode:"caller-scoped-surrogates",databaseCredential:false});
+    if(req.method!=="POST"||req.url!=="/v1/resolve") return json(res,404,{error:"not_found"});
+    return json(res,200,await resolveCredential(req,await readJson(req)));
+  }catch(error){
+    const message=error instanceof Error?error.message:"authd_error";
+    const status=["forbidden","tenant_mismatch","caller_provider_scope_denied"].includes(message)?403:
+      message==="credential_not_configured"?503:message==="request_too_large"?413:400;
     return json(res,status,{error:message});
   }
 });
 
-if (!serviceToken) throw new Error("AUTHD_SERVICE_TOKEN is required");
-if (!tenantId) throw new Error("AGESOMA_TENANT_ID is required");
-server.listen(port,"0.0.0.0",() => console.log(`AGESOMA authd listening on ${port}`));
+if(!tenantId) throw new Error("AGESOMA_TENANT_ID is required");
+if(!trustStoreToken) throw new Error("TRUST_STORE_TENANT_TOKEN is required");
+if(!callerTokens.browser_broker||!callerTokens.privsep_broker) throw new Error("Caller-scoped Authd tokens are required");
+server.listen(port,"0.0.0.0",()=>console.log(`AGESOMA Authd listening on ${port}`));
