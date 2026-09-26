@@ -36,7 +36,17 @@ export async function PATCH(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 
   if (parsed.data.action === "approve") {
-    const [tool] = await tenantSql(authenticated.tenantId,`
+    const [tool] = await tenantSql<{
+      id: string;
+      name: string;
+      description: string;
+      status: string;
+      risk_class: string;
+      auth_mode: string;
+      validation: unknown;
+      permissions: unknown;
+      approved_at: string | null;
+    }>(authenticated.tenantId,`
       update tool_recipes
       set status='approved',approved_by=$3,approved_at=now(),updated_at=now()
       where tenant_id=$1
@@ -70,7 +80,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json(tool);
   }
 
-  const [tool] = await tenantSql(authenticated.tenantId,`
+  const [tool] = await tenantSql<{ id: string; name: string; status: string }>(authenticated.tenantId,`
     update tool_recipes
     set status='disabled',updated_at=now()
     where tenant_id=$1 and id=$2 and status <> 'disabled'
