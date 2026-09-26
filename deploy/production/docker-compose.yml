@@ -19,10 +19,23 @@ services:
       HERMES_RUN_POLL_MS: ${HERMES_RUN_POLL_MS:-1000}
       CREDENTIAL_BROKER_BASE_URL_TEMPLATE: ${CREDENTIAL_BROKER_BASE_URL_TEMPLATE:-http://broker-{tenantId}:8080}
       CREDENTIAL_BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN}
-      SENTINEL_BASE_URL_TEMPLATE: ${SENTINEL_BASE_URL_TEMPLATE:-http://sentinel-{tenantId}:8081}
-      SENTINEL_SERVICE_TOKEN: ${SENTINEL_SERVICE_TOKEN}
+      EGRESS_GATEWAY_BASE_URL_TEMPLATE: ${EGRESS_GATEWAY_BASE_URL_TEMPLATE:-http://egress-{tenantId}:8085}
+      EGRESS_CONTROL_TOKEN: ${EGRESS_CONTROL_TOKEN}
       AGESOMA_MIN_NET_VALUE_CENTS: ${AGESOMA_MIN_NET_VALUE_CENTS:-100}
       AGESOMA_MAX_TASK_COST_CENTS: ${AGESOMA_MAX_TASK_COST_CENTS:-500}
+    networks:
+      - control_outbound
+
+  trust-store:
+    container_name: agesoma-trust-store
+    build:
+      context: ../..
+      dockerfile: services/trust-store/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      AGESOMA_DB_SCHEMA: agesoma_p0
+      TRUST_STORE_MASTER_SECRET: ${TRUST_STORE_MASTER_SECRET}
     networks:
       - control_outbound
 

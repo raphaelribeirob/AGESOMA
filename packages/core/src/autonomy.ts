@@ -27,7 +27,10 @@ export function matchAutonomyRule(rule: AutonomyRule, scope: CapabilityScope, no
   if (!matchText(rule.destination, scope.destination)) return false;
   if (!matchText(rule.operation, scope.operation)) return false;
   if (!matchText(rule.resourcePattern, scope.resource)) return false;
-  if (rule.maxAmountCents != null && scope.amountCents != null && scope.amountCents > rule.maxAmountCents) return false;
+  if (rule.maxAmountCents != null) {
+    if (scope.amountCents == null) return false;
+    if (scope.amountCents > rule.maxAmountCents) return false;
+  }
   return true;
 }
 

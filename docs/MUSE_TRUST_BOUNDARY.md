@@ -1,57 +1,141 @@
 # MUSE-style Trust Boundary
 
-AGESOMA treats the personal runtime as untrusted.
+AGESOMA treats the personal runtime as untrusted and keeps network authority, credentials and database authority outside it.
 
-The agent may plan, read untrusted content and request tools, but it is not the authority for credentials, egress or consequential actions.
-
-## Runtime zones
+## Current trust zones
 
 ```text
 HERMES personal runtime
-  |
-  | browser-only narrow API
-  v
-Browser Broker --------------------+
-  |                                |
-  | surrogate                      | Sentinel decision
-  v                                v
-Authd <--- Privsep Broker ----> Sentinel v2
-  |            |                    |
-  | secrets    | provider request   | ALLOW / REVIEW / DENY
-  +------------+--------------------+
-               |
-               v
-        external services
+        |
+        | narrow internal APIs only
+        v
+Browser Broker / Privsep Broker
+        |
+        | caller-scoped Authd + Egress credentials
+        v
+Authd ----------------------+
+        |                   |
+        | provider secret   |
+        v                   v
+                    Egress Gateway
+                         |
+                  Sentinel v3 decision
+                         |
+                     pinned HTTPS
+                         |
+                    external service
+
+Control plane:
+Trust Store -> Postgres
 ```
 
-### Untrusted runtime
+The Work Cell services do not receive `DATABASE_URL`.
 
-HERMES receives:
+## Forced egress
 
-- task objective and scoped authorization reference;
-- personal context as context only;
-- connected-service metadata without credentials;
-- brokered browser endpoint;
-- approved read-only tool definitions.
+Privileged Work Cell services have no direct outbound network:
 
-HERMES does not receive:
+- Sentinel;
+- Authd;
+- Browser Broker;
+- Privsep Broker.
 
-- WhatsApp access tokens;
-- Windsor API keys;
-- Steel API keys;
-- credential-broker service token;
-- Authd service token;
-- Sentinel service token;
-- Steel CDP/WebSocket URLs;
-- Steel viewer/debug URLs.
+Only the per-tenant Egress Gateway joins `privileged_outbound`.
 
-Platform model-provider credentials remain a compatibility exception in the current HERMES container and should move behind a model gateway in a later phase.
+The gateway:
 
-## Authd
+1. authenticates the caller as `browser_broker`, `privsep_broker` or `control_worker`;
+2. enforces an operation allowlist per caller;
+3. validates HTTPS;
+4. resolves all destination addresses and rejects private/reserved results;
+5. derives semantic metadata from the concrete body where relevant;
+6. asks Sentinel v3;
+7. pins the approved IP into the TLS connection;
+8. performs the request only after `ALLOW`.
 
-Authd is the only Work Cell service that receives user/provider secrets.
+This removes the previous "ask Sentinel, then fetch independently" bypass.
 
-Other privileged services use surrogate handles:
+HERMES keeps a separate allowlisted Squid proxy for its model-provider compatibility path. User/provider actions and dynamic API reads do not use that route.
+
+## Sentinel v3
+
+Sentinel no longer trusts a caller-supplied capability hash as authority.
+
+For every request it obtains the canonical task context from the control-plane Trust Store and reconstructs:
+
+```text
+task payload
+   ↓
+buildCapabilityScope()
+   ↓
+stable serialization
+   ↓
+SHA-256
+```
+
+For consequential requests the supplied capability hash must equal this server-reconstructed hash.
+
+Approval grants must:
+
+- belong to the same tenant/task/action;
+- be unrevoked;
+- be unexpired;
+- already be consumed by the task runner;
+- carry the reconstructed `scope_hash`.
+
+Autonomy rules are re-evaluated against the same reconstructed scope, including:
+
+- destination;
+- operation;
+- resource pattern;
+- amount cap.
+
+A capped autonomy rule never matches a task that omits `amountCents`.
+
+### Concrete request checks
+
+Sentinel additionally compares provider requests with task scope.
+
+WhatsApp:
+
+- resource must be WhatsApp;
+- approved send operation must match;
+- actual recipient must equal approved destination;
+- SHA-256 of the actual message must equal the approved message.
+
+Paid media writes:
+
+- account must equal approved destination;
+- provider action must equal approved operation;
+- actual parameters must remain inside the approved parameter set;
+- budget operations must equal the approved `amountCents`.
+
+Dynamic API reads remain GET/HEAD R0 only.
+
+Browser control calls are limited to the allowlisted Steel control host. For scrape requests, the Egress Gateway extracts and resolves the target URL before Sentinel evaluates the request.
+
+## Authd ACL
+
+Authd accepts caller-specific credentials:
+
+- `browser_broker`;
+- `privsep_broker`.
+
+Policy:
+
+```text
+browser_broker
+  -> steel / browser.provider
+
+privsep_broker
+  -> whatsapp / whatsapp.send
+  -> windsor / paid_media.read
+  -> windsor / paid_media.write
+```
+
+The same rule is stored in `credential_handles.scopes`, so code policy and persistent policy must both allow the resolution.
+
+Surrogates remain:
 
 ```text
 cred://steel/default
@@ -59,152 +143,95 @@ cred://whatsapp/default
 cred://windsor/default
 ```
 
-Authd resolves a surrogate only when:
+Provider secrets exist only on Authd and are sent over the internal credential network to the Egress Gateway for the single approved request.
 
-- the tenant matches the per-tenant Work Cell;
-- the task exists and is executable;
-- the corresponding `credential_handles` row is active.
+Windsor's query-string `api_key` is injected by the Egress Gateway only after Sentinel approval and is not included in the recorded destination.
 
-Credential resolution is logged without writing the real secret to the database or runtime event log.
+## Control-plane Trust Store
 
-## Privsep Broker
+Sentinel, Authd and Browser Broker no longer have database credentials.
 
-Provider connectors run outside HERMES.
+A shared trusted control-plane service, `agesoma-trust-store`, owns the database connection and exposes narrow endpoints.
 
-The current Privsep Broker preserves the existing internal routes for:
+Each tenant/caller receives an HMAC-derived token:
 
-- WhatsApp Cloud messages;
-- Windsor Meta Ads reads/actions;
-- Windsor Google Ads reads.
+- Sentinel;
+- Authd;
+- Browser Broker.
 
-For every provider request the broker:
+A caller can access only its own endpoint family.
 
-1. authenticates the control-worker call;
-2. resolves the public destination IP;
-3. asks Sentinel v2;
-4. resolves the provider surrogate through Authd;
-5. performs the provider request only after `ALLOW`.
+The Trust Store performs:
 
-Consequential requests carry the exact approval `grantRef` and `capabilityHash`.
+- canonical task/grant/autonomy reads for Sentinel;
+- egress decision/runtime-event persistence;
+- credential-handle scope verification for Authd;
+- browser session/profile/event persistence.
 
-## Sentinel v2
-
-Sentinel v2 is the network authority for privileged egress.
-
-Inputs include:
-
-- tenant and task;
-- destination;
-- HTTP method and path;
-- operation;
-- resolved IP;
-- effect: `read | control | write | commit`;
-- data taint;
-- grant reference;
-- capability hash;
-- request metadata.
-
-Decisions are:
-
-- `ALLOW`;
-- `REVIEW`;
-- `DENY`.
-
-Sentinel denies:
-
-- tenant mismatch;
-- missing/non-executable task;
-- non-HTTPS external destinations;
-- private/reserved IP destinations;
-- explicit autonomy DENY rules;
-- unsupported effects/methods;
-- control-plane POSTs to non-allowlisted control hosts.
-
-Write/commit requests and R2/R3 tasks require a valid scoped approval or active ALLOW autonomy rule.
-
-Approval grants must already have been consumed by the task runner and, when supplied, the capability hash must still match.
-
-Every decision is written to `egress_decisions` and `runtime_events`.
-
-## Data taint
-
-Migration 0014 introduces task-level logical taint:
-
-- `clean`;
-- `public`;
-- `personal`;
-- `sensitive`;
-- `credential`.
-
-Tasks that receive personal context begin as `personal`.
-
-Sentinel requires review when personal/sensitive/credential data is actually marked as leaving for an external destination without an appropriate grant.
-
-This is a logical first implementation. Kernel/eBPF provenance tracking is not implemented.
+This moves database authority out of the per-tenant Work Cell.
 
 ## Browser Broker
 
-Steel is behind a per-tenant Browser Broker.
+The Browser Broker has:
 
-The broker is the only browser component that receives the Steel credential, indirectly through Authd.
+- no database credential;
+- no direct internet route;
+- no Steel SDK credential in its environment.
 
-Supported initial operations:
+It resolves only `cred://steel/default`, then asks the Egress Gateway to call Steel REST.
 
-- `POST /v1/scrape` — read-only rendered-page extraction;
-- `POST /v1/sessions` — create a brokered persistent Steel session;
-- `POST /v1/sessions/release` — release the session.
+Initial operations remain:
 
-Rules:
+- create persistent session;
+- release session;
+- read-only scrape.
 
-- HTTPS target only;
-- private/reserved DNS results rejected;
-- Sentinel authorization before target/control egress;
-- persistent Steel profile stored as `browser_profile_ref`;
-- runtime receives no CDP/WebSocket URL;
-- runtime receives no Steel viewer/debug URL;
-- sessions are non-interactive by default;
-- max 2 browser sessions per task;
-- max 20 scrape operations per task;
-- returned web content is labeled `external_untrusted`.
+Only `business.observe` and `business.work` tasks receive browser capability.
 
-A future host-side browser subagent can add click/fill/snapshot operations without exposing raw CDP to HERMES.
+The runtime never receives Steel API keys, CDP/WebSocket URLs or viewer/debug URLs.
+
+Returned page data is always labeled `external_untrusted`.
 
 ## Dynamic API tools
 
-Approved dynamic `api.tool_read` execution now also asks Sentinel v2 immediately before the provider fetch.
+`api.tool_read` no longer performs provider fetches directly from the control worker.
 
-The task-level policy decision is not recorded as network egress. Only Sentinel v2 records actual egress decisions.
+The control worker sends the read to the tenant Egress Gateway using its separate `control_worker` caller identity. Sentinel v3 decides immediately before the pinned external connection.
 
-## Deployment
+## Migrations
 
-Apply migrations in order through:
+Apply in order:
 
 ```text
 0011_personal_assistant_foundation.sql
 0012_muse_parity_runtime_attention.sql
 0013_api_tool_builder.sql
 0014_muse_trust_boundary.sql
+0015_forced_egress_and_authd_acl.sql
 ```
 
-Then provision/re-provision each Work Cell.
+Then re-provision every Work Cell.
 
-Required new secrets/config:
+New control-plane configuration:
 
-- `SENTINEL_SERVICE_TOKEN`;
-- `AUTHD_SERVICE_TOKEN`;
-- `STEEL_API_KEY` for browser capability;
-- existing provider secrets remain on Authd only.
+- `TRUST_STORE_MASTER_SECRET`;
+- `EGRESS_CONTROL_TOKEN`.
 
-## Remaining gap to Meta MUSE architecture
+Per-tenant Authd/Trust Store/egress caller tokens are derived during Work Cell provisioning.
 
-This phase closes the largest process-boundary gaps but is not a claim of identical implementation.
+Existing provider secrets remain configured only for Authd.
 
-Still pending:
+## Remaining gaps
+
+The P0 audit findings above are closed by this architecture, but this is still not a claim of identical Meta MUSE implementation.
+
+Remaining work:
 
 - model-provider keys behind a model gateway;
-- host-side interactive browser subagent/accessibility-tree interface;
-- secure authenticated human-takeover viewer route;
-- OTP/magic-link/password-reset filtering in email connectors;
-- kernel/eBPF taint propagation;
-- replay-complete model/tool event logging;
-- capability grants with one-time/session/time-bounded UX.
+- interactive browser subagent with accessibility-tree interface;
+- secure human takeover;
+- OTP/magic-link/password-reset filtering;
+- stronger prompt-injection classifiers outside the runtime;
+- kernel/eBPF-grade taint propagation;
+- replay-complete, tamper-evident runtime event log;
+- first-class once/task/session/time-bounded capability UX.

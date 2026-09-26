@@ -100,7 +100,10 @@ Before production:
 - failure recovery;
 - connector-specific permission boundaries;
 - Authd surrogate-credential boundary;
-- Sentinel v2 structured egress authority;
+- Sentinel v3 reconstructing task scope and concrete requests;
+- forced Egress Gateway as the only privileged Work Cell internet path;
+- control-plane Trust Store so Work Cell services receive no database credential;
+- caller-scoped Authd and Trust Store credentials;
 - brokered browser access with CDP hidden from the runtime;
 - persistent personal runtime contract;
 - first-class Goals and Activity surfaces;
@@ -133,6 +136,7 @@ packages/db/migrations/0011_personal_assistant_foundation.sql
 packages/db/migrations/0012_muse_parity_runtime_attention.sql
 packages/db/migrations/0013_api_tool_builder.sql
 packages/db/migrations/0014_muse_trust_boundary.sql
+packages/db/migrations/0015_forced_egress_and_authd_acl.sql
 ```
 
 to the production database.

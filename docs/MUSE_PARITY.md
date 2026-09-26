@@ -103,9 +103,10 @@ This layer requires:
 2. `0012_muse_parity_runtime_attention.sql`
 3. `0013_api_tool_builder.sql`
 4. `0014_muse_trust_boundary.sql`
-5. application deployment
+5. `0015_forced_egress_and_authd_acl.sql`
+6. application deployment
 
-The repository still does not automatically execute SQL migrations during the web build. Apply both migrations before deploying code that reads these schemas.
+The repository still does not automatically execute SQL migrations during the web build. Apply the listed migrations in order before deploying code that depends on these schemas.
 
 
 ## Dynamic tool creation
@@ -125,9 +126,11 @@ AGESOMA now treats the HERMES runtime as untrusted for user/provider authority.
 
 Implemented:
 
-- Sentinel v2 as a separate structured egress authority;
-- Authd surrogate credentials;
-- provider execution in a Privsep Broker;
+- Sentinel v3 reconstructing canonical task scope and validating concrete requests;
+- a forced per-tenant Egress Gateway as the only privileged Work Cell outbound path;
+- caller-scoped Authd surrogate credentials;
+- a control-plane Trust Store so Work Cell trust-boundary services receive no database credential;
+- provider execution in a Privsep Broker with request-scoped credentials;
 - Steel behind a Browser Broker with CDP/viewer URLs hidden from the runtime;
 - logical personal-data taint;
 - runtime event logging for credential resolution, egress decisions and browser actions.

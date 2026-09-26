@@ -1,5 +1,5 @@
 {
-  "name": "@agesoma/browser-broker",
+  "name": "@agesoma/egress-gateway",
   "version": "0.1.0",
   "private": true,
   "type": "module",

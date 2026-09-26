@@ -7,7 +7,7 @@ services:
       - ${WORKCELL_ALLOWLIST_FILE}:/etc/squid/approved-domains:ro
     networks:
       - tenant_cell
-      - sentinel_outbound
+      - runtime_outbound
 
   sentinel:
     build:
@@ -15,16 +15,15 @@ services:
       dockerfile: services/sentinel/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      AGESOMA_DB_SCHEMA: agesoma_p0
       AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
       SENTINEL_SERVICE_TOKEN: ${SENTINEL_SERVICE_TOKEN}
       SENTINEL_CONTROL_HOSTS: ${SENTINEL_CONTROL_HOSTS:-api.steel.dev}
+      TRUST_STORE_URL: http://trust-store-${AGESOMA_TENANT_ID}:8084
+      TRUST_STORE_TENANT_TOKEN: ${TRUST_STORE_SENTINEL_TOKEN}
     networks:
       credential_cell:
         aliases:
           - sentinel-${AGESOMA_TENANT_ID}
-      sentinel_outbound: {}
 
   authd:
     build:
@@ -32,16 +31,36 @@ services:
       dockerfile: services/authd/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      AGESOMA_DB_SCHEMA: agesoma_p0
       AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
-      AUTHD_SERVICE_TOKEN: ${AUTHD_SERVICE_TOKEN}
+      TRUST_STORE_URL: http://trust-store-${AGESOMA_TENANT_ID}:8084
+      TRUST_STORE_TENANT_TOKEN: ${TRUST_STORE_AUTHD_TOKEN}
+      AUTHD_BROWSER_TOKEN: ${AUTHD_BROWSER_TOKEN}
+      AUTHD_PRIVSEP_TOKEN: ${AUTHD_PRIVSEP_TOKEN}
       STEEL_API_KEY: ${STEEL_API_KEY:-}
       WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
       WINDSOR_API_KEY: ${WINDSOR_API_KEY:-}
     networks:
       - credential_cell
-      - authd_outbound
+
+  egress-gateway:
+    build:
+      context: ../..
+      dockerfile: services/egress-gateway/Dockerfile
+    restart: unless-stopped
+    environment:
+      AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
+      SENTINEL_URL: http://sentinel:8081
+      SENTINEL_SERVICE_TOKEN: ${SENTINEL_SERVICE_TOKEN}
+      EGRESS_BROWSER_TOKEN: ${EGRESS_BROWSER_TOKEN}
+      EGRESS_PRIVSEP_TOKEN: ${EGRESS_PRIVSEP_TOKEN}
+      EGRESS_CONTROL_TOKEN: ${EGRESS_CONTROL_TOKEN}
+    networks:
+      credential_cell:
+        aliases:
+          - egress-${AGESOMA_TENANT_ID}
+      privileged_outbound: {}
+    depends_on:
+      - sentinel
 
   credential-broker:
     build:
@@ -51,9 +70,9 @@ services:
     environment:
       AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
       AUTHD_URL: http://authd:8083
-      AUTHD_SERVICE_TOKEN: ${AUTHD_SERVICE_TOKEN}
-      SENTINEL_URL: http://sentinel:8081
-      SENTINEL_SERVICE_TOKEN: ${SENTINEL_SERVICE_TOKEN}
+      AUTHD_PRIVSEP_TOKEN: ${AUTHD_PRIVSEP_TOKEN}
+      EGRESS_GATEWAY_URL: http://egress-${AGESOMA_TENANT_ID}:8085
+      EGRESS_PRIVSEP_TOKEN: ${EGRESS_PRIVSEP_TOKEN}
       CREDENTIAL_BROKER_SERVICE_TOKEN: ${CREDENTIAL_BROKER_SERVICE_TOKEN}
       WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-v23.0}
       WHATSAPP_CLOUD_PHONE_NUMBER_ID: ${WHATSAPP_CLOUD_PHONE_NUMBER_ID:-}
@@ -61,10 +80,9 @@ services:
       credential_cell:
         aliases:
           - broker-${AGESOMA_TENANT_ID}
-      broker_outbound: {}
     depends_on:
       - authd
-      - sentinel
+      - egress-gateway
 
   browser-broker:
     build:
@@ -72,23 +90,22 @@ services:
       dockerfile: services/browser-broker/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      AGESOMA_DB_SCHEMA: agesoma_p0
       AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
+      TRUST_STORE_URL: http://trust-store-${AGESOMA_TENANT_ID}:8084
+      TRUST_STORE_TENANT_TOKEN: ${TRUST_STORE_BROWSER_TOKEN}
       AUTHD_URL: http://authd:8083
-      AUTHD_SERVICE_TOKEN: ${AUTHD_SERVICE_TOKEN}
-      SENTINEL_URL: http://sentinel:8081
-      SENTINEL_SERVICE_TOKEN: ${SENTINEL_SERVICE_TOKEN}
+      AUTHD_BROWSER_TOKEN: ${AUTHD_BROWSER_TOKEN}
+      EGRESS_GATEWAY_URL: http://egress-${AGESOMA_TENANT_ID}:8085
+      EGRESS_BROWSER_TOKEN: ${EGRESS_BROWSER_TOKEN}
       STEEL_BASE_URL: ${STEEL_BASE_URL:-https://api.steel.dev}
     networks:
       tenant_cell:
         aliases:
           - browser-${AGESOMA_TENANT_ID}
       credential_cell: {}
-      browser_outbound: {}
     depends_on:
       - authd
-      - sentinel
+      - egress-gateway
 
   hermes:
     image: nousresearch/hermes-agent:v2026.9.7
@@ -139,13 +156,9 @@ networks:
   credential_cell:
     name: agesoma-credentials-${AGESOMA_TENANT_ID}
     external: true
-  sentinel_outbound:
+  runtime_outbound:
     driver: bridge
-  authd_outbound:
-    driver: bridge
-  broker_outbound:
-    driver: bridge
-  browser_outbound:
+  privileged_outbound:
     driver: bridge
 
 volumes:

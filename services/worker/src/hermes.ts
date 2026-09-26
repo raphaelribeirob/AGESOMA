@@ -256,7 +256,19 @@ async function loadPaidMediaContext(mission: HermesMission) {
   if (mission.action !== "paid_media.read" && !isPaidMediaWork) return null;
 
   const connector = paidMediaConnector(mission.payload.resource);
-  if (!connector) throw new Error("Paid media provider is not supported");
+  if (!connector || connector === "all") {
+    throw new Error("Paid media reads require an explicit connected provider");
+  }
+
+  const account = text(mission.payload.destination);
+  if (!account) throw new Error("Paid media reads require an explicit connected account");
+
+  await requireConnectedPermission(
+    mission,
+    connector === "facebook" ? "meta_ads" : "google_ads",
+    "read",
+    account
+  );
 
   const parameters = record(mission.payload.parameters) ?? {};
   const datePreset = text(parameters.datePreset) ?? "last_7dT";
@@ -264,7 +276,7 @@ async function loadPaidMediaContext(mission: HermesMission) {
     ? "date,account_id,account_name,campaign,campaign_id,campaign_daily_budget,campaign_lifetime_budget,campaign_budget_remaining,spend,impressions,clicks,ctr,cpc,cpm,reach,frequency"
     : "date,source,account_id,account_name,campaign,campaign_id,spend,impressions,clicks";
 
-  const query = new URLSearchParams({ fields, date_preset: datePreset });
+  const query = new URLSearchParams({ fields, date_preset: datePreset, select_accounts: account });
   const response = await paidMediaBrokerFetch(
     mission,
     `/v1/paid-media/${connector}/data?${query.toString()}`
@@ -275,7 +287,7 @@ async function loadPaidMediaContext(mission: HermesMission) {
   }
 
   let actions: unknown[] = [];
-  if (connector === "facebook" || connector === "all") {
+  if (connector === "facebook") {
     const actionsResponse = await paidMediaBrokerFetch(mission, "/v1/paid-media/facebook/actions");
     const actionPayload = await actionsResponse.json().catch(() => null);
     if (actionsResponse.ok && Array.isArray(actionPayload)) {
@@ -299,6 +311,7 @@ async function loadPaidMediaContext(mission: HermesMission) {
 
   return {
     connector,
+    account,
     datePreset,
     fields: fields.split(","),
     rows: Array.isArray(providerResponse) ? providerResponse : providerResponse ?? [],
