@@ -183,7 +183,7 @@ function agentContext(agent: DigitalAgentRow) {
     preferredResources: list(agent.preferred_resources),
     autonomyMode: agent.autonomy_mode,
     memoryNamespace: agent.memory_namespace,
-    runtime: "hermes-work-cell"
+    runtime: "personal-persistent-runtime"
   };
 }
 
