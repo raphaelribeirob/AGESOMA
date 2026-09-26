@@ -256,6 +256,22 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     [data.taskId, data.tenantId]
   );
 
+  await sql(`
+    insert into activity_events (tenant_id,task_id,event_type,title,summary,status,metadata)
+    values ($1,$2,'started','Execução iniciada',$3,'info',$4::jsonb)
+  `, [
+    data.tenantId,
+    data.taskId,
+    typeof data.payload.objective === "string" ? data.payload.objective : null,
+    JSON.stringify({ action: data.action })
+  ]);
+
+  await sql(`
+    update work_cells
+    set last_active_at=now(),last_seen_at=now(),updated_at=now()
+    where tenant_id=$1
+  `, [data.tenantId]);
+
   try {
     let executionPayload = data.payload;
 
@@ -349,6 +365,11 @@ export async function executeQueuedTask(queued: ExecuteJob) {
        where id=$1 and tenant_id=$2`,
       [data.taskId, data.tenantId, reason]
     );
+
+    await sql(`
+      insert into activity_events (tenant_id,task_id,event_type,title,summary,status,metadata)
+      values ($1,$2,'blocked','Execução interrompida',$3,'warning',$4::jsonb)
+    `, [data.tenantId,data.taskId,reason,JSON.stringify({ action: data.action })]);
 
     if (typeof data.payload.watcherId === "string") {
       await sql(
