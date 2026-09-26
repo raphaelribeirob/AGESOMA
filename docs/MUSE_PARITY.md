@@ -101,7 +101,9 @@ This layer requires:
 
 1. `0011_personal_assistant_foundation.sql`
 2. `0012_muse_parity_runtime_attention.sql`
-3. application deployment
+3. `0013_api_tool_builder.sql`
+4. `0014_muse_trust_boundary.sql`
+5. application deployment
 
 The repository still does not automatically execute SQL migrations during the web build. Apply both migrations before deploying code that reads these schemas.
 
@@ -115,3 +117,19 @@ Discover → OpenAPI build → contract validation → user approval → R0 reus
 ```
 
 Only no-auth GET/HEAD tools can enter the generic dynamic runtime. Write operations remain blocked and must be implemented through explicit R2/R3 provider actions. This keeps self-tooling separate from authority.
+
+
+## Trust boundary status
+
+AGESOMA now treats the HERMES runtime as untrusted for user/provider authority.
+
+Implemented:
+
+- Sentinel v2 as a separate structured egress authority;
+- Authd surrogate credentials;
+- provider execution in a Privsep Broker;
+- Steel behind a Browser Broker with CDP/viewer URLs hidden from the runtime;
+- logical personal-data taint;
+- runtime event logging for credential resolution, egress decisions and browser actions.
+
+See `docs/MUSE_TRUST_BOUNDARY.md`.
