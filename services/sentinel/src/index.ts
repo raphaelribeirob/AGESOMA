@@ -30,6 +30,7 @@ type ContextResponse={
   approvalGrant:null|Record<string,unknown>;
   autonomyGrant:null|Record<string,unknown>;
   autonomyRules:Array<Record<string,unknown>>;
+  toolRecipe:null|Record<string,unknown>;
 };
 
 const port=Number(process.env.PORT??8081);
@@ -181,9 +182,12 @@ function approvedParamsCovered(actual:Record<string,unknown>,approved:Record<str
   return true;
 }
 
-function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:CapabilityScope){
+function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:CapabilityScope,ctx:ContextResponse){
   const meta=input.requestMeta??{};
   if(input.operation==="whatsapp.send"){
+    let destination:URL;
+    try{destination=new URL(input.destination);}catch{return false;}
+    if(destination.hostname.toLowerCase()!=="graph.facebook.com") return false;
     if(String(scope.resource??"").toLowerCase()!=="whatsapp") return false;
     const allowedOps=new Set(["send","send_message","send_text","message"]);
     if(!scope.operation||!allowedOps.has(scope.operation.toLowerCase())) return false;
@@ -194,6 +198,9 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   }
 
   if(input.operation==="paid_media.write"){
+    let destination:URL;
+    try{destination=new URL(input.destination);}catch{return false;}
+    if(destination.hostname.toLowerCase()!=="connectors.windsor.ai") return false;
     if(!task.action_type?.startsWith("paid_media.")) return false;
     if(text(meta.account)!==scope.destination) return false;
     if(text(meta.providerAction)!==scope.operation) return false;
@@ -207,11 +214,25 @@ function concreteRequestMatches(input:AuthorizeRequest,task:TaskRow,scope:Capabi
   }
 
   if(input.operation==="paid_media.read"){
-    return input.method==="GET";
+    let destination:URL;
+    try{destination=new URL(input.destination);}catch{return false;}
+    return destination.hostname.toLowerCase()==="connectors.windsor.ai"&&input.method==="GET";
   }
 
   if(input.operation.startsWith("api.tool_read:")){
-    return task.action_type==="api.tool_read"&&["GET","HEAD"].includes(input.method);
+    if(task.action_type!=="api.tool_read"||!["GET","HEAD"].includes(input.method)) return false;
+    const recipe=ctx.toolRecipe;
+    if(!recipe||recipe.status!=="approved"||recipe.risk_class!=="R0"||recipe.auth_mode!=="none") return false;
+    const recipeId=text(task.payload.recipeId);
+    const operationId=text(task.payload.operationId);
+    if(!recipeId||recipe.id!==recipeId||!operationId||input.operation!==`api.tool_read:${operationId}`) return false;
+    const baseUrl=text(recipe.base_url);
+    if(!baseUrl) return false;
+    try{
+      const approvedOrigin=new URL(baseUrl).origin;
+      const actualOrigin=new URL(input.destination).origin;
+      return approvedOrigin===actualOrigin;
+    }catch{return false;}
   }
 
   if(input.operation==="browser.scrape.control"){
@@ -289,7 +310,7 @@ async function decide(input:AuthorizeRequest){
   if((input.effect==="write"||input.effect==="commit")&&input.capabilityHash!==scopeHash){
     return {decision:"DENY" as const,reason:"capability_hash_mismatch",task,scopeHash};
   }
-  if(!concreteRequestMatches(input,task,scope)){
+  if(!concreteRequestMatches(input,task,scope,ctx)){
     return {decision:"DENY" as const,reason:"concrete_request_outside_task_scope",task,scopeHash};
   }
 
