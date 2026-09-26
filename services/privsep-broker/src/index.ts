@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -7,8 +8,19 @@ const authdUrl = (process.env.AUTHD_URL ?? "http://authd:8083").replace(/\/$/,""
 const authdToken = process.env.AUTHD_SERVICE_TOKEN?.trim() ?? "";
 const sentinelUrl = (process.env.SENTINEL_URL ?? "http://sentinel:8081").replace(/\/$/,"");
 const sentinelToken = process.env.SENTINEL_SERVICE_TOKEN?.trim() ?? "";
+const brokerToken = process.env.CREDENTIAL_BROKER_SERVICE_TOKEN?.trim() ?? "";
 const whatsappVersion = process.env.WHATSAPP_GRAPH_VERSION?.trim() ?? "v23.0";
 const whatsappPhoneId = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim() ?? "";
+
+function sameSecret(a:string,b:string){
+  const left=Buffer.from(a); const right=Buffer.from(b);
+  return left.length===right.length&&left.length>0&&timingSafeEqual(left,right);
+}
+
+function brokerAuthorized(req:IncomingMessage){
+  const supplied=req.headers["x-agesoma-broker-token"];
+  return typeof supplied==="string"&&sameSecret(supplied,brokerToken);
+}
 
 function json(res: ServerResponse,status:number,value:unknown) {
   const body=JSON.stringify(value);
@@ -146,6 +158,7 @@ async function windsor(req:IncomingMessage,res:ServerResponse,url:URL,route:{con
 const server=createServer(async(req,res)=>{
   try{
     if(req.method==="GET"&&req.url==="/health") return json(res,200,{ok:true,mode:"privsep-authd-sentinel"});
+    if(!brokerAuthorized(req)) return json(res,403,{error:"forbidden"});
     const url=new URL(req.url??"/","http://privsep.local");
     if(url.pathname==="/v1/whatsapp/messages") return await whatsapp(req,res);
     const route=windsorConnector(url.pathname);
@@ -161,4 +174,5 @@ const server=createServer(async(req,res)=>{
 if(!tenantId) throw new Error("AGESOMA_TENANT_ID is required");
 if(!authdToken) throw new Error("AUTHD_SERVICE_TOKEN is required");
 if(!sentinelToken) throw new Error("SENTINEL_SERVICE_TOKEN is required");
+if(!brokerToken) throw new Error("CREDENTIAL_BROKER_SERVICE_TOKEN is required");
 server.listen(port,"0.0.0.0",()=>console.log(`AGESOMA privsep broker listening on ${port}`));
