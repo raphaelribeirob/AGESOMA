@@ -278,8 +278,8 @@ async function queueApiToolBuild(task: ProductTask, content: unknown) {
   await sql(`
     insert into tasks (
       tenant_id,workflow_id,status,action_type,risk_class,reversible,external,
-      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload,dispatched_at
-    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb,now())
+      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload
+    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb)
   `,[
     task.tenant_id,
     task.workflow_id,
@@ -430,8 +430,8 @@ async function persistToolInvocation(task: ProductTask, output: Record<string, u
   await sql(`
     insert into tasks (
       tenant_id,workflow_id,status,action_type,risk_class,reversible,external,
-      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload,dispatched_at
-    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb,now())
+      expected_value_cents,expected_cost_cents,expected_loss_cents,confidence,payload
+    ) values ($1,$2,'queued',$3,$4,$5,$6,0,0,0,1,$7::jsonb)
   `,[
     task.tenant_id,
     task.workflow_id,
