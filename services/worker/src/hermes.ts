@@ -126,7 +126,7 @@ async function loadPaidMediaContext(mission: HermesMission) {
   }
 
   let actions: unknown[] = [];
-  if (connector === "facebook") {
+  if (connector === "facebook" || connector === "all") {
     const actionsResponse = await paidMediaBrokerFetch(mission, "/v1/paid-media/facebook/actions");
     const actionPayload = await actionsResponse.json().catch(() => null);
     if (actionsResponse.ok && Array.isArray(actionPayload)) {
@@ -192,6 +192,11 @@ async function maybeExecutePaidMediaAction(mission: HermesMission) {
   if (!providerAction) return null;
   if (!mission.grantRef) throw new Error("Approved paid media action is missing scoped authority");
 
+  const approvedOperation = text(mission.payload.operation);
+  if (approvedOperation !== providerAction) {
+    throw new Error("Paid media operation differs from the approved action class");
+  }
+
   const connector = paidMediaConnector(mission.payload.resource);
   if (connector !== "facebook") {
     throw new Error("Paid media writes currently support Meta Ads through the secured broker; other providers remain read-only");
@@ -218,12 +223,13 @@ async function maybeExecutePaidMediaAction(mission: HermesMission) {
     throw new Error("Spend-capable paid media action requires an explicit approved amount");
   }
 
-  if (
-    ["set_campaign_budget", "set_adset_budget"].includes(providerAction) &&
-    typeof parameters.amount === "number" &&
-    parameters.amount !== amountCents
-  ) {
-    throw new Error("Paid media budget differs from the approved amount");
+  if (["set_campaign_budget", "set_adset_budget"].includes(providerAction)) {
+    if (typeof parameters.amount !== "number" || !Number.isFinite(parameters.amount)) {
+      throw new Error("Paid media budget action requires a numeric provider amount");
+    }
+    if (parameters.amount !== amountCents) {
+      throw new Error("Paid media budget differs from the approved amount");
+    }
   }
 
   if (providerAction === "enable_campaign") {
