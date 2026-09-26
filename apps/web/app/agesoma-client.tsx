@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useMemo, useRef, useState } from "react";
 
 type AgesomaApproval = {
@@ -159,7 +160,10 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
     <main className="agesomaShell">
       <header className="agesomaHeader">
         <img src="/agesoma-wordmark.jpeg" alt="AGESOMA" className="agesomaWordmark" />
-        <span className="agesomaStatus"><i /> ativo</span>
+        <div className="agesomaHeaderActions">
+          <Link href="/settings" className="agesomaSettingsLink">Contexto e conexões</Link>
+          <span className="agesomaStatus"><i /> ativo</span>
+        </div>
       </header>
 
       <section className="agesomaStage" aria-live="polite">
