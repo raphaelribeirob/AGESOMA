@@ -106,7 +106,7 @@ This layer requires:
 5. `0015_forced_egress_and_authd_acl.sql`
 6. application deployment
 
-The repository still does not automatically execute SQL migrations during the web build. Apply both migrations before deploying code that reads these schemas.
+The repository still does not automatically execute SQL migrations during the web build. Apply the listed migrations in order before deploying code that depends on these schemas.
 
 
 ## Dynamic tool creation
