@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { agesomaPackage } from "../../lib/riverthree-product";
 
 type Choice = { label: string; value: string; detail?: string };
 type Draft = {
-  companyContext: string;
-  teamSize: string;
-  teamStructure: string;
-  coordinationProblem: string;
+  personalContext: string;
+  priorityArea: string;
   request: string;
 };
 
@@ -18,22 +16,21 @@ const FIRST_REQUEST_KEY = "agesoma:first-request";
 const PREPARED_REQUEST_KEY = "agesoma:prepared-request";
 
 const initialDraft: Draft = {
-  companyContext: "",
-  teamSize: "",
-  teamStructure: "",
-  coordinationProblem: "",
+  personalContext: "",
+  priorityArea: "",
   request: ""
 };
 
-const problemChoices: Choice[] = [
-  { label: "Ninguém sabe o que é prioridade", value: "priority", detail: "O trabalho muda e a equipe perde foco." },
-  { label: "As coisas ficam paradas", value: "blocked", detail: "Tarefas dependem de cobrança e acompanhamento." },
-  { label: "Algumas pessoas ficam sobrecarregadas", value: "capacity", detail: "A distribuição de trabalho não está clara." },
-  { label: "Eu preciso acompanhar tudo", value: "owner_bottleneck", detail: "A empresa depende demais do dono para andar." }
+const priorityChoices: Choice[] = [
+  { label: "Agenda e compromissos", value: "calendar", detail: "Organizar reuniões, prazos, eventos e lembretes." },
+  { label: "E-mail e mensagens", value: "communication", detail: "Ler contexto, preparar respostas e acompanhar pendências." },
+  { label: "Pesquisa e decisões", value: "research", detail: "Investigar opções, comparar informações e preparar decisões." },
+  { label: "Trabalho e documentos", value: "work", detail: "Preparar arquivos, relatórios, apresentações e tarefas digitais." },
+  { label: "Administração pessoal", value: "life_admin", detail: "Resolver pequenas burocracias e rotinas que consomem tempo." }
 ];
 
-function problemLabel(value: string) {
-  return problemChoices.find((choice) => choice.value === value)?.label ?? "Coordenação da equipe";
+function priorityLabel(value: string) {
+  return priorityChoices.find((choice) => choice.value === value)?.label ?? "O que for mais importante";
 }
 
 export default function OnboardingPage() {
@@ -57,16 +54,8 @@ export default function OnboardingPage() {
     if (request) setDraft((current) => ({ ...current, request }));
   }, []);
 
-  const peoplePreview = useMemo(() => {
-    return draft.teamStructure
-      .split(/\n|;/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 4);
-  }, [draft.teamStructure]);
-
   const progress = Math.round(((index + 1) / steps.length) * 100);
-  const isAutoStep = step.id === "coordination_problem";
+  const isAutoStep = step.id === "priority_area";
 
   function persist(nextDraft: Draft) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextDraft));
@@ -81,9 +70,9 @@ export default function OnboardingPage() {
     });
   }
 
-  function selectProblem(value: string) {
+  function selectPriority(value: string) {
     setDraft((current) => {
-      const nextDraft = { ...current, coordinationProblem: value };
+      const nextDraft = { ...current, priorityArea: value };
       persist(nextDraft);
       return nextDraft;
     });
@@ -91,10 +80,8 @@ export default function OnboardingPage() {
   }
 
   function canContinue() {
-    if (step.id === "company_context") return draft.companyContext.trim().length >= 3;
-    if (step.id === "team_size") return Number(draft.teamSize) >= 1 && Number(draft.teamSize) <= 500;
-    if (step.id === "team_structure") return draft.teamStructure.trim().length >= 3;
-    if (step.id === "desired_outcome") return draft.request.trim().length >= 3;
+    if (step.id === "personal_context") return draft.personalContext.trim().length >= 3;
+    if (step.id === "first_request") return draft.request.trim().length >= 3;
     return true;
   }
 
@@ -108,7 +95,7 @@ export default function OnboardingPage() {
     sessionStorage.setItem(PREPARED_REQUEST_KEY, JSON.stringify({
       ...draft,
       product: agesomaPackage.product.id,
-      activationState: "team_structure_prepared",
+      activationState: "personal_context_prepared",
       preparedAt: new Date().toISOString()
     }));
     router.push("/");
@@ -117,50 +104,38 @@ export default function OnboardingPage() {
   const screen = (() => {
     if (step.id === "welcome") return {
       eyebrow: "",
-      title: "Organize a empresa sem precisar cobrar todo mundo.",
-      body: "A AGESOMA entende quem faz o quê, distribui o trabalho e acompanha o que precisa avançar.",
+      title: "Um assistente que cuida das coisas por você.",
+      body: "Explique o que precisa ser resolvido. A AGESOMA organiza o trabalho, usa seu contexto e só pede sua decisão quando for necessário.",
       surface: "welcome"
     };
-    if (step.id === "company_context") return {
-      eyebrow: "Sua empresa",
-      title: "O que sua empresa faz?",
-      body: "Uma frase basta. Isso me dá contexto para entender o trabalho da equipe.",
+    if (step.id === "personal_context") return {
+      eyebrow: "Seu contexto",
+      title: "O que eu deveria saber sobre sua rotina?",
+      body: "Uma ou duas frases bastam. Você poderá corrigir ou apagar isso depois.",
       surface: "plain"
     };
-    if (step.id === "team_size") return {
-      eyebrow: "Equipe",
-      title: "Quantas pessoas trabalham com você?",
-      body: "Conte somente quem participa da operação do dia a dia.",
+    if (step.id === "priority_area") return {
+      eyebrow: "Primeiro foco",
+      title: "Onde você mais quer recuperar tempo?",
+      body: "Isso só define por onde começamos. Você poderá pedir qualquer outra coisa depois.",
       surface: "plain"
     };
-    if (step.id === "team_structure") return {
-      eyebrow: "Responsabilidades",
-      title: "Quem faz o quê?",
-      body: "Escreva nomes e funções de forma simples. Não precisa montar organograma.",
+    if (step.id === "first_request") return {
+      eyebrow: "Primeira delegação",
+      title: "O que você quer tirar da sua cabeça agora?",
+      body: "Escreva o resultado que você quer. Não precisa explicar como fazer.",
       surface: "plain"
     };
-    if (step.id === "coordination_problem") return {
-      eyebrow: "Hoje",
-      title: "Onde a organização mais falha?",
-      body: "Isso define o que eu devo acompanhar primeiro.",
-      surface: "plain"
-    };
-    if (step.id === "desired_outcome") return {
-      eyebrow: "Primeiro trabalho",
-      title: "O que precisa andar agora?",
-      body: "Escreva como falaria com alguém que conhece toda a sua empresa.",
-      surface: "plain"
-    };
-    if (step.id === "coordination_preview") return {
-      eyebrow: "Como vou organizar",
-      title: "Um responsável para cada trabalho.",
-      body: "Eu acompanho pessoas, assumo o que puder ser resolvido digitalmente e só chamo você quando for necessário.",
+    if (step.id === "assistant_preview") return {
+      eyebrow: "Como vou trabalhar",
+      title: "Você pede o resultado. Eu cuido da coordenação.",
+      body: "Eu reúno contexto, preparo os passos, executo o que estiver autorizado e volto quando houver algo para decidir ou quando estiver concluído.",
       surface: "resultPreview"
     };
     return {
       eyebrow: "Pronto",
-      title: "A estrutura inicial da sua empresa está preparada.",
-      body: "Ao entrar, você verá equipe, trabalho, bloqueios e resultados em um só lugar. Nenhuma ação externa foi executada nesta etapa.",
+      title: "Seu assistente está preparado.",
+      body: "A primeira tarefa está pronta para entrar na conversa. Nenhuma ação externa foi executada durante o onboarding.",
       surface: "success"
     };
   })();
@@ -183,29 +158,29 @@ export default function OnboardingPage() {
 
         {step.id === "welcome" ? (
           <div className="r3WelcomeMaterial" aria-hidden="true">
-            <span>entenda.</span>
+            <span>lembre.</span>
             <span>organize.</span>
-            <span>faça avançar.</span>
+            <span>resolva.</span>
           </div>
         ) : null}
 
-        {step.id === "company_context" ? (
-          <textarea className="onboardingTextarea" aria-label="O que sua empresa faz" placeholder="Ex.: Vendemos consórcios e atendemos clientes pelo WhatsApp." value={draft.companyContext} onChange={(event) => update("companyContext", event.target.value)} rows={4} autoFocus />
+        {step.id === "personal_context" ? (
+          <textarea
+            className="onboardingTextarea"
+            aria-label="Contexto pessoal"
+            placeholder="Ex.: Trabalho com tecnologia, tenho uma rotina corrida e quero reduzir o tempo gasto com agenda, e-mails e pesquisas."
+            value={draft.personalContext}
+            onChange={(event) => update("personalContext", event.target.value)}
+            rows={5}
+            autoFocus
+          />
         ) : null}
 
-        {step.id === "team_size" ? (
-          <input className="onboardingTextarea" aria-label="Tamanho da equipe" type="number" min="1" max="500" inputMode="numeric" placeholder="Ex.: 8" value={draft.teamSize} onChange={(event) => update("teamSize", event.target.value)} autoFocus />
-        ) : null}
-
-        {step.id === "team_structure" ? (
-          <textarea className="onboardingTextarea" aria-label="Quem faz o quê" placeholder={"Ex.:\nCarlos — vendas e propostas\nAna — financeiro e cobranças\nJoana — atendimento"} value={draft.teamStructure} onChange={(event) => update("teamStructure", event.target.value)} rows={6} autoFocus />
-        ) : null}
-
-        {step.id === "coordination_problem" ? (
+        {step.id === "priority_area" ? (
           <div className="choiceGrid">
-            {problemChoices.map((choice) => {
-              const active = draft.coordinationProblem === choice.value;
-              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectProblem(choice.value)}>
+            {priorityChoices.map((choice) => {
+              const active = draft.priorityArea === choice.value;
+              return <button key={choice.value} className={active ? "choice active" : "choice"} onClick={() => selectPriority(choice.value)}>
                 <span className="choiceCheck">{active ? "✓" : ""}</span>
                 <span><strong>{choice.label}</strong>{choice.detail ? <small>{choice.detail}</small> : null}</span>
               </button>;
@@ -213,30 +188,37 @@ export default function OnboardingPage() {
           </div>
         ) : null}
 
-        {step.id === "desired_outcome" ? (
-          <textarea className="onboardingTextarea" aria-label="O que precisa andar agora" placeholder="Ex.: Organize a equipe para responder todos os clientes atrasados até amanhã." value={draft.request} onChange={(event) => update("request", event.target.value)} rows={5} autoFocus />
+        {step.id === "first_request" ? (
+          <textarea
+            className="onboardingTextarea"
+            aria-label="Primeira delegação"
+            placeholder="Ex.: Organize minha próxima semana e deixe prontas as respostas dos e-mails que precisam de mim."
+            value={draft.request}
+            onChange={(event) => update("request", event.target.value)}
+            rows={5}
+            autoFocus
+          />
         ) : null}
 
-        {step.id === "coordination_preview" ? (
+        {step.id === "assistant_preview" ? (
           <div className="r3ResultPreview">
             <div className="previewHero">
-              <span className="monoLabel">PRIMEIRO TRABALHO</span>
-              <strong>{draft.request.trim() || "Organizar a primeira prioridade"}</strong>
-              <p>A AGESOMA define o responsável, acompanha até a conclusão e assume internamente o que não precisa ocupar uma pessoa.</p>
+              <span className="monoLabel">PRIMEIRA DELEGAÇÃO</span>
+              <strong>{draft.request.trim() || "Organizar a próxima prioridade"}</strong>
+              <p>A AGESOMA assume a coordenação e mantém você no controle das ações que exigem autorização.</p>
             </div>
             <div className="personalizationEvidence">
-              <div><span>Empresa</span><strong>{draft.companyContext || "Seu negócio"}</strong></div>
-              <div><span>Equipe</span><strong>{draft.teamSize ? `${draft.teamSize} pessoa${Number(draft.teamSize) === 1 ? "" : "s"}` : "Sua equipe"}</strong></div>
-              <div><span>Primeiro foco</span><strong>{problemLabel(draft.coordinationProblem)}</strong></div>
+              <div><span>Contexto</span><strong>{draft.personalContext || "Sua rotina"}</strong></div>
+              <div><span>Primeiro foco</span><strong>{priorityLabel(draft.priorityArea)}</strong></div>
             </div>
           </div>
         ) : null}
 
         {step.id === "first_execution" ? (
           <div className="r3FirstAction">
-            <div><span className="monoLabel">EMPRESA</span><strong>{draft.companyContext || "Seu negócio"}</strong></div>
-            <div><span className="monoLabel">EQUIPE</span><strong>{peoplePreview.length ? peoplePreview.join(" · ") : `${draft.teamSize || "—"} pessoas`}</strong></div>
-            <div><span className="monoLabel">PRIMEIRO TRABALHO</span><strong>{draft.request || "Organizar a próxima prioridade"}</strong></div>
+            <div><span className="monoLabel">CONTEXTO</span><strong>{draft.personalContext || "Sua rotina"}</strong></div>
+            <div><span className="monoLabel">FOCO</span><strong>{priorityLabel(draft.priorityArea)}</strong></div>
+            <div><span className="monoLabel">PRIMEIRA TAREFA</span><strong>{draft.request || "Organizar a próxima prioridade"}</strong></div>
           </div>
         ) : null}
 
