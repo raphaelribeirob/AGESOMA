@@ -130,6 +130,7 @@ Implemented:
 - a forced per-tenant Egress Gateway as the only privileged Work Cell outbound path;
 - caller-scoped Authd surrogate credentials;
 - a control-plane Trust Store so Work Cell trust-boundary services receive no database credential;
+- a per-tenant Model Gateway so HERMES receives no real model-provider credential and has no direct internet egress;
 - provider execution in a Privsep Broker with request-scoped credentials;
 - Steel behind a Browser Broker with CDP/viewer URLs hidden from the runtime;
 - logical personal-data taint;
