@@ -230,6 +230,7 @@ jobs:
           test -f services/model-gateway/src/policy.ts
           test -f services/model-gateway/test/policy.test.mjs
           test -f services/model-gateway/Dockerfile
+          test -f deploy/production/hermes-entrypoint.sh
           grep -q 'api.openai.com' services/model-gateway/src/policy.ts
           grep -q 'api.anthropic.com' services/model-gateway/src/policy.ts
           grep -q 'inference-api.nousresearch.com' services/model-gateway/src/policy.ts
@@ -238,6 +239,8 @@ jobs:
           grep -q 'MODEL_OPENAI_API_KEY' services/model-gateway/src/index.ts
           grep -q 'MODEL_ANTHROPIC_API_KEY' services/model-gateway/src/index.ts
           grep -q 'MODEL_NOUS_API_KEY' services/model-gateway/src/index.ts
+          grep -q 'cat > "$HERMES_HOME/.env"' deploy/production/hermes-entrypoint.sh
+          grep -q 'rm -f "$HERMES_HOME/.op.env"' deploy/production/hermes-entrypoint.sh
           if grep -Eq '/v1/(files|fine_tuning|batches|uploads)' services/model-gateway/src/policy.ts; then
             echo "Model Gateway must expose inference surfaces only"
             exit 1
@@ -324,6 +327,7 @@ jobs:
         run: |
           test -f deploy/production/workcell-compose.yml
           test -f deploy/production/provision-workcell.sh
+          test -f deploy/production/hermes-entrypoint.sh
           test ! -f deploy/production/sentinel-egress.conf
           test ! -f deploy/production/approved-domains.txt
           test ! -f deploy/production/credential-broker.conf.template
@@ -404,6 +408,8 @@ jobs:
           printf '%s\n' "$hermes_block" | grep -q 'OPENAI_BASE_URL: http://model-gateway-'
           printf '%s\n' "$hermes_block" | grep -q 'ANTHROPIC_BASE_URL: http://model-gateway-'
           printf '%s\n' "$hermes_block" | grep -q 'NOUS_INFERENCE_BASE_URL: http://model-gateway-'
+          printf '%s\n' "$hermes_block" | grep -q 'hermes-entrypoint.sh:/usr/local/bin/agesoma-hermes-entrypoint:ro'
+          printf '%s\n' "$hermes_block" | grep -q 'command: \["/bin/sh", "/usr/local/bin/agesoma-hermes-entrypoint"\]'
           if printf '%s\n' "$hermes_block" | grep -Eq 'HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|runtime_outbound|model_outbound|privileged_outbound'; then
             echo "HERMES must not have direct internet egress"
             exit 1
@@ -427,6 +433,7 @@ jobs:
       - name: Validate production topology
         run: |
           sh -n deploy/production/provision-workcell.sh
+          sh -n deploy/production/hermes-entrypoint.sh
           DATABASE_URL=postgresql://user:pass@db.example.invalid/agesoma \
           TRUST_STORE_MASTER_SECRET=test-trust-master \
           EGRESS_CONTROL_TOKEN=test-control-egress \
