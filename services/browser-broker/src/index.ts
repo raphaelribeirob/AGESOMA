@@ -126,12 +126,6 @@ async function createSession(input:Record<string,unknown>){
   const profileId=typeof (session as unknown as Record<string,unknown>).profileId==="string"
     ? String((session as unknown as Record<string,unknown>).profileId)
     : cell?.browser_profile_ref??null;
-  const viewerRaw=(session as unknown as Record<string,unknown>).sessionViewerUrl ??
-    (session as unknown as Record<string,unknown>).debugUrl;
-  const viewerUrl=typeof viewerRaw==="string"
-    ? `${viewerRaw}${viewerRaw.includes("?")?"&":"?"}interactive=false`
-    : null;
-
   await sql(`
     insert into browser_sessions (
       tenant_id,task_id,provider,provider_session_id,profile_ref,mode,interactive,status,data_taint
@@ -146,7 +140,7 @@ async function createSession(input:Record<string,unknown>){
     values ($1,$2,$3,'browser_session_created','browser_broker','Steel session created',$4::jsonb)
   `,[tenantId,taskId,session.id,JSON.stringify({provider:"steel",profileId,interactive:false,cdpExposedToRuntime:false})]);
 
-  return {sessionId:session.id,profileId,viewerUrl,interactive:false,cdpExposed:false};
+  return {sessionId:session.id,profileId,interactive:false,cdpExposed:false,viewerExposed:false};
 }
 
 async function releaseSession(input:Record<string,unknown>){
