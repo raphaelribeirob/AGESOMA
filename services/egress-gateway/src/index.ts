@@ -38,7 +38,9 @@ function caller(req:IncomingMessage):Caller{
 }
 
 function callerMayUse(name:Caller,operation:string){
-  if(name==="browser_broker") return operation.startsWith("browser.");
+  if(name==="browser_broker") return new Set([
+    "browser.session.create","browser.session.release","browser.scrape.control"
+  ]).has(operation);
   if(name==="privsep_broker") return operation==="whatsapp.send"||operation==="paid_media.read"||operation==="paid_media.write";
   return operation.startsWith("api.tool_read:");
 }
@@ -212,10 +214,15 @@ async function execute(callerName:Caller,input:Record<string,unknown>){
     ? input.requestMeta as Record<string,unknown>:{};
   const requestMeta=await concreteMeta(operation,url.toString(),bodyRaw,providedMeta);
 
+  let containsUserData=input.containsUserData===true;
+  if(operation==="browser.scrape.control"&&typeof requestMeta.targetUrl==="string"){
+    containsUserData=containsUserData||new URL(requestMeta.targetUrl).search.length>0;
+  }
+
   const decision=await sentinel({
     tenantId:requestTenant,taskId,destination:url.toString(),operation,method,
     path:`${url.pathname}${url.search}`,protocol:"https",resolvedIp:resolved.address,effect,
-    dataTaint,containsUserData:input.containsUserData===true,
+    dataTaint,containsUserData,
     grantRef:typeof input.grantRef==="string"?input.grantRef:null,
     capabilityHash:typeof input.capabilityHash==="string"?input.capabilityHash:null,
     requestMeta
