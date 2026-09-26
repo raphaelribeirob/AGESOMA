@@ -232,9 +232,8 @@ async function answerQuestion(tenantId: string, message: string) {
   ]);
 
   if (asksAboutAgents(message)) {
-    const names = agents.map((agent) => agent.name.replace(/^Agente de /, "")).join(", ");
     return {
-      reply: `Tenho ${agents.length} especialistas digitais ativos por trás desta conversa: ${names}. Você continua falando só comigo; eu escolho quem deve trabalhar e reúno o resultado aqui.`,
+      reply: "Eu continuo sendo sua única interface. Por trás da conversa, posso combinar pesquisa, organização, comunicação, documentos e execução digital conforme a tarefa, sem exigir que você escolha agentes ou ferramentas.",
       approval
     };
   }
@@ -253,7 +252,7 @@ async function answerQuestion(tenantId: string, message: string) {
   ];
 
   if (facts.length) {
-    lines.push(`No contexto da empresa, encontrei também: ${facts.join(" ")}`);
+    lines.push(`No seu contexto, encontrei também: ${facts.join(" ")}`);
   }
 
   return { reply: lines.join(" "), approval };
@@ -291,7 +290,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   const explicitHuman = humanDecision.executorType === "human" && humanDecision.confidence === 1;
   const selectedAgent = explicitHuman ? null : resolveDigitalAgent(agents, agentTemplateForPlan(plan));
   if (!explicitHuman && !selectedAgent) {
-    return { reply: "Minha equipe digital ainda não foi provisionada corretamente. Não vou iniciar esse trabalho até isso estar corrigido.", approval: await firstApproval(tenantId) };
+    return { reply: "Minhas capacidades de execução ainda não foram provisionadas corretamente. Não vou iniciar essa tarefa até isso estar corrigido.", approval: await firstApproval(tenantId) };
   }
 
   const decision = explicitHuman
@@ -306,7 +305,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
 
   const isManager = canApprove(role);
   if (explicitHuman && plan.requiresApproval && !isManager) {
-    return { reply: "Esse trabalho exige decisão do dono ou de um administrador antes de ser atribuído.", approval: await firstApproval(tenantId) };
+    return { reply: "Essa tarefa exige sua autorização ou a de um administrador antes de ser atribuída.", approval: await firstApproval(tenantId) };
   }
 
   const action = !explicitHuman && plan.requiresApproval ? "business.work" : plan.action;
@@ -343,9 +342,9 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     ownerRequested: isManager,
     conversationSurface: "agesoma",
     outputContract: {
-      artifact: "Return a concise business artifact explaining what was organized or completed.",
-      outcome: "Do not claim a business result verified unless a separate verifier supplied evidence.",
-      proposedAction: plan.requiresApproval ? "Resolve the exact consequential action and request owner approval before the side effect." : "Use the shortest evidence-backed route that safely completes the business job."
+      artifact: "Return a concise artifact explaining what was organized or completed for the user.",
+      outcome: "Do not claim a result is verified unless a separate verifier supplied evidence.",
+      proposedAction: plan.requiresApproval ? "Resolve the exact consequential action and request owner approval before the side effect." : "Use the shortest evidence-backed route that safely completes the user's task."
     }
   });
 
@@ -395,7 +394,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
 }
 
 async function approveTask(tenantId: string, actorId: string, role: string, taskId: string) {
-  if (!canApprove(role)) return NextResponse.json({ error: "Somente o dono ou um administrador pode aprovar essa ação." }, { status: 403 });
+  if (!canApprove(role)) return NextResponse.json({ error: "Somente o titular ou um administrador pode aprovar essa ação." }, { status: 403 });
 
   const [task] = await tenantSql<ApprovalTask>(tenantId, `
     select id,status,action_type,payload
