@@ -62,7 +62,11 @@ function secretFor(provider:string){
 async function trust(body:Record<string,unknown>){
   const response=await fetch(`${trustStoreUrl}/v1/authd/context`,{
     method:"POST",
-    headers:{"content-type":"application/json","x-agesoma-trust-token":trustStoreToken},
+    headers:{
+      "content-type":"application/json",
+      "x-agesoma-trust-caller":"authd",
+      "x-agesoma-trust-token":trustStoreToken
+    },
     body:JSON.stringify({tenantId,...body}),
     signal:AbortSignal.timeout(10_000)
   });
