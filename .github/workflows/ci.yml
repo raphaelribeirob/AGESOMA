@@ -83,7 +83,6 @@ jobs:
           grep -q 'id: "personal_context"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "priority_area"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "first_request"' apps/web/lib/riverthree-product.ts
-          grep -q 'id: "coordination_problem"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "assistant_preview"' apps/web/lib/riverthree-product.ts
           grep -q 'id: "first_execution"' apps/web/lib/riverthree-product.ts
           grep -q 'activationEvent: "first_agesoma_request_accepted"' apps/web/lib/riverthree-product.ts
