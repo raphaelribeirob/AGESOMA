@@ -102,7 +102,9 @@ async function paidMediaBrokerFetch(
 }
 
 async function loadPaidMediaContext(mission: HermesMission) {
-  if (mission.action !== "paid_media.read") return null;
+  const requestPlan = record(mission.payload.requestPlan);
+  const isPaidMediaWork = text(requestPlan?.domain) === "paid_media";
+  if (mission.action !== "paid_media.read" && !isPaidMediaWork) return null;
 
   const connector = paidMediaConnector(mission.payload.resource);
   if (!connector) throw new Error("Paid media provider is not supported");
@@ -123,11 +125,35 @@ async function loadPaidMediaContext(mission: HermesMission) {
     throw new Error(`Paid media data provider rejected read: ${response.status}`);
   }
 
+  let actions: unknown[] = [];
+  if (connector === "facebook") {
+    const actionsResponse = await paidMediaBrokerFetch(mission, "/v1/paid-media/facebook/actions");
+    const actionPayload = await actionsResponse.json().catch(() => null);
+    if (actionsResponse.ok && Array.isArray(actionPayload)) {
+      const allowed = new Set(Object.values(PAID_MEDIA_WRITE_ACTIONS));
+      actions = actionPayload
+        .filter((item) => {
+          const action = record(item);
+          return action && typeof action.id === "string" && allowed.has(action.id);
+        })
+        .map((item) => {
+          const action = record(item)!;
+          return {
+            id: action.id,
+            name: action.name,
+            description: action.description,
+            schema: action.schema
+          };
+        });
+    }
+  }
+
   return {
     connector,
     datePreset,
     fields: fields.split(","),
-    rows: Array.isArray(providerResponse) ? providerResponse : providerResponse ?? []
+    rows: Array.isArray(providerResponse) ? providerResponse : providerResponse ?? [],
+    actions
   };
 }
 
@@ -326,7 +352,7 @@ function envelopeInstructions(action: string) {
 }
 
 function planningInstructions(action: string) {
-  const canDelegate = action === "business.observe" || action === "business.work";
+  const canDelegate = action === "business.observe" || action === "business.work" || action === "paid_media.read";
   return [
     "Before using tools, derive a short execution plan from the objective, requestPlan and businessMemory in the input.",
     "Re-plan when evidence invalidates an assumption instead of forcing the original route.",
