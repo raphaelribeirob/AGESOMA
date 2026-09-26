@@ -38,10 +38,12 @@ services:
       API_SERVER_PORT: "8642"
       API_SERVER_KEY: ${HERMES_SERVICE_TOKEN}
       DELEGATION_MAX_CONCURRENT_CHILDREN: "3"
+      AGESOMA_RUNTIME_MODE: "personal_persistent"
       HERMES_AGENT_HELP_GUIDANCE: >-
-        You are one isolated AGESOMA Work Cell. Execute only work for the tenant assigned
-        to this runtime. You are not the authorization authority. Never broaden a supplied
-        capability and never seek business credentials.
+        You are the isolated persistent personal runtime for the tenant assigned to this
+        environment. Reuse its working state across tasks, but never treat remembered state
+        as authorization. You are not the authorization authority. Never broaden a supplied
+        capability and never seek user credentials.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NOUS_API_KEY: ${NOUS_API_KEY:-}

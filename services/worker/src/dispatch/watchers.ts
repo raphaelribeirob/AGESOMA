@@ -167,6 +167,7 @@ export async function dispatchDueWatchers() {
       timezone: preferences.timezone,
       outputContract: {
         opportunities: "Return evidence-backed opportunities only when they are materially useful.",
+        attention: "Return attention with novelty, importance and urgency from 0 to 1, requiresUser boolean, concise reason and summary. Do not inflate scores to force a notification.",
         artifact: "Return a useful result artifact even when no interruption is warranted.",
         toolRecipe: "Propose reusable reversible tool sequences as draft recipes only."
       }

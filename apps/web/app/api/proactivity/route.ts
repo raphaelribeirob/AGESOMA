@@ -44,7 +44,7 @@ export async function GET() {
   `, [authenticated.tenantId]);
 
   const interruptions = await tenantSql(authenticated.tenantId, `
-    select id,watcher_id,source_task_id,kind,summary,status,created_at,read_at
+    select id,watcher_id,source_task_id,attention_decision_id,kind,summary,status,delivery_mode,created_at,read_at
     from proactive_interruptions
     where tenant_id=$1
     order by created_at desc

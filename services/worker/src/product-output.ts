@@ -31,6 +31,44 @@ function cents(value: unknown, ceiling: number) {
   return Math.max(0, Math.min(ceiling, Math.trunc(numeric)));
 }
 
+type AttentionMode = "silent" | "save" | "digest" | "notify" | "approval";
+
+function clamp01(value: unknown, fallback: number) {
+  const numeric = number(value);
+  if (numeric === null) return fallback;
+  return Math.max(0, Math.min(1, numeric));
+}
+
+function decideAttention(
+  output: Record<string, unknown>,
+  firstActionableSummary: string | null,
+  suppressInterruptions: boolean,
+  interruptPolicy: string
+) {
+  const signal = record(output.attention) ?? {};
+  const requiresUser = signal.requiresUser === true || Boolean(record(output.proposedAction));
+  const novelty = clamp01(signal.novelty, firstActionableSummary ? 0.65 : 0.2);
+  const importance = clamp01(signal.importance, requiresUser ? 0.9 : firstActionableSummary ? 0.65 : 0.25);
+  const urgency = clamp01(signal.urgency, requiresUser ? 0.8 : firstActionableSummary ? 0.45 : 0.2);
+  const score = novelty * 0.3 + importance * 0.45 + urgency * 0.25;
+  const summary = text(signal.summary) ?? firstActionableSummary ?? text(output.summary);
+  const reason = text(signal.reason) ?? (
+    requiresUser ? "A decisão exige participação explícita do usuário."
+      : firstActionableSummary ? "Há informação nova com utilidade potencial."
+        : "Nenhuma mudança relevante exige atenção imediata."
+  );
+
+  let mode: AttentionMode;
+  if (interruptPolicy === "silent") mode = summary ? "save" : "silent";
+  else if (requiresUser) mode = suppressInterruptions && urgency < 0.85 ? "digest" : "approval";
+  else if (!summary || score < 0.25) mode = "silent";
+  else if (score < 0.45) mode = "save";
+  else if (score < 0.68 || suppressInterruptions) mode = "digest";
+  else mode = "notify";
+
+  return { novelty, importance, urgency, requiresUser, mode, reason, summary, score };
+}
+
 async function teamCoordinationAvailable() {
   const [row] = await sql<{ available: boolean }>(`
     select to_regclass('agesoma_p0.team_members') is not null
@@ -258,28 +296,75 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
   const proactiveKind = typeof task.payload.proactivityKind === "string"
     ? task.payload.proactivityKind
     : "general";
-  const fallbackSummary = text(output.summary) ?? title;
-  const interruptionSummary = interruptPolicy === "always"
-    ? firstActionableSummary ?? fallbackSummary
-    : firstActionableSummary;
 
-  if (watcherId && !suppressInterruptions && interruptPolicy !== "silent" && interruptionSummary && maxInterruptions > 0) {
-    const [usage] = await sql<{ count: string | number }>(`
-      select count(*) as count
-      from proactive_interruptions
-      where tenant_id=$1
-        and created_at >= (date_trunc('day', now() at time zone $2) at time zone $2)
-    `, [task.tenant_id, timezone]);
+  if (watcherId) {
+    const attention = decideAttention(output, firstActionableSummary, suppressInterruptions, interruptPolicy);
+    const [decision] = await sql<{ id: string }>(`
+      insert into attention_decisions (
+        tenant_id,watcher_id,source_task_id,novelty,importance,urgency,
+        requires_user,mode,reason,summary,metadata
+      ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)
+      on conflict (source_task_id) do update set
+        novelty=excluded.novelty,
+        importance=excluded.importance,
+        urgency=excluded.urgency,
+        requires_user=excluded.requires_user,
+        mode=excluded.mode,
+        reason=excluded.reason,
+        summary=excluded.summary,
+        metadata=excluded.metadata
+      returning id
+    `, [
+      task.tenant_id,watcherId,task.id,attention.novelty,attention.importance,attention.urgency,
+      attention.requiresUser,attention.mode,attention.reason,attention.summary,
+      JSON.stringify({ score: attention.score, interruptPolicy, suppressInterruptions })
+    ]);
 
-    if (Number(usage?.count ?? 0) < maxInterruptions) {
+    await sql(`
+      insert into activity_events (
+        tenant_id,task_id,event_type,title,summary,status,metadata
+      ) values ($1,$2,'attention','Atenção avaliada',$3,$4,$5::jsonb)
+    `, [
+      task.tenant_id,
+      task.id,
+      attention.summary ?? attention.reason,
+      attention.mode === "approval" ? "action_required" : attention.mode === "notify" ? "warning" : "info",
+      JSON.stringify({ mode: attention.mode, novelty: attention.novelty, importance: attention.importance, urgency: attention.urgency })
+    ]);
+
+    if (attention.summary && ["digest","notify","approval"].includes(attention.mode)) {
+      const [usage] = await sql<{ count: string | number }>(`
+        select count(*) as count
+        from proactive_interruptions
+        where tenant_id=$1
+          and delivery_mode in ('notify','approval')
+          and created_at >= (date_trunc('day', now() at time zone $2) at time zone $2)
+      `, [task.tenant_id, timezone]);
+
+      const immediate = attention.mode === "notify" || attention.mode === "approval";
+      const underDailyCap = Number(usage?.count ?? 0) < maxInterruptions;
+      const deliveryMode = immediate && !underDailyCap ? "digest" : attention.mode;
+
       await sql(`
         insert into proactive_interruptions (
-          tenant_id,watcher_id,source_task_id,kind,summary,status
-        ) values ($1,$2,$3,$4,$5,'unread')
+          tenant_id,watcher_id,source_task_id,attention_decision_id,kind,summary,status,delivery_mode
+        ) values ($1,$2,$3,$4,$5,$6,'unread',$7)
         on conflict do nothing
-      `, [task.tenant_id, watcherId, task.id, proactiveKind, interruptionSummary]);
+      `, [task.tenant_id,watcherId,task.id,decision.id,proactiveKind,attention.summary,deliveryMode]);
     }
   }
+
+  await sql(`
+    insert into activity_events (tenant_id,task_id,event_type,title,summary,status,metadata)
+    values ($1,$2,'completed',$3,$4,'success',$5::jsonb)
+    on conflict (task_id,event_type) where task_id is not null and event_type='completed' do nothing
+  `, [
+    task.tenant_id,
+    task.id,
+    title,
+    text(output.summary),
+    JSON.stringify({ artifactKind: kind })
+  ]);
 
   await persistHumanAssignments(task, output);
   await persistResolvedAction(task, output);

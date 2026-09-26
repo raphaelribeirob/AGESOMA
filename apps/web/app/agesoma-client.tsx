@@ -56,20 +56,22 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
     }
   ]);
   const [input, setInput] = useState("");
-  const [pending, setPending] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [approvalPending, setApprovalPending] = useState(false);
   const [listening, setListening] = useState(false);
+  const pending = pendingCount > 0;
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const voiceAvailable = useMemo(() => Boolean(recognitionConstructor()), []);
 
   async function send(text: string) {
     const clean = text.trim();
-    if (!clean || pending) return;
+    if (!clean) return;
 
     const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: clean };
     setMessages((current) => [...current, userMessage]);
     setInput("");
-    setPending(true);
+    setPendingCount((count) => count + 1);
 
     try {
       const response = await fetch("/api/agesoma", {
@@ -92,13 +94,13 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
         text: error instanceof Error ? error.message : "Não consegui concluir isso agora."
       }]);
     } finally {
-      setPending(false);
+      setPendingCount((count) => Math.max(0, count - 1));
     }
   }
 
   async function approve(approval: AgesomaApproval) {
-    if (pending) return;
-    setPending(true);
+    if (approvalPending) return;
+    setApprovalPending(true);
     try {
       const response = await fetch("/api/agesoma", {
         method: "POST",
@@ -119,12 +121,12 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
         text: error instanceof Error ? error.message : "Não foi possível aprovar."
       }]);
     } finally {
-      setPending(false);
+      setApprovalPending(false);
     }
   }
 
   function toggleVoice() {
-    if (!voiceAvailable || pending) return;
+    if (!voiceAvailable) return;
     if (listening) {
       recognitionRef.current?.stop();
       setListening(false);
@@ -172,7 +174,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
           <span className="agesomaOrbLobe agesomaOrbLobeB" />
           <span className="agesomaOrbGrain" />
         </div>
-        <div className="agesomaStateText">{pending ? "Pensando…" : listening ? "Ouvindo…" : "Pronto para cuidar do que você precisar."}</div>
+        <div className="agesomaStateText">{pending ? `${pendingCount} pedido${pendingCount === 1 ? "" : "s"} sendo encaminhado${pendingCount === 1 ? "" : "s"}…` : listening ? "Ouvindo…" : "Pronto para cuidar do que você precisar."}</div>
       </section>
 
       <section className="agesomaConversation">
@@ -185,7 +187,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
                 <span>Preciso da sua autorização</span>
                 <strong>{message.approval.summary}</strong>
                 <div className="agesomaApprovalActions">
-                  <button type="button" onClick={() => void approve(message.approval!)} disabled={pending}>Aprovar</button>
+                  <button type="button" onClick={() => void approve(message.approval!)} disabled={approvalPending}>Aprovar</button>
                   <button type="button" className="quiet" onClick={() => setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: "Certo. Não vou executar essa ação." }])}>Não aprovar</button>
                 </div>
               </div>
@@ -201,7 +203,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
       </section>
 
       <form className="agesomaComposer" onSubmit={submit}>
-        <button type="button" className={listening ? "agesomaMic active" : "agesomaMic"} onClick={toggleVoice} disabled={!voiceAvailable || pending} aria-label={voiceAvailable ? "Falar com AGESOMA" : "Voz indisponível neste navegador"}>
+        <button type="button" className={listening ? "agesomaMic active" : "agesomaMic"} onClick={toggleVoice} disabled={!voiceAvailable} aria-label={voiceAvailable ? "Falar com AGESOMA" : "Voz indisponível neste navegador"}>
           <span>●</span>
         </button>
         <input
@@ -211,7 +213,7 @@ export default function AgesomaClient({ initial }: { initial: AgesomaInitialStat
           aria-label="Mensagem para AGESOMA"
           autoComplete="off"
         />
-        <button className="agesomaSend" type="submit" disabled={!input.trim() || pending}>Enviar</button>
+        <button className="agesomaSend" type="submit" disabled={!input.trim()}>Enviar</button>
       </form>
     </main>
   );

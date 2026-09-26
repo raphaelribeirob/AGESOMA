@@ -73,7 +73,7 @@ Messaging and finance actions come later because they have higher consequence an
 
 ## Phase 4 — Proactivity
 
-Status: bounded watcher runtime implemented with explicit opt-in, allowed categories, quiet hours, daily interruption cap, revocation and an interruption log.
+Status: bounded watcher runtime + Attention Engine implemented with explicit opt-in, novelty/importance/urgency scoring, digest/notify/approval modes, quiet hours, daily interruption cap and revocation.
 
 Add recurring observation only after the reactive loops are reliable.
 
@@ -98,7 +98,10 @@ Before production:
 - audit trail;
 - revocable grants;
 - failure recovery;
-- connector-specific permission boundaries.
+- connector-specific permission boundaries;
+- persistent personal runtime contract;
+- first-class Goals and Activity surfaces;
+- concurrent delegation from the main conversation.
 
 ## Technical debt retained temporarily
 
@@ -124,6 +127,7 @@ Before deploying code that reads `personal_context_entries`, `connected_services
 
 ```text
 packages/db/migrations/0011_personal_assistant_foundation.sql
+packages/db/migrations/0012_muse_parity_runtime_attention.sql
 ```
 
 to the production database.

@@ -59,7 +59,7 @@ jobs:
           grep -q 'create table if not exists agent_task_assignments' packages/db/migrations/0010_agent_registry.sql
           grep -q 'agentTemplateForPlan' apps/web/app/api/agesoma/route.ts
           grep -q 'ensureAgentPackage' apps/web/app/api/agesoma/route.ts
-          grep -q 'runtime: "hermes-work-cell"' apps/web/app/api/agesoma/route.ts
+          grep -q 'runtime: "personal-persistent-runtime"' apps/web/app/api/agesoma/route.ts
           grep -q 'paid_media.read' packages/core/src/action-registry.ts
           grep -q 'paid_media.set_campaign_budget' packages/core/src/action-registry.ts
           grep -q 'loadPaidMediaContext' services/worker/src/hermes.ts
@@ -90,6 +90,33 @@ jobs:
           grep -q 'proactive_interruptions' services/worker/src/product-output.ts
           grep -q 'suppressInterruptions' services/worker/src/dispatch/watchers.ts
           grep -q 'href="/settings"' apps/web/app/agesoma-client.tsx
+
+      - name: Enforce MUSE-parity runtime and attention
+        run: |
+          test -f packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          test -f docs/MUSE_PARITY.md
+          test -f apps/web/app/api/goals/route.ts
+          test -f apps/web/app/api/activity/route.ts
+          test -f apps/web/app/api/runtime/route.ts
+          grep -q "runtime_mode text not null default 'personal_persistent'" packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q 'create table if not exists activity_events' packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q 'create table if not exists attention_decisions' packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q "mode in ('silent','save','digest','notify','approval')" packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q 'personal-persistent-runtime' apps/web/app/api/agesoma/route.ts
+          grep -q 'AGESOMA_RUNTIME_MODE: "personal_persistent"' deploy/production/workcell-compose.yml
+          grep -q 'agesoma-runtime-.*:task-' services/worker/src/hermes.ts
+          grep -q 'requireConnectedPermission' services/worker/src/hermes.ts
+          grep -q 'decideAttention' services/worker/src/product-output.ts
+          grep -q 'attention_decisions' services/worker/src/product-output.ts
+          grep -q 'delivery_mode' apps/web/app/api/proactivity/route.ts
+          grep -q 'permissionOptions' apps/web/app/api/connections/route.ts
+          grep -q 'permissionOptions' apps/web/app/settings/page.tsx
+          grep -q 'fetch("/api/goals"' apps/web/app/settings/page.tsx
+          grep -q 'fetch("/api/activity?limit=30"' apps/web/app/settings/page.tsx
+          if grep -q 'if (!clean || pending) return' apps/web/app/agesoma-client.tsx; then
+            echo "Conversation must not serialize independent delegations"
+            exit 1
+          fi
 
       - name: Enforce RiverThree product package
         run: |
@@ -225,6 +252,8 @@ jobs:
           grep -q 'alter table connected_services force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
           grep -q 'alter table proactivity_preferences force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
           grep -q 'alter table proactive_interruptions force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
+          grep -q 'alter table activity_events force row level security' packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q 'alter table attention_decisions force row level security' packages/db/migrations/0012_muse_parity_runtime_attention.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web

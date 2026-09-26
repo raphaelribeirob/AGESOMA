@@ -1,0 +1,106 @@
+# MUSE Parity Direction
+
+This document records the AGESOMA architecture decisions made after comparing the product with Meta's public MUSE architecture.
+
+It is not a claim that AGESOMA reproduces Meta's proprietary implementation. It identifies the product patterns that are useful and implements them with AGESOMA's own infrastructure.
+
+## Canonical runtime
+
+AGESOMA uses one isolated persistent personal runtime per tenant.
+
+The runtime persists:
+
+- working filesystem/state through the tenant-scoped runtime volume;
+- browser/runtime namespaces associated with the tenant;
+- memory namespace references;
+- connected-service handles.
+
+Each task receives its own logical execution session inside that persistent runtime. This is intentional: persistence must not collapse concurrent tasks into one shared conversation state.
+
+Memory and runtime state are context. Neither grants authority.
+
+## First-class personal objects
+
+The user-facing personal-assistant model now has three durable concepts:
+
+### Memory
+
+What AGESOMA knows as contextual information.
+
+- provenance required;
+- editable;
+- forgettable;
+- never authorization.
+
+### Goals
+
+What AGESOMA is persistently trying to help the user achieve.
+
+- title and description;
+- priority;
+- progress;
+- status;
+- optional due date.
+
+A goal does not authorize external action.
+
+### Activity
+
+What AGESOMA has received, started, completed, blocked or surfaced for attention.
+
+Activity is an audit/product surface. It does not replace provider-backed outcome verification.
+
+## Connected-service permissions
+
+A connection and an action permission are separate.
+
+Supported permission vocabulary:
+
+- Gmail: read, search, draft, send, delete
+- Google Calendar: read, create, update, delete
+- Google Drive: read, create, update, delete
+- Google Contacts: read
+- Meta Ads: read, create_drafts, pause, activate, change_budget
+- Google Ads: read, create_drafts, pause, activate, change_budget
+- WhatsApp: read, send
+
+Credentials remain outside the executor.
+
+For write-enabled providers, the worker must verify the relevant permission before it reaches the Credential Broker. Scoped Sentinel approval remains independently required for consequential actions.
+
+## Concurrent delegation
+
+The main conversation must not be blocked by one request.
+
+Several requests can be accepted in parallel. Each becomes an independent task/session inside the same persistent tenant runtime.
+
+Consequential authority stays task-specific.
+
+## Attention Engine
+
+Proactive work produces an explicit attention decision based on:
+
+- novelty;
+- importance;
+- urgency;
+- whether user participation is required.
+
+The resulting mode is one of:
+
+- silent — nothing user-visible is needed;
+- save — retain the result/activity only;
+- digest — include it in a non-immediate summary surface;
+- notify — surface it promptly;
+- approval — user authority/input is required.
+
+Quiet hours and interruption caps may downgrade an immediate notification to digest. They do not broaden or erase an approval requirement.
+
+## Deployment order
+
+This layer requires:
+
+1. `0011_personal_assistant_foundation.sql`
+2. `0012_muse_parity_runtime_attention.sql`
+3. application deployment
+
+The repository still does not automatically execute SQL migrations during the web build. Apply both migrations before deploying code that reads these schemas.

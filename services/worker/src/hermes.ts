@@ -1,3 +1,5 @@
+import { sql } from "@agesoma/db";
+
 export interface HermesMission {
   taskId: string;
   tenantId: string;
@@ -58,6 +60,37 @@ function resolveCredentialBrokerBaseUrl(mission: HermesMission) {
 
 function normalizeRecipient(value: string) {
   return value.replace(/^whatsapp:/i, "").replace(/\D/g, "");
+}
+
+async function requireConnectedPermission(
+  mission: HermesMission,
+  provider: string,
+  permission: string,
+  externalAccountId?: string | null
+) {
+  const [service] = await sql<{ permissions: unknown }>(`
+    select permissions
+    from connected_services
+    where tenant_id=$1
+      and provider=$2
+      and status='active'
+      and ($3::text is null or external_account_id=$3)
+    order by updated_at desc
+    limit 1
+  `, [mission.tenantId, provider, externalAccountId ?? null]);
+
+  const permissions = record(service?.permissions);
+  if (!permissions || permissions[permission] !== true) {
+    throw new Error(`Connected service does not grant ${provider}.${permission}`);
+  }
+}
+
+function paidMediaPermission(providerAction: string) {
+  if (providerAction.startsWith("create_") || providerAction === "update_ad_creative") return "create_drafts";
+  if (providerAction.startsWith("pause_")) return "pause";
+  if (providerAction === "enable_campaign") return "activate";
+  if (providerAction === "set_campaign_budget" || providerAction === "set_adset_budget") return "change_budget";
+  return "read";
 }
 
 const PAID_MEDIA_WRITE_ACTIONS: Record<string, string> = {
@@ -205,6 +238,13 @@ async function maybeExecutePaidMediaAction(mission: HermesMission) {
   const account = text(mission.payload.destination);
   if (!account) throw new Error("Paid media account is missing from the approved destination");
 
+  await requireConnectedPermission(
+    mission,
+    "meta_ads",
+    paidMediaPermission(providerAction),
+    account
+  );
+
   const rawParameters = record(mission.payload.parameters) ?? {};
   const parameters: Record<string, unknown> = { ...rawParameters };
 
@@ -300,6 +340,8 @@ async function maybeExecuteCredentialedAction(mission: HermesMission) {
 
   const message = text(parameters.text) ?? text(parameters.message);
   if (!message) throw new Error("Approved WhatsApp message text is missing");
+
+  await requireConnectedPermission(mission, "whatsapp", "send");
 
   const brokerToken = process.env.CREDENTIAL_BROKER_SERVICE_TOKEN?.trim();
   if (!brokerToken) throw new Error("Credential broker service token is not configured");
@@ -404,14 +446,14 @@ export async function executeWithHermes(mission: HermesMission) {
     method: "POST",
     headers: headers(token, mission),
     body: JSON.stringify({
-      session_id: `agesoma-${mission.taskId}`,
+      session_id: `agesoma-runtime-${mission.tenantId}:task-${mission.taskId}`,
       input: JSON.stringify({
         action: mission.action,
         payload: executionPayload,
         authorization: { grantRef: mission.grantRef ?? null }
       }),
       instructions: [
-        "You are the AGESOMA execution substrate, not the authorization authority.",
+        "You are the AGESOMA execution substrate inside one persistent personal runtime for this tenant, not the authorization authority.",
         "Operate only on public resources or resources the user has already authorized.",
         "Never bypass authentication, access controls, tenant boundaries or security protections.",
         "Never seek, expose or reuse credentials outside the connected user context.",

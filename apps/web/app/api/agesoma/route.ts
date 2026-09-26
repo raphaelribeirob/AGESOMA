@@ -183,7 +183,7 @@ function agentContext(agent: DigitalAgentRow) {
     preferredResources: list(agent.preferred_resources),
     autonomyMode: agent.autonomy_mode,
     memoryNamespace: agent.memory_namespace,
-    runtime: "hermes-work-cell"
+    runtime: "personal-persistent-runtime"
   };
 }
 
@@ -380,7 +380,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
         executorType: "hermes" as const,
         teamMemberId: null,
         teamMemberName: null,
-        reason: `${selectedAgent!.name} é o especialista persistente responsável; a execução roda em Work Cell descartável.`,
+        reason: `${selectedAgent!.name} é a capacidade persistente responsável; a execução roda no runtime pessoal isolado do tenant.`,
         confidence: 0.95
       };
 
@@ -474,6 +474,22 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     values ($1,$2,$3,$4,'assigned',$5,$6)
   `, [tenantId, task.id, decision.executorType, decision.teamMemberId, decision.reason, actorId]);
 
+  await tenantSql(tenantId, `
+    insert into activity_events (tenant_id,task_id,event_type,title,summary,status,metadata)
+    values ($1,$2,'request','Pedido recebido',$3,'info',$4::jsonb)
+  `, [
+    tenantId,
+    task.id,
+    plan.originalRequest,
+    JSON.stringify({ domain: plan.domain, mode: plan.mode, requestedBy: actorId })
+  ]);
+
+  await tenantSql(tenantId, `
+    update work_cells
+    set runtime_mode='personal_persistent',persistent_home=true,last_active_at=now(),updated_at=now()
+    where tenant_id=$1
+  `, [tenantId]);
+
   if (selectedAgent) {
     await tenantSql(tenantId, `
       insert into agent_task_assignments (tenant_id,task_id,agent_id,assigned_reason)
@@ -494,6 +510,8 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
 
   return {
     reply: `Entendi. Coloquei ${responsible} para cuidar disso.${approvalNote}`,
+    taskId: task.id,
+    accepted: true,
     approval: await firstApproval(tenantId)
   };
 }
