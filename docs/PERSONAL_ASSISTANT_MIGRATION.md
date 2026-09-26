@@ -128,6 +128,7 @@ Before deploying code that reads `personal_context_entries`, `connected_services
 ```text
 packages/db/migrations/0011_personal_assistant_foundation.sql
 packages/db/migrations/0012_muse_parity_runtime_attention.sql
+packages/db/migrations/0013_api_tool_builder.sql
 ```
 
 to the production database.
