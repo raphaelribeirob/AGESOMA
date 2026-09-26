@@ -95,6 +95,22 @@ create table if not exists proactivity_preferences (
   check (jsonb_typeof(allowed_kinds) = 'array')
 );
 
+create table if not exists proactive_interruptions (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references tenants(id) on delete cascade,
+  watcher_id uuid references watchers(id) on delete set null,
+  source_task_id uuid references tasks(id) on delete set null,
+  kind text not null,
+  summary text not null,
+  status text not null default 'unread',
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  check (status in ('unread','read','dismissed'))
+);
+
+create index if not exists proactive_interruptions_tenant_status_idx
+  on proactive_interruptions (tenant_id, status, created_at desc);
+
 alter table watchers
   add column if not exists connected_service_id uuid references connected_services(id) on delete set null,
   add column if not exists interrupt_policy text not null default 'only_if_actionable';
@@ -128,6 +144,13 @@ create policy tenant_isolation on proactivity_preferences for all to authenticat
   using (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
   with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
+alter table proactive_interruptions enable row level security;
+alter table proactive_interruptions force row level security;
+drop policy if exists tenant_isolation on proactive_interruptions;
+create policy tenant_isolation on proactive_interruptions for all to authenticated
+  using (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
+  with check (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
+
 grant select, insert, update, delete on
-  personal_context_entries, connected_services, proactivity_preferences
+  personal_context_entries, connected_services, proactivity_preferences, proactive_interruptions
   to authenticated;
