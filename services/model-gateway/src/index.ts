@@ -120,7 +120,7 @@ function proxy(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  let route: ReturnType<typeof parseRoute>;
+  let route: ReturnType<typeof parseModelRoute>;
   try {
     route = parseModelRoute(req.url);
   } catch (error) {
