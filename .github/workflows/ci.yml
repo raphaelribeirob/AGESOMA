@@ -141,6 +141,35 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce dynamic API tool builder boundary
+        run: |
+          test -f packages/db/migrations/0013_api_tool_builder.sql
+          test -f services/worker/src/api-tool-builder.ts
+          test -f services/worker/src/api-tool-runtime.ts
+          test -f services/worker/test/api-tool-builder.test.mjs
+          test -f apps/web/app/api/tools/route.ts
+          test -f docs/API_TOOL_BUILDER.md
+          grep -q '"api.tool_build"' packages/core/src/action-registry.ts
+          grep -q '"api.tool_read"' packages/core/src/action-registry.ts
+          grep -q "status in ('draft','validated','approved','disabled')" packages/db/migrations/0013_api_tool_builder.sql
+          grep -q 'create table if not exists tool_recipe_runs' packages/db/migrations/0013_api_tool_builder.sql
+          grep -q 'Automatic tool building only accepts APIs.guru specifications' services/worker/src/api-tool-builder.ts
+          grep -q 'Dynamic API tool is not approved' services/worker/src/api-tool-runtime.ts
+          grep -q 'Dynamic API runtime only permits GET/HEAD operations' services/worker/src/api-tool-runtime.ts
+          grep -q 'redirect: "error"' services/worker/src/api-tool-runtime.ts
+          grep -q 'approvedApiTools' services/worker/src/execution/task-runner.ts
+          grep -q 'toolInvocation' services/worker/src/product-output.ts
+          grep -q 'status=.approved.' apps/web/app/api/tools/route.ts
+          grep -q 'fetch("/api/tools"' apps/web/app/settings/page.tsx
+          if grep -q 'api.tool_write' packages/core/src/action-registry.ts; then
+            echo "Generic dynamic API writes must remain disabled"
+            exit 1
+          fi
+          if grep -q 'method: "POST"' services/worker/src/api-tool-runtime.ts; then
+            echo "Dynamic API runtime must not issue POST requests"
+            exit 1
+          fi
+
       - name: Enforce RiverThree product package
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
@@ -277,6 +306,8 @@ jobs:
           grep -q 'alter table proactive_interruptions force row level security' packages/db/migrations/0011_personal_assistant_foundation.sql
           grep -q 'alter table activity_events force row level security' packages/db/migrations/0012_muse_parity_runtime_attention.sql
           grep -q 'alter table attention_decisions force row level security' packages/db/migrations/0012_muse_parity_runtime_attention.sql
+          grep -q 'alter table tool_recipes force row level security' packages/db/migrations/0013_api_tool_builder.sql
+          grep -q 'alter table tool_recipe_runs force row level security' packages/db/migrations/0013_api_tool_builder.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web
