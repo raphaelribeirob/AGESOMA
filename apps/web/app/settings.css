@@ -313,3 +313,89 @@
   font-size: 10px;
   cursor: pointer;
 }
+
+
+.settingsConnectionCard {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--stone);
+}
+
+.settingsConnectionHeader {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 20px;
+  align-items: center;
+}
+
+.settingsConnectionHeader p {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.settingsConnectionCard button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settingsConnectionCard button.quiet {
+  background: transparent;
+  color: var(--smoke);
+  border: 1px solid var(--stone);
+}
+
+.permissionGrid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px 16px;
+  padding-top: 16px;
+}
+
+.permissionOption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  font-size: 12px;
+  color: var(--graphite);
+}
+
+.permissionOption input {
+  width: 16px;
+  height: 16px;
+}
+
+.goalComposer {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.settingsTextInput,
+.goalComposer select {
+  min-height: 42px;
+  border: 1px solid var(--stone);
+  border-radius: 12px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+@media (max-width: 720px) {
+  .settingsConnectionHeader,
+  .goalComposer {
+    grid-template-columns: 1fr;
+  }
+
+  .permissionGrid {
+    grid-template-columns: 1fr;
+  }
+}
