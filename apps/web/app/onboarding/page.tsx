@@ -37,6 +37,8 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState<Draft>(initialDraft);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const steps = agesomaPackage.onboarding.steps;
   const step = steps[index];
 
@@ -85,20 +87,60 @@ export default function OnboardingPage() {
     return true;
   }
 
-  function next() {
-    if (!canContinue()) return;
+  async function next() {
+    if (!canContinue() || saving) return;
     persist(draft);
     if (index < steps.length - 1) {
       setIndex((value) => value + 1);
       return;
     }
-    sessionStorage.setItem(PREPARED_REQUEST_KEY, JSON.stringify({
-      ...draft,
-      product: agesomaPackage.product.id,
-      activationState: "personal_context_prepared",
-      preparedAt: new Date().toISOString()
-    }));
-    router.push("/");
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const [contextResponse, proactivityResponse] = await Promise.all([
+        fetch("/api/personal-context", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            kind: "onboarding_summary",
+            value: draft.personalContext.trim(),
+            sourceType: "user_onboarding",
+            sourceRef: "onboarding:v1",
+            provenance: { priorityArea: draft.priorityArea }
+          })
+        }),
+        fetch("/api/proactivity", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            enabled: false,
+            timezone,
+            quietHoursStart: null,
+            quietHoursEnd: null,
+            maxInterruptionsPerDay: 3,
+            allowedKinds: ["calendar", "communication", "paid_media", "general"]
+          })
+        })
+      ]);
+
+      if (!contextResponse.ok || !proactivityResponse.ok) {
+        throw new Error("Não foi possível salvar seu contexto agora.");
+      }
+
+      sessionStorage.setItem(PREPARED_REQUEST_KEY, JSON.stringify({
+        ...draft,
+        product: agesomaPackage.product.id,
+        activationState: "personal_context_persisted",
+        preparedAt: new Date().toISOString()
+      }));
+      router.push("/");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível salvar seu contexto agora.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const screen = (() => {
@@ -224,7 +266,8 @@ export default function OnboardingPage() {
 
         {!isAutoStep ? (
           <div className="onboardingActions">
-            <button className="primaryButton" onClick={next} disabled={!canContinue()}>{step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
+            {saveError ? <p className="onboardingError" role="alert">{saveError}</p> : null}
+            <button className="primaryButton" onClick={() => void next()} disabled={!canContinue() || saving}>{saving ? "Salvando…" : step.id === "first_execution" ? "Abrir AGESOMA" : step.id === "welcome" ? "Começar" : "Continuar"}</button>
           </div>
         ) : null}
       </section>
