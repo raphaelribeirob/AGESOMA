@@ -203,7 +203,7 @@ jobs:
           grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
           grep -q 'browserAccess' services/worker/src/hermes.ts
           grep -q 'external_untrusted' services/worker/src/hermes.ts
-          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/privsep-broker services/egress-gateway; then
+          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/privsep-broker services/egress-gateway services/model-gateway; then
             echo "Work Cell trust-boundary services must not have database credentials"
             exit 1
           fi
@@ -221,6 +221,29 @@ jobs:
           fi
           if grep -R -n -E 'lookup|httpsRequest' services/browser-broker/src services/privsep-broker/src services/authd/src services/sentinel/src; then
             echo "Only the Egress Gateway may resolve or open privileged internet connections"
+            exit 1
+          fi
+
+      - name: Enforce model gateway boundary
+        run: |
+          test -f services/model-gateway/src/index.ts
+          test -f services/model-gateway/src/policy.ts
+          test -f services/model-gateway/test/policy.test.mjs
+          test -f services/model-gateway/Dockerfile
+          grep -q 'api.openai.com' services/model-gateway/src/policy.ts
+          grep -q 'api.anthropic.com' services/model-gateway/src/policy.ts
+          grep -q 'inference-api.nousresearch.com' services/model-gateway/src/policy.ts
+          grep -q 'provider_path_denied' services/model-gateway/src/policy.ts
+          grep -q 'MODEL_GATEWAY_TOKEN' services/model-gateway/src/index.ts
+          grep -q 'MODEL_OPENAI_API_KEY' services/model-gateway/src/index.ts
+          grep -q 'MODEL_ANTHROPIC_API_KEY' services/model-gateway/src/index.ts
+          grep -q 'MODEL_NOUS_API_KEY' services/model-gateway/src/index.ts
+          if grep -Eq '/v1/(files|fine_tuning|batches|uploads)' services/model-gateway/src/policy.ts; then
+            echo "Model Gateway must expose inference surfaces only"
+            exit 1
+          fi
+          if grep -R -n 'DATABASE_URL' services/model-gateway deploy/production/workcell-compose.yml | grep model-gateway; then
+            echo "Model Gateway must not receive database credentials"
             exit 1
           fi
 
@@ -301,7 +324,8 @@ jobs:
         run: |
           test -f deploy/production/workcell-compose.yml
           test -f deploy/production/provision-workcell.sh
-          test -f deploy/production/sentinel-egress.conf
+          test ! -f deploy/production/sentinel-egress.conf
+          test ! -f deploy/production/approved-domains.txt
           test ! -f deploy/production/credential-broker.conf.template
           grep -q 'HERMES_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
           grep -q 'Tenant-routed Hermes Work Cell is required; shared Hermes is disabled' services/worker/src/hermes.ts
@@ -324,15 +348,21 @@ jobs:
           authd_block="$(awk '/^  authd:/{flag=1} /^  egress-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           egress_block="$(awk '/^  egress-gateway:/{flag=1} /^  credential-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           broker_block="$(awk '/^  credential-broker:/{flag=1} /^  browser-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
-          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  model-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          model_block="$(awk '/^  model-gateway:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
 
           printf '%s\n' "$egress_block" | grep -q 'privileged_outbound'
+          printf '%s\n' "$model_block" | grep -q 'model_outbound'
           for block in "$sentinel_block" "$authd_block" "$broker_block" "$browser_block"; do
-            if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|runtime_outbound'; then
-              echo "Only Egress Gateway may have privileged outbound networking"
+            if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|model_outbound|runtime_outbound'; then
+              echo "Only dedicated egress services may have outbound networking"
               exit 1
             fi
           done
+          if printf '%s\n' "$model_block" | grep -Eq 'privileged_outbound|runtime_outbound'; then
+            echo "Model Gateway must have only model_outbound"
+            exit 1
+          fi
 
           if printf '%s\n' "$broker_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
             echo "Privsep Broker must use caller-scoped Authd credentials"
@@ -360,13 +390,36 @@ jobs:
             exit 1
           fi
 
-          grep -q 'http_access deny all' deploy/production/sentinel-egress.conf
+          printf '%s\n' "$model_block" | grep -q 'MODEL_OPENAI_API_KEY'
+          printf '%s\n' "$model_block" | grep -q 'MODEL_ANTHROPIC_API_KEY'
+          printf '%s\n' "$model_block" | grep -q 'MODEL_NOUS_API_KEY'
+          if printf '%s\n' "$model_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|DATABASE_URL'; then
+            echo "Model Gateway must contain model credentials only"
+            exit 1
+          fi
+
+          printf '%s\n' "$hermes_block" | grep -q 'OPENAI_API_KEY: ${MODEL_GATEWAY_TOKEN}'
+          printf '%s\n' "$hermes_block" | grep -q 'ANTHROPIC_API_KEY: ${MODEL_GATEWAY_TOKEN}'
+          printf '%s\n' "$hermes_block" | grep -q 'NOUS_API_KEY: ${MODEL_GATEWAY_TOKEN}'
+          printf '%s\n' "$hermes_block" | grep -q 'OPENAI_BASE_URL: http://model-gateway-'
+          printf '%s\n' "$hermes_block" | grep -q 'ANTHROPIC_BASE_URL: http://model-gateway-'
+          printf '%s\n' "$hermes_block" | grep -q 'NOUS_INFERENCE_BASE_URL: http://model-gateway-'
+          if printf '%s\n' "$hermes_block" | grep -Eq 'HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|runtime_outbound|model_outbound|privileged_outbound'; then
+            echo "HERMES must not have direct internet egress"
+            exit 1
+          fi
+          if printf '%s\n' "$hermes_block" | grep -Eq 'OPENAI_API_KEY: ${OPENAI_API_KEY|ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY|NOUS_API_KEY: ${NOUS_API_KEY'; then
+            echo "Real model-provider secrets must never be injected into HERMES"
+            exit 1
+          fi
+
           grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'trust-store-$TENANT_ID' deploy/production/provision-workcell.sh
           grep -q 'derive_token sentinel' deploy/production/provision-workcell.sh
           grep -q 'derive_token authd-browser' deploy/production/provision-workcell.sh
           grep -q 'derive_token egress-browser' deploy/production/provision-workcell.sh
+          grep -q 'derive_token model-gateway' deploy/production/provision-workcell.sh
           grep -q 'cred://steel/default' deploy/production/provision-workcell.sh
           grep -q 'cred://whatsapp/default' deploy/production/provision-workcell.sh
           grep -q 'cred://windsor/default' deploy/production/provision-workcell.sh
@@ -379,8 +432,8 @@ jobs:
           EGRESS_CONTROL_TOKEN=test-control-egress \
           docker compose -f deploy/production/docker-compose.yml config >/dev/null
           AGESOMA_TENANT_ID=00000000-0000-0000-0000-000000000001 \
-          WORKCELL_ALLOWLIST_FILE="$PWD/deploy/production/approved-domains.txt" \
           HERMES_SERVICE_TOKEN=test-hermes-token \
+          MODEL_GATEWAY_TOKEN=test-model-gateway-token \
           CREDENTIAL_BROKER_SERVICE_TOKEN=test-broker-token \
           SENTINEL_SERVICE_TOKEN=test-sentinel-token \
           TRUST_STORE_SENTINEL_TOKEN=test-trust-sentinel \
