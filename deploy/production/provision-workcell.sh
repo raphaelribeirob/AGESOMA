@@ -13,7 +13,9 @@ derive_token() {
   printf '%s' "$label:$TENANT_ID" | openssl dgst -sha256 -hmac "$TRUST_STORE_MASTER_SECRET" | awk '{print $2}'
 }
 
-TRUST_STORE_TENANT_TOKEN="$(derive_token trust-store)"
+TRUST_STORE_SENTINEL_TOKEN="$(derive_token sentinel)"
+TRUST_STORE_AUTHD_TOKEN="$(derive_token authd)"
+TRUST_STORE_BROWSER_TOKEN="$(derive_token browser_broker)"
 AUTHD_BROWSER_TOKEN="$(derive_token authd-browser)"
 AUTHD_PRIVSEP_TOKEN="$(derive_token authd-privsep)"
 EGRESS_BROWSER_TOKEN="$(derive_token egress-browser)"
@@ -40,7 +42,9 @@ docker network connect --alias "trust-store-$TENANT_ID" "agesoma-credentials-$TE
 
 AGESOMA_TENANT_ID="$TENANT_ID" \
 WORKCELL_ALLOWLIST_FILE="$ALLOWLIST_FILE" \
-TRUST_STORE_TENANT_TOKEN="$TRUST_STORE_TENANT_TOKEN" \
+TRUST_STORE_SENTINEL_TOKEN="$TRUST_STORE_SENTINEL_TOKEN" \
+TRUST_STORE_AUTHD_TOKEN="$TRUST_STORE_AUTHD_TOKEN" \
+TRUST_STORE_BROWSER_TOKEN="$TRUST_STORE_BROWSER_TOKEN" \
 AUTHD_BROWSER_TOKEN="$AUTHD_BROWSER_TOKEN" \
 AUTHD_PRIVSEP_TOKEN="$AUTHD_PRIVSEP_TOKEN" \
 EGRESS_BROWSER_TOKEN="$EGRESS_BROWSER_TOKEN" \
