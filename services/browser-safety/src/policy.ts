@@ -9,7 +9,7 @@ export type SafetyResult={
 type RefMeta={role?:unknown;name?:unknown;value?:unknown;description?:unknown;[key:string]:unknown};
 
 const PROMPT_INJECTION_PATTERNS:RegExp[]=[
-  /ignore\s+(?:all\s+|any\s+|the\s+)?(?:previous|prior|system|developer|assistant)\s+(?:instructions?|messages?|rules?)/i,
+  /ignore\s+(?:all\s+|any\s+|the\s+)?(?:(?:previous|prior)\s+)?(?:(?:system|developer|assistant)\s+)?(?:instructions?|messages?|rules?)/i,
   /(?:system|developer)\s+(?:prompt|message|instructions?)/i,
   /do\s+not\s+follow\s+(?:the\s+)?(?:previous|system|developer|assistant)\s+instructions?/i,
   /(?:reveal|print|show|return|repeat)\s+(?:your\s+)?(?:system|developer)\s+(?:prompt|message|instructions?)/i,
