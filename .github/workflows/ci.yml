@@ -454,10 +454,13 @@ jobs:
           test ! -f deploy/production/sentinel-egress.conf
           test ! -f deploy/production/approved-domains.txt
           test ! -f deploy/production/credential-broker.conf.template
-          grep -q 'HERMES_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
-          grep -q 'Tenant-routed Hermes Work Cell is required; shared Hermes is disabled' services/worker/src/hermes.ts
-          grep -q 'CREDENTIAL_BROKER_BASE_URL_TEMPLATE' services/worker/src/hermes.ts
-          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' deploy/production/docker-compose.yml
+          test -f services/workcell-control-gateway/src/index.ts
+          test -f services/worker/src/workcell-control.ts
+          grep -q 'resolveWorkcellServiceBaseUrl' services/worker/src/hermes.ts
+          grep -q 'resolveWorkcellServiceBaseUrl' services/worker/src/api-tool-runtime.ts
+          grep -q 'WORKCELL_CONTROL_BASE_URL_TEMPLATE' services/worker/src/workcell-control.ts
+          grep -q 'WORKCELL_CONTROL_MASTER_SECRET' deploy/production/docker-compose.yml
+          grep -q 'AGESOMA_ALLOW_DIRECT_WORKCELL_NETWORK: "false"' deploy/production/docker-compose.yml
           grep -q 'TRUST_STORE_MASTER_SECRET' deploy/production/docker-compose.yml
           grep -q 'AGESOMA_ALLOW_SHARED_HERMES: "false"' deploy/production/docker-compose.yml
           if grep -q '^  hermes:' deploy/production/docker-compose.yml; then
@@ -474,7 +477,8 @@ jobs:
           safety_block="$(awk '/^  browser-safety:/{flag=1} /^  browser-cdp-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           cdp_block="$(awk '/^  browser-cdp-gateway:/{flag=1} /^  browser-subagent:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           subagent_block="$(awk '/^  browser-subagent:/{flag=1} /^  model-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
-          model_block="$(awk '/^  model-gateway:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          model_block="$(awk '/^  model-gateway:/{flag=1} /^  workcell-control-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          cell_gateway_block="$(awk '/^  workcell-control-gateway:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
 
           if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|CREDENTIAL_BROKER_SERVICE_TOKEN|AUTHD_|SENTINEL_SERVICE_TOKEN|TRUST_STORE_|BROWSER_(CDP|SUBAGENT|SAFETY)_TOKEN'; then
             echo "Trust-boundary secrets must never be injected into Hermes"
@@ -488,6 +492,21 @@ jobs:
           printf '%s\n' "$egress_block" | grep -q 'privileged_outbound'
           printf '%s\n' "$cdp_block" | grep -q 'browser_cdp_outbound'
           printf '%s\n' "$model_block" | grep -q 'model_outbound'
+          printf '%s\n' "$cell_gateway_block" | grep -q 'control_cells'
+          printf '%s\n' "$cell_gateway_block" | grep -q 'tenant_cell'
+          printf '%s\n' "$cell_gateway_block" | grep -q 'credential_cell'
+          if printf '%s\n' "$cell_gateway_block" | grep -Eq 'DATABASE_URL|OPENAI_API_KEY|ANTHROPIC_API_KEY|NOUS_API_KEY|WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
+            echo "Work Cell control gateway must not hold database or provider credentials"
+            exit 1
+          fi
+          if grep -q 'docker network connect "agesoma-cell-\$TENANT_ID" agesoma-control-worker' deploy/production/provision-workcell.sh; then
+            echo "Control worker must never join the tenant runtime network"
+            exit 1
+          fi
+          if grep -q 'docker network connect "agesoma-credentials-\$TENANT_ID" agesoma-control-worker' deploy/production/provision-workcell.sh; then
+            echo "Control worker must never join the tenant credential network"
+            exit 1
+          fi
 
           for block in "$sentinel_block" "$authd_block" "$broker_block" "$browser_block" "$safety_block" "$subagent_block"; do
             if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|browser_cdp_outbound|model_outbound|runtime_outbound'; then
@@ -582,11 +601,13 @@ jobs:
           sh -n deploy/production/hermes-entrypoint.sh
           DATABASE_URL=postgresql://user:pass@db.example.invalid/agesoma \
           TRUST_STORE_MASTER_SECRET=test-trust-master \
+          WORKCELL_CONTROL_MASTER_SECRET=test-workcell-control-master \
           EGRESS_CONTROL_TOKEN=test-control-egress \
           docker compose -f deploy/production/docker-compose.yml config >/dev/null
           AGESOMA_TENANT_ID=00000000-0000-0000-0000-000000000001 \
           HERMES_SERVICE_TOKEN=test-hermes-token \
           MODEL_GATEWAY_TOKEN=test-model-gateway-token \
+          WORKCELL_CONTROL_TOKEN=test-workcell-control-token \
           CREDENTIAL_BROKER_SERVICE_TOKEN=test-broker-token \
           SENTINEL_SERVICE_TOKEN=test-sentinel-token \
           TRUST_STORE_SENTINEL_TOKEN=test-trust-sentinel \
