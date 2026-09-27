@@ -487,7 +487,12 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
       const completionText = text(output.summary) ?? `${title} está pronto.`;
       await sql(`
         insert into conversation_messages (tenant_id,thread_id,task_id,role,content,metadata)
-        values ($1,$2,$3,'assistant',$4,$5::jsonb)
+        select $1,$2,$3,'assistant',$4,$5::jsonb
+        where not exists (
+          select 1 from conversation_messages
+          where tenant_id=$1 and thread_id=$2 and task_id=$3
+            and role='assistant' and metadata->>'completed'='true'
+        )
       `, [
         task.tenant_id,
         threadId,
