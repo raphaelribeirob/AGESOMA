@@ -7,13 +7,14 @@ set search_path to agesoma_p0, public;
 create table if not exists persistent_workers (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references tenants(id) on delete cascade,
-  agent_id uuid not null references digital_agents(id) on delete cascade,
-  work_cell_id uuid references work_cells(id) on delete set null,
+  agent_id uuid not null,
+  work_cell_id uuid,
   worker_key text not null,
   name text not null,
   status text not null default 'active',
   runtime_strategy text not null default 'shared_cell',
   session_namespace text not null,
+  browser_namespace text not null,
   browser_profile_ref text,
   file_namespace text not null,
   memory_namespace text not null,
@@ -26,11 +27,24 @@ create table if not exists persistent_workers (
   unique (tenant_id, agent_id),
   unique (tenant_id, worker_key),
   unique (tenant_id, session_namespace),
+  unique (tenant_id, browser_namespace),
   check (status in ('active','paused','retired')),
   check (runtime_strategy in ('shared_cell','dedicated_cell')),
   check (max_parallel_jobs between 1 and 32),
   check (monthly_budget_cents is null or monthly_budget_cents >= 0)
 );
+
+create unique index if not exists work_cells_tenant_id_id_idx
+  on work_cells (tenant_id,id);
+create unique index if not exists persistent_workers_tenant_id_id_idx
+  on persistent_workers (tenant_id,id);
+
+alter table persistent_workers
+  add constraint persistent_workers_agent_tenant_fk
+  foreign key (tenant_id,agent_id) references digital_agents(tenant_id,id) on delete cascade;
+alter table persistent_workers
+  add constraint persistent_workers_work_cell_tenant_fk
+  foreign key (tenant_id,work_cell_id) references work_cells(tenant_id,id) on delete set null;
 
 create index if not exists persistent_workers_tenant_status_idx
   on persistent_workers (tenant_id,status,updated_at desc);
@@ -38,15 +52,25 @@ create index if not exists persistent_workers_work_cell_idx
   on persistent_workers (work_cell_id,status);
 
 alter table tasks
-  add column if not exists worker_id uuid references persistent_workers(id) on delete set null;
+  add column if not exists worker_id uuid;
+
+alter table tasks drop constraint if exists tasks_worker_tenant_fk;
+alter table tasks
+  add constraint tasks_worker_tenant_fk
+  foreign key (tenant_id,worker_id) references persistent_workers(tenant_id,id) on delete set null;
 
 create index if not exists tasks_tenant_worker_status_idx
   on tasks (tenant_id,worker_id,status,updated_at desc);
 
 alter table watchers
-  add column if not exists worker_id uuid references persistent_workers(id) on delete set null,
+  add column if not exists worker_id uuid,
   add column if not exists trigger_kind text not null default 'cadence',
   add column if not exists trigger_config jsonb not null default '{}'::jsonb;
+
+alter table watchers drop constraint if exists watchers_worker_tenant_fk;
+alter table watchers
+  add constraint watchers_worker_tenant_fk
+  foreign key (tenant_id,worker_id) references persistent_workers(tenant_id,id) on delete set null;
 
 alter table watchers drop constraint if exists watchers_trigger_kind_check;
 alter table watchers
@@ -59,8 +83,8 @@ create index if not exists watchers_tenant_worker_status_idx
 create table if not exists worker_handoffs (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references tenants(id) on delete cascade,
-  source_worker_id uuid not null references persistent_workers(id) on delete cascade,
-  target_worker_id uuid not null references persistent_workers(id) on delete cascade,
+  source_worker_id uuid not null,
+  target_worker_id uuid not null,
   source_task_id uuid references tasks(id) on delete set null,
   target_task_id uuid references tasks(id) on delete set null,
   status text not null default 'requested',
@@ -72,6 +96,13 @@ create table if not exists worker_handoffs (
   check (source_worker_id <> target_worker_id),
   check (status in ('requested','accepted','completed','rejected','cancelled'))
 );
+
+alter table worker_handoffs
+  add constraint worker_handoffs_source_tenant_fk
+  foreign key (tenant_id,source_worker_id) references persistent_workers(tenant_id,id) on delete cascade;
+alter table worker_handoffs
+  add constraint worker_handoffs_target_tenant_fk
+  foreign key (tenant_id,target_worker_id) references persistent_workers(tenant_id,id) on delete cascade;
 
 create index if not exists worker_handoffs_tenant_status_idx
   on worker_handoffs (tenant_id,status,created_at desc);
@@ -86,7 +117,7 @@ create unique index if not exists worker_handoffs_source_target_idx
 -- without changing the product surface.
 insert into persistent_workers (
   tenant_id,agent_id,work_cell_id,worker_key,name,runtime_strategy,
-  session_namespace,browser_profile_ref,file_namespace,memory_namespace,
+  session_namespace,browser_namespace,browser_profile_ref,file_namespace,memory_namespace,
   credential_namespace,last_active_at
 )
 select
@@ -98,6 +129,7 @@ select
   'shared_cell',
   'worker:' || a.template_key,
   'browser:' || a.template_key,
+  null,
   'worker:' || a.template_key || ':files',
   a.memory_namespace,
   'worker:' || a.template_key || ':credentials',
