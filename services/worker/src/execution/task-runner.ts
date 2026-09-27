@@ -519,11 +519,15 @@ export async function executeQueuedTask(queued: ExecuteJob) {
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Execution failed";
 
+    const failedUsage = error && typeof error === "object" && "usage" in error
+      ? (error as { usage?: unknown }).usage ?? { executionFailed: true }
+      : { executionFailed: true };
+
     await settleTaskUsage({
       tenantId: data.tenantId,
       taskId: data.taskId,
       workerId: persistentWorker?.id ?? data.workerId,
-      usage: { executionFailed: true }
+      usage: failedUsage
     }).catch(() => undefined);
 
     await sql(
