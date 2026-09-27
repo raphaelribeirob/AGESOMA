@@ -25,6 +25,7 @@ services:
       TRUST_STORE_URL: http://trust-store-${AGESOMA_TENANT_ID}:8084
       TRUST_STORE_TENANT_TOKEN: ${TRUST_STORE_AUTHD_TOKEN}
       AUTHD_BROWSER_TOKEN: ${AUTHD_BROWSER_TOKEN}
+      AUTHD_BROWSER_CDP_TOKEN: ${AUTHD_BROWSER_CDP_TOKEN}
       AUTHD_PRIVSEP_TOKEN: ${AUTHD_PRIVSEP_TOKEN}
       STEEL_API_KEY: ${STEEL_API_KEY:-}
       WHATSAPP_CLOUD_ACCESS_TOKEN: ${WHATSAPP_CLOUD_ACCESS_TOKEN:-}
@@ -88,14 +89,69 @@ services:
       EGRESS_GATEWAY_URL: http://egress-${AGESOMA_TENANT_ID}:8085
       EGRESS_BROWSER_TOKEN: ${EGRESS_BROWSER_TOKEN}
       STEEL_BASE_URL: ${STEEL_BASE_URL:-https://api.steel.dev}
+      BROWSER_SUBAGENT_URL: http://browser-subagent:8087
+      BROWSER_SUBAGENT_TOKEN: ${BROWSER_SUBAGENT_TOKEN}
+      BROWSER_SAFETY_URL: http://browser-safety:8089
+      BROWSER_SAFETY_TOKEN: ${BROWSER_SAFETY_TOKEN}
     networks:
       tenant_cell:
         aliases:
           - browser-${AGESOMA_TENANT_ID}
       credential_cell: {}
+      browser_control_cell: {}
     depends_on:
       - authd
       - egress-gateway
+      - browser-subagent
+      - browser-safety
+
+  browser-safety:
+    build:
+      context: ../..
+      dockerfile: services/browser-safety/Dockerfile
+    restart: unless-stopped
+    environment:
+      BROWSER_SAFETY_TOKEN: ${BROWSER_SAFETY_TOKEN}
+    networks:
+      - browser_control_cell
+
+  browser-cdp-gateway:
+    build:
+      context: ../..
+      dockerfile: services/browser-cdp-gateway/Dockerfile
+    restart: unless-stopped
+    environment:
+      AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
+      BROWSER_CDP_TOKEN: ${BROWSER_CDP_TOKEN}
+      TRUST_STORE_URL: http://trust-store-${AGESOMA_TENANT_ID}:8084
+      TRUST_STORE_TENANT_TOKEN: ${TRUST_STORE_BROWSER_CDP_TOKEN}
+      AUTHD_URL: http://authd:8083
+      AUTHD_BROWSER_CDP_TOKEN: ${AUTHD_BROWSER_CDP_TOKEN}
+    networks:
+      credential_cell: {}
+      browser_control_cell:
+        aliases:
+          - browser-cdp-gateway
+      browser_cdp_outbound: {}
+    depends_on:
+      - authd
+
+  browser-subagent:
+    build:
+      context: ../..
+      dockerfile: services/browser-subagent/Dockerfile
+    restart: unless-stopped
+    environment:
+      AGESOMA_TENANT_ID: ${AGESOMA_TENANT_ID}
+      BROWSER_SUBAGENT_TOKEN: ${BROWSER_SUBAGENT_TOKEN}
+      BROWSER_CDP_URL: ws://browser-cdp-gateway:8088/v1/cdp
+      BROWSER_CDP_TOKEN: ${BROWSER_CDP_TOKEN}
+    networks:
+      browser_control_cell:
+        aliases:
+          - browser-subagent
+    depends_on:
+      - browser-cdp-gateway
 
   model-gateway:
     build:
@@ -165,6 +221,11 @@ networks:
   credential_cell:
     name: agesoma-credentials-${AGESOMA_TENANT_ID}
     external: true
+  browser_control_cell:
+    name: agesoma-browser-control-${AGESOMA_TENANT_ID}
+    external: true
+  browser_cdp_outbound:
+    driver: bridge
   model_outbound:
     driver: bridge
   privileged_outbound:
