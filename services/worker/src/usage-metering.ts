@@ -3,8 +3,10 @@ import { transaction } from "@agesoma/db";
 type BudgetReservation = {
   allowed: boolean;
   reservedCostCents: number;
-  monthlyBudgetCents: number | null;
+  tenantMonthlyBudgetCents: number | null;
+  workerMonthlyBudgetCents: number | null;
   monthCommittedCents: number;
+  workerMonthCommittedCents: number;
   currency: string;
   reason: string;
 };
@@ -93,6 +95,11 @@ function unknownTaskReserveCents() {
   return value === null ? 25 : Math.trunc(value);
 }
 
+function defaultTenantMonthlyBudgetCents() {
+  const value = numeric(process.env.AGESOMA_DEFAULT_MONTHLY_BUDGET_CENTS);
+  return value === null ? 1000 : Math.trunc(value);
+}
+
 export async function reserveWorkerBudget(input: {
   tenantId: string;
   taskId: string;
@@ -122,16 +129,69 @@ export async function reserveWorkerBudget(input: {
       return {
         allowed: row.status !== "released",
         reservedCostCents: Number(row.reserved_cost_cents),
-        monthlyBudgetCents: null,
+        tenantMonthlyBudgetCents: null,
+        workerMonthlyBudgetCents: null,
         monthCommittedCents: committed,
+        workerMonthCommittedCents: committed,
         currency: row.currency,
         reason: "Task already has an idempotent usage reservation."
       };
     }
 
     let currency = (process.env.AGESOMA_COST_CURRENCY?.trim() || "USD").toUpperCase();
-    let monthlyBudgetCents: number | null = null;
+    let tenantMonthlyBudgetCents: number | null = null;
+    let workerMonthlyBudgetCents: number | null = null;
     let monthCommittedCents = 0;
+    let workerMonthCommittedCents = 0;
+
+    await client.query(
+      "insert into agesoma_p0.tenant_usage_budgets (tenant_id,monthly_budget_cents,currency,status) values ($1,$2,$3,'active') on conflict (tenant_id) do nothing",
+      [input.tenantId,defaultTenantMonthlyBudgetCents(),currency]
+    );
+
+    const tenantBudget = await client.query<{
+      monthly_budget_cents: string | number;
+      currency: string;
+      status: string;
+    }>(
+      "select monthly_budget_cents,currency,status from agesoma_p0.tenant_usage_budgets where tenant_id=$1 for update",
+      [input.tenantId]
+    );
+    const tenantBudgetRow = tenantBudget.rows[0];
+    if (!tenantBudgetRow || tenantBudgetRow.status !== "active") {
+      return {
+        allowed: false,
+        reservedCostCents: 0,
+        tenantMonthlyBudgetCents: tenantBudgetRow ? Number(tenantBudgetRow.monthly_budget_cents) : null,
+        workerMonthlyBudgetCents: null,
+        monthCommittedCents: 0,
+        workerMonthCommittedCents: 0,
+        currency: tenantBudgetRow?.currency ?? currency,
+        reason: "Tenant usage budget is unavailable or paused."
+      };
+    }
+
+    currency = tenantBudgetRow.currency;
+    tenantMonthlyBudgetCents = Number(tenantBudgetRow.monthly_budget_cents);
+
+    const tenantCommitted = await client.query<{ committed: string | number }>(
+      "select coalesce(sum(case when status='reserved' then reserved_cost_cents when status='settled' then actual_cost_cents else 0 end),0) as committed from agesoma_p0.task_usage_ledger where tenant_id=$1 and period_start=date_trunc('month',now())::date and currency=$2 and status in ('reserved','settled')",
+      [input.tenantId,currency]
+    );
+    monthCommittedCents = Number(tenantCommitted.rows[0]?.committed ?? 0);
+
+    if (monthCommittedCents + reserve > tenantMonthlyBudgetCents) {
+      return {
+        allowed: false,
+        reservedCostCents: 0,
+        tenantMonthlyBudgetCents,
+        workerMonthlyBudgetCents: null,
+        monthCommittedCents,
+        workerMonthCommittedCents: 0,
+        currency,
+        reason: "Tenant monthly usage budget would be exceeded."
+      };
+    }
 
     if (input.workerId) {
       const worker = await client.query<{
@@ -147,28 +207,43 @@ export async function reserveWorkerBudget(input: {
         return {
           allowed: false,
           reservedCostCents: 0,
-          monthlyBudgetCents: null,
-          monthCommittedCents: 0,
+          tenantMonthlyBudgetCents,
+          workerMonthlyBudgetCents: null,
+          monthCommittedCents,
+          workerMonthCommittedCents: 0,
           currency,
           reason: "Persistent worker is unavailable for budget reservation."
         };
       }
 
-      currency = row.budget_currency;
-      monthlyBudgetCents = row.monthly_budget_cents === null ? null : Number(row.monthly_budget_cents);
+      workerMonthlyBudgetCents = row.monthly_budget_cents === null ? null : Number(row.monthly_budget_cents);
+      if (workerMonthlyBudgetCents !== null && row.budget_currency !== currency) {
+        return {
+          allowed: false,
+          reservedCostCents: 0,
+          tenantMonthlyBudgetCents,
+          workerMonthlyBudgetCents,
+          monthCommittedCents,
+          workerMonthCommittedCents: 0,
+          currency,
+          reason: "Worker budget currency does not match tenant budget currency."
+        };
+      }
 
       const committed = await client.query<{ committed: string | number }>(
         "select coalesce(sum(case when status='reserved' then reserved_cost_cents when status='settled' then actual_cost_cents else 0 end),0) as committed from agesoma_p0.task_usage_ledger where tenant_id=$1 and worker_id=$2 and period_start=date_trunc('month',now())::date and currency=$3 and status in ('reserved','settled')",
         [input.tenantId,input.workerId,currency]
       );
-      monthCommittedCents = Number(committed.rows[0]?.committed ?? 0);
+      workerMonthCommittedCents = Number(committed.rows[0]?.committed ?? 0);
 
-      if (monthlyBudgetCents !== null && monthCommittedCents + reserve > monthlyBudgetCents) {
+      if (workerMonthlyBudgetCents !== null && workerMonthCommittedCents + reserve > workerMonthlyBudgetCents) {
         return {
           allowed: false,
           reservedCostCents: 0,
-          monthlyBudgetCents,
+          tenantMonthlyBudgetCents,
+          workerMonthlyBudgetCents,
           monthCommittedCents,
+          workerMonthCommittedCents,
           currency,
           reason: "Persistent worker monthly budget would be exceeded."
         };
@@ -183,12 +258,14 @@ export async function reserveWorkerBudget(input: {
     return {
       allowed: true,
       reservedCostCents: reserve,
-      monthlyBudgetCents,
+      tenantMonthlyBudgetCents,
+      workerMonthlyBudgetCents,
       monthCommittedCents,
+      workerMonthCommittedCents,
       currency,
-      reason: monthlyBudgetCents === null
-        ? "Usage reserved; worker has no monthly hard budget."
-        : "Usage reserved inside the worker monthly hard budget."
+      reason: workerMonthlyBudgetCents === null
+        ? "Usage reserved inside the tenant monthly hard budget."
+        : "Usage reserved inside tenant and worker monthly hard budgets."
     };
   });
 }
