@@ -121,21 +121,26 @@ export async function reserveWorkerBudget(input: {
 
     if (existing.rows[0]) {
       const row = existing.rows[0];
-      const committed = row.status === "settled"
-        ? Number(row.actual_cost_cents)
-        : row.status === "reserved"
-          ? Number(row.reserved_cost_cents)
-          : 0;
-      return {
-        allowed: row.status !== "released",
-        reservedCostCents: Number(row.reserved_cost_cents),
-        tenantMonthlyBudgetCents: null,
-        workerMonthlyBudgetCents: null,
-        monthCommittedCents: committed,
-        workerMonthCommittedCents: committed,
-        currency: row.currency,
-        reason: "Task already has an idempotent usage reservation."
-      };
+      if (row.status === "released") {
+        await client.query(
+          "delete from agesoma_p0.task_usage_ledger where tenant_id=$1 and task_id=$2 and status='released'",
+          [input.tenantId,input.taskId]
+        );
+      } else {
+        const committed = row.status === "settled"
+          ? Number(row.actual_cost_cents)
+          : Number(row.reserved_cost_cents);
+        return {
+          allowed: true,
+          reservedCostCents: Number(row.reserved_cost_cents),
+          tenantMonthlyBudgetCents: null,
+          workerMonthlyBudgetCents: null,
+          monthCommittedCents: committed,
+          workerMonthCommittedCents: committed,
+          currency: row.currency,
+          reason: "Task already has an idempotent usage reservation."
+        };
+      }
     }
 
     let currency = (process.env.AGESOMA_COST_CURRENCY?.trim() || "USD").toUpperCase();
