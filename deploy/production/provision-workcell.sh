@@ -1,9 +1,8 @@
 #!/bin/sh
 set -eu
 
-TENANT_ID="${1:?usage: provision-workcell.sh <tenant-uuid> [allowlist-file]}"
+TENANT_ID="${1:?usage: provision-workcell.sh <tenant-uuid>}"
 BASE_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-ALLOWLIST_FILE="${2:-$BASE_DIR/approved-domains.txt}"
 : "${DATABASE_URL:?DATABASE_URL is required to register the Work Cell}"
 : "${TRUST_STORE_MASTER_SECRET:?TRUST_STORE_MASTER_SECRET is required}"
 : "${EGRESS_CONTROL_TOKEN:?EGRESS_CONTROL_TOKEN is required}"
@@ -20,12 +19,11 @@ AUTHD_BROWSER_TOKEN="$(derive_token authd-browser)"
 AUTHD_PRIVSEP_TOKEN="$(derive_token authd-privsep)"
 EGRESS_BROWSER_TOKEN="$(derive_token egress-browser)"
 EGRESS_PRIVSEP_TOKEN="$(derive_token egress-privsep)"
+MODEL_GATEWAY_TOKEN="$(derive_token model-gateway)"
 
 case "$TENANT_ID" in
   *[!0-9a-fA-F-]*|'') echo "invalid tenant id" >&2; exit 2 ;;
 esac
-
-test -f "$ALLOWLIST_FILE" || { echo "allowlist file not found: $ALLOWLIST_FILE" >&2; exit 2; }
 
 docker network inspect "agesoma-cell-$TENANT_ID" >/dev/null 2>&1 || \
   docker network create --internal "agesoma-cell-$TENANT_ID" >/dev/null
@@ -41,7 +39,6 @@ docker inspect agesoma-trust-store >/dev/null 2>&1 || {
 docker network connect --alias "trust-store-$TENANT_ID" "agesoma-credentials-$TENANT_ID" agesoma-trust-store 2>/dev/null || true
 
 AGESOMA_TENANT_ID="$TENANT_ID" \
-WORKCELL_ALLOWLIST_FILE="$ALLOWLIST_FILE" \
 TRUST_STORE_SENTINEL_TOKEN="$TRUST_STORE_SENTINEL_TOKEN" \
 TRUST_STORE_AUTHD_TOKEN="$TRUST_STORE_AUTHD_TOKEN" \
 TRUST_STORE_BROWSER_TOKEN="$TRUST_STORE_BROWSER_TOKEN" \
@@ -50,6 +47,7 @@ AUTHD_PRIVSEP_TOKEN="$AUTHD_PRIVSEP_TOKEN" \
 EGRESS_BROWSER_TOKEN="$EGRESS_BROWSER_TOKEN" \
 EGRESS_PRIVSEP_TOKEN="$EGRESS_PRIVSEP_TOKEN" \
 EGRESS_CONTROL_TOKEN="$EGRESS_CONTROL_TOKEN" \
+MODEL_GATEWAY_TOKEN="$MODEL_GATEWAY_TOKEN" \
   docker compose \
     --project-name "agesoma-cell-$TENANT_ID" \
     --file "$BASE_DIR/workcell-compose.yml" \
@@ -67,6 +65,7 @@ docker exec agesoma-control-worker node -e "fetch('http://hermes-$TENANT_ID:8642
 docker exec agesoma-control-worker node -e "fetch('http://broker-$TENANT_ID:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec agesoma-control-worker node -e "fetch('http://sentinel-$TENANT_ID:8081/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec agesoma-control-worker node -e "fetch('http://egress-$TENANT_ID:8085/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec agesoma-control-worker node -e "fetch('http://model-gateway-$TENANT_ID:8086/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec agesoma-control-worker node -e "fetch('http://trust-store-$TENANT_ID:8084/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-browser-broker-1" node -e "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-authd-1" node -e "fetch('http://127.0.0.1:8083/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
@@ -75,7 +74,7 @@ RUNTIME_NAMESPACE="cell:$TENANT_ID"
 FILE_NAMESPACE="$RUNTIME_NAMESPACE:files"
 MEMORY_NAMESPACE="$RUNTIME_NAMESPACE:memory"
 CREDENTIAL_NAMESPACE="$RUNTIME_NAMESPACE:credentials"
-CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"isolation\":\"per-tenant-networks-no-workcell-db\"}"
+CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"modelGatewayHost\":\"model-gateway-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"modelCredentials\":\"gateway-only\",\"isolation\":\"per-tenant-networks-no-workcell-db\"}"
 
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
