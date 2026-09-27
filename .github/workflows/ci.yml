@@ -118,6 +118,27 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce persistent worker architecture
+        run: |
+          test -f packages/db/migrations/0018_persistent_workers_routines.sql
+          test -f apps/web/lib/persistent-worker.ts
+          test -f services/worker/src/persistent-worker.ts
+          test -f services/worker/src/worker-handoffs.ts
+          test -f docs/PERSISTENT_WORKERS.md
+          grep -q 'create table if not exists persistent_workers' packages/db/migrations/0018_persistent_workers_routines.sql
+          grep -q 'create table if not exists worker_handoffs' packages/db/migrations/0018_persistent_workers_routines.sql
+          grep -q 'browser_namespace text not null' packages/db/migrations/0018_persistent_workers_routines.sql
+          grep -q 'max_parallel_jobs' services/worker/src/dispatch/tasks.ts
+          grep -q "trigger_kind='cadence'" services/worker/src/dispatch/watchers.ts
+          grep -q 'scheduleWorkerHandoffs' services/worker/src/execution/task-runner.ts
+          grep -q 'browser_internal_handoff_readonly' services/browser-broker/src/index.ts
+          grep -q 'persistent_workers' services/trust-store/src/index.ts
+          grep -q 'Bounded internal specialist work' packages/core/src/margin-governor.ts
+          if grep -n -E 'persistent_workers|worker_handoffs|workerKey|digital_agents' apps/web/app/agesoma-client.tsx; then
+            echo "Internal worker orchestration must remain hidden behind AGESOMA"
+            exit 1
+          fi
+
       - name: Enforce free API discovery boundary
         run: |
           test -f services/worker/src/api-discovery.ts
