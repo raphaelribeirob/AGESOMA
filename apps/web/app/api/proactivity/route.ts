@@ -1,12 +1,13 @@
+import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { tenantSql } from "@agesoma/db";
+import { sql, tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
 import { ensurePersistentWorkerByTemplate, workerTemplateForRoutine } from "../../../lib/persistent-worker";
 
 const cadenceSchema = z.enum(["15m", "1h", "6h", "1d", "7d"]);
 const interruptSchema = z.enum(["silent", "only_if_actionable", "always"]);
-const triggerSchema = z.literal("cadence");
+const triggerSchema = z.enum(["cadence","webhook","event"]);
 
 const preferencesSchema = z.object({
   enabled: z.boolean(),
@@ -19,7 +20,7 @@ const preferencesSchema = z.object({
 
 const watcherSchema = z.object({
   objective: z.string().min(3).max(2000),
-  cadence: cadenceSchema.default("6h"),
+  cadence: cadenceSchema.optional(),
   resource: z.string().max(120).optional(),
   kind: z.string().min(1).max(80).default("general"),
   connectedServiceId: z.string().uuid().optional(),
@@ -124,8 +125,20 @@ export async function POST(req: Request) {
     if (!service) return NextResponse.json({ error: "Conexão ativa não encontrada." }, { status: 400 });
   }
 
+  if (input.triggerKind === "event") {
+    const eventKind = input.triggerConfig.eventKind;
+    if (typeof eventKind !== "string" || eventKind.trim().length < 2 || eventKind.length > 120) {
+      return NextResponse.json({ error: "Routine de evento exige triggerConfig.eventKind." }, { status: 400 });
+    }
+  }
+
   const workerTemplate = workerTemplateForRoutine(input.kind, input.resource);
   const worker = await ensurePersistentWorkerByTemplate(authenticated.tenantId, workerTemplate);
+  const cadence = input.triggerKind === "cadence" ? (input.cadence ?? "6h") : null;
+  const webhookSecret = input.triggerKind === "webhook" ? randomBytes(32).toString("hex") : null;
+  const webhookSecretHash = webhookSecret
+    ? createHash("sha256").update(webhookSecret).digest("hex")
+    : null;
 
   const [watcher] = await tenantSql(authenticated.tenantId, `
     insert into watchers (
@@ -140,7 +153,7 @@ export async function POST(req: Request) {
       worker_id,trigger_kind,trigger_config,next_check_at,created_at
   `, [
     authenticated.tenantId,
-    input.cadence,
+    cadence,
     JSON.stringify({
       objective: input.objective,
       resource: input.resource ?? null,
@@ -153,7 +166,34 @@ export async function POST(req: Request) {
     JSON.stringify(input.triggerConfig)
   ]);
 
-  return NextResponse.json(watcher, { status: 201 });
+  if (webhookSecretHash) {
+    try {
+      await sql(`
+        insert into routine_webhook_secrets (tenant_id,watcher_id,secret_hash)
+        values ($1,$2,$3)
+        on conflict (tenant_id,watcher_id) do update set
+          secret_hash=excluded.secret_hash,
+          revoked_at=null,
+          last_used_at=null,
+          created_at=now()
+      `, [authenticated.tenantId,(watcher as { id:string }).id,webhookSecretHash]);
+    } catch (error) {
+      await tenantSql(authenticated.tenantId, `
+        update watchers set status='failed',updated_at=now()
+        where tenant_id=$1 and id=$2
+      `, [authenticated.tenantId,(watcher as { id:string }).id]).catch(()=>undefined);
+      throw error;
+    }
+  }
+
+  return NextResponse.json({
+    ...watcher,
+    webhook: webhookSecret ? {
+      path: `/api/routines/webhook/${(watcher as { id:string }).id}`,
+      secret: webhookSecret,
+      shownOnce: true
+    } : null
+  }, { status: 201 });
 }
 
 export async function DELETE(req: Request) {
@@ -170,6 +210,14 @@ export async function DELETE(req: Request) {
     where tenant_id=$1 and id=$2 and status='active'
     returning id,status
   `, [authenticated.tenantId, id]);
+
+  if (watcher) {
+    await sql(`
+      update routine_webhook_secrets
+      set revoked_at=now()
+      where tenant_id=$1 and watcher_id=$2 and revoked_at is null
+    `, [authenticated.tenantId,id]).catch(()=>undefined);
+  }
 
   if (!watcher) return NextResponse.json({ error: "Monitoramento ativo não encontrado." }, { status: 404 });
   return NextResponse.json(watcher);
