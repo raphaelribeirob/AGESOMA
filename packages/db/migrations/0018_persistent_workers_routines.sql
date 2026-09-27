@@ -77,6 +77,9 @@ create index if not exists worker_handoffs_tenant_status_idx
   on worker_handoffs (tenant_id,status,created_at desc);
 create index if not exists worker_handoffs_target_status_idx
   on worker_handoffs (target_worker_id,status,created_at desc);
+create unique index if not exists worker_handoffs_source_target_idx
+  on worker_handoffs (source_task_id,target_worker_id)
+  where source_task_id is not null;
 
 -- Existing agents become persistent workers. They share the tenant Work Cell at first,
 -- but keep isolated logical state. Dedicated cells can be introduced later per worker
