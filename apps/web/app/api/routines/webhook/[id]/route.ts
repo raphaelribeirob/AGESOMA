@@ -26,7 +26,7 @@ export async function POST(
   context:{params:Promise<{id:string}>}
 ){
   const {id}=await context.params;
-  if(!/^[0-9a-fA-F-]{36}$/.test(id)){
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
     return NextResponse.json({error:"Unauthorized routine webhook"},{status:401});
   }
 
@@ -77,7 +77,10 @@ export async function POST(
     return NextResponse.json({error:"Webhook body must be a JSON object"},{status:400});
   }
 
-  const maxPerHour=Math.max(1,Number(process.env.AGESOMA_ROUTINE_WEBHOOK_MAX_PER_HOUR??120));
+  const configuredLimit=Number(process.env.AGESOMA_ROUTINE_WEBHOOK_MAX_PER_HOUR??120);
+  const maxPerHour=Number.isFinite(configuredLimit)&&configuredLimit>0
+    ? Math.trunc(configuredLimit)
+    : 120;
   const [usage]=await sql<{count:string|number}>(`
     select count(*) as count
     from routine_events
