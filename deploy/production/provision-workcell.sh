@@ -32,8 +32,10 @@ case "$TENANT_ID" in
   *[!0-9a-fA-F-]*|'') echo "invalid tenant id" >&2; exit 2 ;;
 esac
 
-docker network inspect "agesoma-control-cells" >/dev/null 2>&1 || \
-  docker network create --internal "agesoma-control-cells" >/dev/null
+docker network inspect "agesoma-control-cells" >/dev/null 2>&1 || {
+  echo "agesoma-control-cells is not available; start the control-plane compose first" >&2
+  exit 3
+}
 
 docker network inspect "agesoma-cell-$TENANT_ID" >/dev/null 2>&1 || \
   docker network create --internal "agesoma-cell-$TENANT_ID" >/dev/null
