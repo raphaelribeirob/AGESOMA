@@ -6,7 +6,7 @@ import { ensurePersistentWorkerByTemplate, workerTemplateForRoutine } from "../.
 
 const cadenceSchema = z.enum(["15m", "1h", "6h", "1d", "7d"]);
 const interruptSchema = z.enum(["silent", "only_if_actionable", "always"]);
-const triggerSchema = z.enum(["cadence", "manual"]);
+const triggerSchema = z.literal("cadence");
 
 const preferencesSchema = z.object({
   enabled: z.boolean(),
