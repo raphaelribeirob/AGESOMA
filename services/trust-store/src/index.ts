@@ -214,15 +214,25 @@ async function browserContext(input:Record<string,unknown>){
   const tenantId=text(input,"tenantId")!;
   const taskId=text(input,"taskId");
   if(!taskId) throw new Error("task_id_required");
-  const [task]=await sql<{id:string;action_type:string|null;data_taint:string}>(`
-    select id,action_type,data_taint from tasks
+  const [task]=await sql<{id:string;action_type:string|null;data_taint:string;worker_id:string|null}>(`
+    select id,action_type,data_taint,worker_id from tasks
     where tenant_id=$1 and id=$2 and status in ('running','queued')
     limit 1
   `,[tenantId,taskId]);
   if(!task) throw new Error("task_not_executable");
-  const [cell]=await sql<{browser_profile_ref:string|null}>(`
-    select browser_profile_ref from work_cells where tenant_id=$1 limit 1
-  `,[tenantId]);
+  const [worker]=task.worker_id
+    ? await sql<{browser_profile_ref:string|null}>(`
+        select browser_profile_ref
+        from persistent_workers
+        where tenant_id=$1 and id=$2 and status='active'
+        limit 1
+      `,[tenantId,task.worker_id])
+    : [];
+  const [cell]=!worker
+    ? await sql<{browser_profile_ref:string|null}>(`
+        select browser_profile_ref from work_cells where tenant_id=$1 limit 1
+      `,[tenantId])
+    : [];
   const [sessions]=await sql<{count:string|number}>(`
     select count(*) as count from browser_sessions where tenant_id=$1 and task_id=$2
   `,[tenantId,taskId]);
@@ -232,7 +242,7 @@ async function browserContext(input:Record<string,unknown>){
   `,[tenantId,taskId]);
   return {
     task,
-    browserProfileRef:cell?.browser_profile_ref??null,
+    browserProfileRef:worker?.browser_profile_ref??cell?.browser_profile_ref??null,
     sessionCount:Number(sessions?.count??0),
     scrapeCount:Number(scrapes?.count??0)
   };
@@ -328,7 +338,21 @@ async function browserSessionCreated(input:Record<string,unknown>){
     ) values ($1,$2,'steel',$3,$4,'brokered',false,'live',$5)
   `,[tenantId,taskId,sessionId,profileId,dataTaint]);
   if(profileId){
-    await sql(`update work_cells set browser_profile_ref=$2,last_active_at=now(),updated_at=now() where tenant_id=$1`,[tenantId,profileId]);
+    const [task]=await sql<{worker_id:string|null}>(`
+      select worker_id from tasks where tenant_id=$1 and id=$2 limit 1
+    `,[tenantId,taskId]);
+    if(task?.worker_id){
+      await sql(`
+        update persistent_workers
+        set browser_profile_ref=$3,last_active_at=now(),updated_at=now()
+        where tenant_id=$1 and id=$2
+      `,[tenantId,task.worker_id,profileId]);
+    }else{
+      await sql(`
+        update work_cells set browser_profile_ref=$2,last_active_at=now(),updated_at=now()
+        where tenant_id=$1
+      `,[tenantId,profileId]);
+    }
   }
   await sql(`
     insert into runtime_events (tenant_id,task_id,session_ref,event_type,trust_zone,summary,metadata)
