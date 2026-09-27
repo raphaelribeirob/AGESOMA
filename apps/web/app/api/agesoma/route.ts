@@ -190,14 +190,16 @@ function agentContext(agent: DigitalAgentRow) {
   };
 }
 
-async function firstApproval(tenantId: string) {
+async function firstApproval(tenantId: string, threadId?:string|null) {
   const tasks = await tenantSql<ApprovalTask>(tenantId, `
     select id,status,action_type,payload
     from tasks
-    where tenant_id=$1 and status='awaiting_approval'
+    where tenant_id=$1
+      and status='awaiting_approval'
+      and ($2::text is null or payload->>'threadId'=$2)
     order by created_at asc
     limit 5
-  `, [tenantId]);
+  `, [tenantId,threadId??null]);
 
   for (const task of tasks) {
     const card=approvalCard(task);
@@ -559,10 +561,12 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   return NextResponse.json({ reply: "Aprovado. Vou executar exatamente o que foi autorizado e depois confirmar o resultado com evidência." });
 }
 
-export async function GET() {
+export async function GET(req:Request) {
   const authenticated=await resolveAuthenticatedWorkspace();
   if(!authenticated) return NextResponse.json({error:"Sua sessão expirou. Entre novamente."},{status:401});
-  return NextResponse.json({approval:await firstApproval(authenticated.tenantId)});
+  const raw=new URL(req.url).searchParams.get("threadId");
+  const threadId=raw&&z.string().uuid().safeParse(raw).success?raw:null;
+  return NextResponse.json({approval:await firstApproval(authenticated.tenantId,threadId)});
 }
 
 export async function POST(req: Request) {
