@@ -559,6 +559,12 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   return NextResponse.json({ reply: "Aprovado. Vou executar exatamente o que foi autorizado e depois confirmar o resultado com evidência." });
 }
 
+export async function GET() {
+  const authenticated=await resolveAuthenticatedWorkspace();
+  if(!authenticated) return NextResponse.json({error:"Sua sessão expirou. Entre novamente."},{status:401});
+  return NextResponse.json({approval:await firstApproval(authenticated.tenantId)});
+}
+
 export async function POST(req: Request) {
   const authenticated = await resolveAuthenticatedWorkspace();
   if (!authenticated) return NextResponse.json({ error: "Sua sessão expirou. Entre novamente." }, { status: 401 });
