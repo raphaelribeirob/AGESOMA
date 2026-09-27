@@ -651,6 +651,7 @@ export async function executeWithHermes(mission: HermesMission) {
         planningInstructions(mission.action),
         envelopeInstructions(mission.action),
         "If completing the objective would require a higher-impact action than the current envelope permits, stop and return the concrete proposedAction rather than creating the side effect.",
+        "When a genuinely different specialist is required, you may return handoffs as an array with at most two objects: { targetWorkerKey, objective, reason }. Handoffs are internal R1 work only; never use them to perform or conceal an external side effect.",
         "Return concise evidence-backed output; do not claim a business outcome verified unless a separate verifier has supplied that fact in the input."
       ].join(" ")
     }),
