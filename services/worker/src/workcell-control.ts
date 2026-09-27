@@ -39,7 +39,8 @@ export function resolveWorkcellServiceBaseUrl(tenantId:string,service:WorkcellSe
   throw new Error("Work Cell control gateway is required; direct tenant-network access is disabled");
 }
 
-export function workcellControlHeaders(tenantId:string){
+export function workcellControlHeaders(tenantId:string): Record<string,string> {
   const token=workcellControlToken(tenantId);
-  return token?{"x-agesoma-workcell-token":token}:{};
+  if (!token) return {};
+  return {"x-agesoma-workcell-token":token};
 }
