@@ -27,7 +27,7 @@ function text(input:Record<string,unknown>,key:string){
   return typeof value==="string"&&value.trim()?value.trim():null;
 }
 
-type TrustCaller="sentinel"|"authd"|"browser_broker";
+type TrustCaller="sentinel"|"authd"|"browser_broker"|"browser_cdp_gateway";
 
 function tenantToken(caller:TrustCaller,tenantId:string){
   return createHmac("sha256",masterSecret).update(`${caller}:${tenantId}`).digest("hex");
@@ -42,7 +42,7 @@ function authorizeTenant(req:IncomingMessage,input:Record<string,unknown>){
   const tenantId=text(input,"tenantId");
   const caller=req.headers["x-agesoma-trust-caller"];
   const supplied=req.headers["x-agesoma-trust-token"];
-  if((caller!=="sentinel"&&caller!=="authd"&&caller!=="browser_broker")||!tenantId||typeof supplied!=="string") {
+  if((caller!=="sentinel"&&caller!=="authd"&&caller!=="browser_broker"&&caller!=="browser_cdp_gateway")||!tenantId||typeof supplied!=="string") {
     throw new Error("forbidden");
   }
   if(!sameSecret(supplied,tenantToken(caller,tenantId))) throw new Error("forbidden");
@@ -52,6 +52,7 @@ function authorizeTenant(req:IncomingMessage,input:Record<string,unknown>){
 function callerMayUse(caller:TrustCaller,path:string){
   if(caller==="sentinel") return path.startsWith("/v1/sentinel/");
   if(caller==="authd") return path.startsWith("/v1/authd/");
+  if(caller==="browser_cdp_gateway") return path==="/v1/browser/cdp-context";
   return path.startsWith("/v1/browser/");
 }
 
@@ -237,6 +238,73 @@ async function browserContext(input:Record<string,unknown>){
   };
 }
 
+async function browserSessionContext(input:Record<string,unknown>){
+  const tenantId=text(input,"tenantId")!;
+  const taskId=text(input,"taskId");
+  const sessionId=text(input,"sessionId");
+  if(!taskId||!sessionId) throw new Error("task_and_session_required");
+
+  const [row]=await sql<{
+    provider_session_id:string;data_taint:string;last_url:string|null;safety_state:unknown;
+    action_type:string|null;task_status:string;
+  }>(`
+    select bs.provider_session_id,bs.data_taint,bs.last_url,bs.safety_state,
+           t.action_type,t.status as task_status
+    from browser_sessions bs
+    join tasks t on t.tenant_id=bs.tenant_id and t.id=bs.task_id
+    where bs.tenant_id=$1 and bs.task_id=$2 and bs.provider_session_id=$3
+      and bs.status='live'
+    limit 1
+  `,[tenantId,taskId,sessionId]);
+  if(!row||!["running","queued"].includes(row.task_status)) throw new Error("browser_session_not_authorized");
+  return row;
+}
+
+async function browserCdpContext(input:Record<string,unknown>){
+  const row=await browserSessionContext(input);
+  if(!["business.observe","business.work"].includes(row.action_type??"")){
+    throw new Error("browser_capability_not_granted");
+  }
+  return {allowed:true,sessionId:row.provider_session_id};
+}
+
+async function browserSafetyEvent(input:Record<string,unknown>){
+  const tenantId=text(input,"tenantId")!;
+  const taskId=text(input,"taskId");
+  const sessionId=text(input,"sessionId");
+  if(!taskId||!sessionId) throw new Error("task_and_session_required");
+  await browserSessionContext(input);
+
+  const decision=text(input,"decision")??"ALLOW";
+  const eventType=text(input,"eventType")??"browser_safety";
+  const url=text(input,"url");
+  const reasons=Array.isArray(input.reasons)
+    ? input.reasons.filter((item):item is string=>typeof item==="string").slice(0,12)
+    : [];
+
+  await sql(`
+    update browser_sessions
+    set last_snapshot_at=case when $4='snapshot' then now() else last_snapshot_at end,
+        last_url=coalesce($5,last_url),
+        safety_state=$6::jsonb,
+        updated_at=now()
+    where tenant_id=$1 and task_id=$2 and provider_session_id=$3 and status='live'
+  `,[
+    tenantId,taskId,sessionId,eventType,url,
+    JSON.stringify({decision,reasons,eventType,updatedAt:new Date().toISOString()})
+  ]);
+
+  await sql(`
+    insert into runtime_events (tenant_id,task_id,session_ref,event_type,trust_zone,summary,metadata)
+    values ($1,$2,$3,$4,'browser_safety',$5,$6::jsonb)
+  `,[
+    tenantId,taskId,sessionId,eventType,
+    `${decision}: ${eventType}`,
+    JSON.stringify({decision,reasons,url})
+  ]);
+  return {ok:true};
+}
+
 async function browserSessionCreated(input:Record<string,unknown>){
   const tenantId=text(input,"tenantId")!;
   const taskId=text(input,"taskId");
@@ -300,6 +368,9 @@ const server=createServer(async(req,res)=>{
     if(req.url==="/v1/sentinel/record") return json(res,200,await sentinelRecord(input));
     if(req.url==="/v1/authd/context") return json(res,200,await authdContext(input));
     if(req.url==="/v1/browser/context") return json(res,200,await browserContext(input));
+    if(req.url==="/v1/browser/session-context") return json(res,200,await browserSessionContext(input));
+    if(req.url==="/v1/browser/cdp-context") return json(res,200,await browserCdpContext(input));
+    if(req.url==="/v1/browser/safety-event") return json(res,200,await browserSafetyEvent(input));
     if(req.url==="/v1/browser/session-created") return json(res,200,await browserSessionCreated(input));
     if(req.url==="/v1/browser/session-released") return json(res,200,await browserSessionReleased(input));
     if(req.url==="/v1/browser/scrape-event") return json(res,200,await browserScrapeEvent(input));
