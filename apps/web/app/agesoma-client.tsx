@@ -161,7 +161,8 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
   }
 
   async function refreshApproval(){
-    const response=await fetch("/api/agesoma",{cache:"no-store"});
+    const query=threadId ? "?threadId="+encodeURIComponent(threadId) : "";
+    const response=await fetch("/api/agesoma"+query,{cache:"no-store"});
     if(response.ok) setApproval((await response.json()).approval ?? null);
   }
 
@@ -169,7 +170,7 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
   useEffect(()=>{
     const timer=window.setInterval(()=>void refreshApproval(),8000);
     return()=>window.clearInterval(timer);
-  },[]);
+  },[threadId]);
   useEffect(()=>{
     if(view==="goals") void loadGoals();
     if(view==="ideas") void loadIdeas();
