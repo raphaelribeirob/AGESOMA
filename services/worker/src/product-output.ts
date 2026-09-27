@@ -216,6 +216,7 @@ async function persistResolvedAction(task: ProductTask, output: Record<string, u
     amountCents,
     parameters,
     parentTaskId: task.id,
+    threadId: text(task.payload.threadId),
     requestedBy: text(task.payload.requestedBy),
     ownerRequested: true,
     resolvedByHermes: true,
