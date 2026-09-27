@@ -119,6 +119,7 @@ Browser control calls are limited to the allowlisted Steel control host. For scr
 Authd accepts caller-specific credentials:
 
 - `browser_broker`;
+- `browser_cdp_gateway`;
 - `privsep_broker`.
 
 Policy:
@@ -126,6 +127,9 @@ Policy:
 ```text
 browser_broker
   -> steel / browser.provider
+
+browser_cdp_gateway
+  -> steel / browser.cdp
 
 privsep_broker
   -> whatsapp / whatsapp.send
@@ -157,7 +161,8 @@ Each tenant/caller receives an HMAC-derived token:
 
 - Sentinel;
 - Authd;
-- Browser Broker.
+- Browser Broker;
+- Browser CDP Gateway.
 
 A caller can access only its own endpoint family.
 
@@ -180,11 +185,15 @@ The Browser Broker has:
 
 It resolves only `cred://steel/default`, then asks the Egress Gateway to call Steel REST.
 
-Initial operations remain:
+The Browser Broker now exposes a narrow mediated surface:
 
-- create persistent session;
-- release session;
-- read-only scrape.
+- create/release persistent session;
+- safety-filtered read-only scrape;
+- accessibility-tree snapshot;
+- HTTPS navigation;
+- safety-gated click/fill/press/select/check/uncheck/scroll.
+
+Interactive actions are executed by Browser Subagent. HERMES never receives raw CDP, DOM/HTML, JavaScript evaluation or upload primitives.
 
 Only `business.observe` and `business.work` tasks receive browser capability.
 
