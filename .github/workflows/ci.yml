@@ -325,7 +325,8 @@ jobs:
           grep -q 'loadActivityPanel' apps/web/app/agesoma-client.tsx
           grep -q 'Memória & permissões' apps/web/app/agesoma-client.tsx
           grep -q 'Conversar sobre isto' apps/web/app/agesoma-client.tsx
-          grep -q 'action:"deny"' apps/web/app/agesoma-client.tsx
+          grep -q 'z.literal("deny")' apps/web/app/api/agesoma/route.ts
+          grep -q 'decideApproval("deny",approval)' apps/web/app/agesoma-client.tsx
           grep -q 'approvalCard' apps/web/app/page.tsx
           if grep -n -E 'HERMES|Sentinel|Work Cell|digital_agents|runtime_events' apps/web/app/agesoma-client.tsx; then
             echo "Internal architecture language must stay out of the Muse product shell"
