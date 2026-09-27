@@ -12,6 +12,7 @@ import { brainQueryForTask, recallCompanyContext, rememberCompanyEpisode } from 
 import { executeWithHermes } from "../hermes";
 import { persistProductOutput } from "../product-output";
 import { loadPersistentWorkerForTask } from "../persistent-worker";
+import { scheduleWorkerHandoffs } from "../worker-handoffs";
 import type { QueuedTask } from "../types";
 
 export type ExecuteJob = {
@@ -392,6 +393,20 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     );
 
     await persistProductOutput(task, result);
+
+    await sql(`
+      update worker_handoffs
+      set status='completed',completed_at=now()
+      where tenant_id=$1 and target_task_id=$2 and status='accepted'
+    `, [data.tenantId,data.taskId]);
+
+    await scheduleWorkerHandoffs({
+      tenantId: data.tenantId,
+      sourceTaskId: data.taskId,
+      sourceWorkerId: persistentWorker?.id ?? null,
+      sourcePayload: data.payload,
+      executionResult: result
+    });
 
     if (typeof data.payload.watcherId === "string") {
       await sql(
