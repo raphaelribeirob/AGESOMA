@@ -28,7 +28,7 @@ A persistent worker has:
 - a worker-scoped Hermes session namespace;
 - a worker-scoped browser namespace and provider profile;
 - worker-scoped file and memory namespaces;
-- bounded parallelism and an optional monthly budget;
+- enforced bounded parallelism and optional budget metadata (hard monthly budget enforcement is a later phase);
 - owned routines;
 - bounded handoffs to other workers.
 
@@ -38,7 +38,7 @@ Workers are never an authority source. Memory, browser state, files and prior ta
 
 Phase 1 uses `shared_cell`: workers share the tenant's physically isolated Work Cell while keeping logical state separate.
 
-This is intentional. It gives AGESOMA persistent specialist behavior without multiplying infrastructure cost by the number of workers.
+This is intentional. It gives AGESOMA persistent specialist behavior without multiplying infrastructure cost by the number of workers. Worker namespaces in `shared_cell` are an application-level continuity boundary, not a security boundary; the tenant Work Cell remains the security/isolation boundary.
 
 `dedicated_cell` is reserved for workloads that later justify physical isolation or higher parallelism.
 
