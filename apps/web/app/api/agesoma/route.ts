@@ -14,10 +14,13 @@ import {
 } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
+import { approvalCard } from "../../../lib/approval-card";
+import { appendConversationMessage, resolveConversationThread } from "../../../lib/conversation";
 
 const schema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("message"), message: z.string().min(2).max(4000) }),
-  z.object({ action: z.literal("approve"), taskId: z.string().uuid() })
+  z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
+  z.object({ action: z.literal("approve"), taskId: z.string().uuid(), threadId: z.string().uuid().optional() }),
+  z.object({ action: z.literal("deny"), taskId: z.string().uuid(), threadId: z.string().uuid().optional() })
 ]);
 
 type TeamRow = {
@@ -187,24 +190,20 @@ function agentContext(agent: DigitalAgentRow) {
   };
 }
 
-async function firstApproval(tenantId: string) {
+async function firstApproval(tenantId: string, threadId?:string|null) {
   const tasks = await tenantSql<ApprovalTask>(tenantId, `
     select id,status,action_type,payload
     from tasks
-    where tenant_id=$1 and status='awaiting_approval'
+    where tenant_id=$1
+      and status='awaiting_approval'
+      and ($2::text is null or payload->>'threadId'=$2)
     order by created_at asc
     limit 5
-  `, [tenantId]);
+  `, [tenantId,threadId??null]);
 
   for (const task of tasks) {
-    const resolved = canonicalScope(task);
-    if (resolved.error || !resolved.scope) continue;
-    const summary = typeof task.payload.proposedSummary === "string"
-      ? task.payload.proposedSummary
-      : typeof task.payload.objective === "string"
-        ? task.payload.objective
-        : "Há uma ação aguardando sua autorização.";
-    return { taskId: task.id, summary };
+    const card=approvalCard(task);
+    if(card) return card;
   }
   return null;
 }
@@ -337,7 +336,7 @@ async function answerQuestion(tenantId: string, message: string) {
   return { reply: lines.join(" "), approval };
 }
 
-async function createWork(tenantId: string, actorId: string, role: string, message: string) {
+async function createWork(tenantId: string, actorId: string, role: string, message: string, threadId?:string|null) {
   let plan;
   try {
     plan = routeBusinessRequest(message);
@@ -446,6 +445,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     requestedBy: actorId,
     ownerRequested: isManager,
     conversationSurface: "agesoma",
+    threadId: threadId ?? null,
     outputContract: {
       artifact: "Return a concise artifact explaining what was organized or completed for the user.",
       outcome: "Do not claim a result is verified unless a separate verifier supplied evidence.",
@@ -516,6 +516,25 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   };
 }
 
+async function denyTask(tenantId:string,actorId:string,role:string,taskId:string){
+  if(!canApprove(role)) return NextResponse.json({error:"Somente o titular ou um administrador pode negar essa ação."},{status:403});
+  const [task]=await tenantSql<{id:string;status:string;payload:Record<string,unknown>}>(tenantId,`
+    update tasks set status='denied',updated_at=now()
+    where tenant_id=$1 and id=$2 and status='awaiting_approval'
+    returning id,status,payload
+  `,[tenantId,taskId]);
+  if(!task) return NextResponse.json({error:"Essa decisão já não está aguardando sua resposta."},{status:409});
+  await tenantSql(tenantId,`
+    insert into activity_events (tenant_id,task_id,event_type,title,summary,status,metadata)
+    values ($1,$2,'approval','Ação não autorizada',$3,'info',$4::jsonb)
+  `,[
+    tenantId,taskId,
+    typeof task.payload.proposedSummary==="string"?task.payload.proposedSummary:"A ação foi recusada pelo usuário.",
+    JSON.stringify({decision:"denied",decidedBy:actorId})
+  ]);
+  return NextResponse.json({reply:"Entendido. Não vou executar essa ação."});
+}
+
 async function approveTask(tenantId: string, actorId: string, role: string, taskId: string) {
   if (!canApprove(role)) return NextResponse.json({ error: "Somente o titular ou um administrador pode aprovar essa ação." }, { status: 403 });
 
@@ -542,6 +561,14 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   return NextResponse.json({ reply: "Aprovado. Vou executar exatamente o que foi autorizado e depois confirmar o resultado com evidência." });
 }
 
+export async function GET(req:Request) {
+  const authenticated=await resolveAuthenticatedWorkspace();
+  if(!authenticated) return NextResponse.json({error:"Sua sessão expirou. Entre novamente."},{status:401});
+  const raw=new URL(req.url).searchParams.get("threadId");
+  const threadId=raw&&z.string().uuid().safeParse(raw).success?raw:null;
+  return NextResponse.json({approval:await firstApproval(authenticated.tenantId,threadId)});
+}
+
 export async function POST(req: Request) {
   const authenticated = await resolveAuthenticatedWorkspace();
   if (!authenticated) return NextResponse.json({ error: "Sua sessão expirou. Entre novamente." }, { status: 401 });
@@ -549,13 +576,57 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Não entendi essa mensagem." }, { status: 400 });
 
-  if (parsed.data.action === "approve") {
-    return approveTask(authenticated.tenantId, authenticated.actorId, authenticated.role, parsed.data.taskId);
+  const thread=await resolveConversationThread(
+    authenticated.tenantId,
+    authenticated.actorId,
+    parsed.data.threadId
+  );
+
+  if (parsed.data.action === "approve" || parsed.data.action==="deny") {
+    const response=parsed.data.action==="approve"
+      ? await approveTask(authenticated.tenantId,authenticated.actorId,authenticated.role,parsed.data.taskId)
+      : await denyTask(authenticated.tenantId,authenticated.actorId,authenticated.role,parsed.data.taskId);
+    if(response.ok){
+      const body=await response.clone().json() as {reply?:string};
+      if(body.reply){
+        await appendConversationMessage({
+          tenantId:authenticated.tenantId,threadId:thread.id,role:"assistant",
+          content:body.reply,taskId:parsed.data.taskId,
+          metadata:{decision:parsed.data.action}
+        });
+      }
+    }
+    return response;
   }
+
+  await appendConversationMessage({
+    tenantId:authenticated.tenantId,
+    threadId:thread.id,
+    role:"user",
+    content:parsed.data.message
+  });
 
   const result = looksLikeQuestion(parsed.data.message) && !isPaidMediaRequest(parsed.data.message)
     ? await answerQuestion(authenticated.tenantId, parsed.data.message)
-    : await createWork(authenticated.tenantId, authenticated.actorId, authenticated.role, parsed.data.message);
+    : await createWork(
+        authenticated.tenantId,
+        authenticated.actorId,
+        authenticated.role,
+        parsed.data.message,
+        thread.id
+      );
 
-  return NextResponse.json(result);
+  await appendConversationMessage({
+    tenantId:authenticated.tenantId,
+    threadId:thread.id,
+    role:"assistant",
+    content:result.reply,
+    taskId:"taskId" in result&&typeof result.taskId==="string"?result.taskId:null,
+    metadata:{
+      accepted:"accepted" in result&&result.accepted===true,
+      approval:result.approval??null
+    }
+  });
+
+  return NextResponse.json({...result,threadId:thread.id});
 }

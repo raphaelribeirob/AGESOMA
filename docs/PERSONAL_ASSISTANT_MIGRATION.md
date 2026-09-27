@@ -140,8 +140,16 @@ packages/db/migrations/0013_api_tool_builder.sql
 packages/db/migrations/0014_muse_trust_boundary.sql
 packages/db/migrations/0015_forced_egress_and_authd_acl.sql
 packages/db/migrations/0016_browser_subagent_safety.sql
+0017_muse_product_experience.sql
 ```
 
 to the production database.
 
 The application build can succeed without that schema being present, so database migration is a release prerequisite rather than a build-time guarantee.
+
+
+### Product experience layer
+
+Migration `0017_muse_product_experience.sql` adds persistent main/side conversations and tenant-isolated message history.
+
+The web product exposes Chat, Goals, Ideas and Artifacts as first-class surfaces. Activity, Memory and Permissions are available from the agent-state drawer. Worker completions return to the originating conversation thread.

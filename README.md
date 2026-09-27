@@ -66,6 +66,7 @@ The target interaction is not “chat with AI.” It is “give this to AGESOMA.
 | **Graphiti + Neo4j** | Temporal context and memory experiments |
 | **pg-boss** | Durable background jobs and execution coordination |
 | **HERMES** | Isolated persistent execution runtime with no direct internet/model secrets |
+| **Muse-style Product UI** | Persistent Chat, Goals, Ideas, Artifacts, Activity, Memory, Permissions and Side Chats |
 | **Model Gateway** | Per-tenant model inference boundary; real model credentials stay outside HERMES |
 | **Sentinel** | Independent policy and authorization boundary |
 | **Work Cells** | Isolated execution environments |

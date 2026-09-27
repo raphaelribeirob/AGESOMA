@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../lib/auth-workspace";
 import AgesomaClient from "./agesoma-client";
+import { approvalCard } from "../lib/approval-card";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,14 @@ type Summary = {
 
 type ApprovalRow = {
   id: string;
+  status: string;
+  action_type: string;
+  payload: Record<string, unknown>;
+};
+
+type ActiveTaskRow = {
+  id: string;
+  status: string;
   payload: Record<string, unknown>;
 };
 
@@ -42,9 +51,9 @@ async function loadInitialState(tenantId: string) {
       (select coalesce(sum(net_value_cents),0) from outcome_events where tenant_id=$1) as net_value_cents
   `, [tenantId]);
 
-  const [[approval], [interruption]] = await Promise.all([
+  const [[approval], [interruption], [activeTask]] = await Promise.all([
     tenantSql<ApprovalRow>(tenantId, `
-      select id,payload
+      select id,status,action_type,payload
       from tasks
       where tenant_id=$1 and status='awaiting_approval'
       order by created_at asc
@@ -56,20 +65,22 @@ async function loadInitialState(tenantId: string) {
       where tenant_id=$1 and status='unread' and delivery_mode in ('notify','approval')
       order by created_at desc
       limit 1
-    `, [tenantId])
+    `, [tenantId]),
+    tenantSql<ActiveTaskRow>(tenantId,`
+      select id,status,payload
+      from tasks
+      where tenant_id=$1 and status in ('running','queued')
+      order by case status when 'running' then 0 else 1 end,updated_at desc
+      limit 1
+    `,[tenantId])
   ]);
 
   return {
     summary: summary ?? { active_work: 0, blocked_work: 0, approvals: 0, verified_count: 0, net_value_cents: 0 },
     approval: approval ?? null,
-    interruption: interruption ?? null
+    interruption: interruption ?? null,
+    activeTask: activeTask ?? null
   };
-}
-
-function approvalSummary(payload: Record<string, unknown>) {
-  if (typeof payload.proposedSummary === "string" && payload.proposedSummary.trim()) return payload.proposedSummary;
-  if (typeof payload.objective === "string" && payload.objective.trim()) return payload.objective;
-  return "Há uma ação aguardando sua autorização.";
 }
 
 export default async function Home() {
@@ -91,20 +102,31 @@ export default async function Home() {
   if (verified) parts.push(`${verified} resultado${verified === 1 ? " foi verificado" : "s foram verificados"}`);
   if (!parts.length) parts.push("Nada exige sua atenção agora");
 
+  const activeObjective=state.activeTask&&typeof state.activeTask.payload.objective==="string"
+    ? state.activeTask.payload.objective.trim()
+    : "";
+  const statusText=approvals
+    ? "Aguardando sua decisão"
+    : activeObjective
+      ? activeObjective.length>72
+        ? `Cuidando de ${activeObjective.slice(0,69)}…`
+        : `Cuidando de ${activeObjective}`
+      : active
+        ? `Cuidando de ${active} pedido${active===1?"":"s"}`
+        : "Disponível";
+
   return (
     <AgesomaClient
       initial={{
         greeting: firstName ? `Olá, ${firstName}.` : "Olá.",
         brief: state.interruption
-          ? `${state.interruption.summary} ${parts.join(". ")}. O que você quer que eu resolva?`
-          : `${parts.join(". ")}. O que você quer que eu resolva?`,
+          ? `${state.interruption.summary} ${parts.join(". ")}.`
+          : `${parts.join(". ")}.`,
+        statusText,
         activeWork: active,
         verifiedResults: verified,
         verifiedValue: money(value),
-        approval: state.approval ? {
-          taskId: state.approval.id,
-          summary: approvalSummary(state.approval.payload)
-        } : null
+        approval: state.approval ? approvalCard(state.approval) : null
       }}
     />
   );
