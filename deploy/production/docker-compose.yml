@@ -12,6 +12,9 @@ services:
       AGESOMA_BRAIN_INTERNAL_API_TOKEN: ${AGESOMA_BRAIN_INTERNAL_API_TOKEN}
       AGESOMA_BRAIN_SEARCH_TIMEOUT_MS: ${AGESOMA_BRAIN_SEARCH_TIMEOUT_MS:-8000}
       AGESOMA_BRAIN_INGEST_TIMEOUT_MS: ${AGESOMA_BRAIN_INGEST_TIMEOUT_MS:-45000}
+      WORKCELL_CONTROL_BASE_URL_TEMPLATE: ${WORKCELL_CONTROL_BASE_URL_TEMPLATE:-http://cell-control-{tenantId}:8090}
+      WORKCELL_CONTROL_MASTER_SECRET: ${WORKCELL_CONTROL_MASTER_SECRET}
+      AGESOMA_ALLOW_DIRECT_WORKCELL_NETWORK: "false"
       HERMES_BASE_URL_TEMPLATE: ${HERMES_BASE_URL_TEMPLATE:-http://hermes-{tenantId}:8642}
       AGESOMA_ALLOW_SHARED_HERMES: "false"
       HERMES_SERVICE_TOKEN: ${HERMES_SERVICE_TOKEN}
@@ -28,6 +31,7 @@ services:
       AGESOMA_UNKNOWN_TASK_RESERVE_CENTS: ${AGESOMA_UNKNOWN_TASK_RESERVE_CENTS:-25}
     networks:
       - control_outbound
+      - control_cells
 
   trust-store:
     container_name: agesoma-trust-store
@@ -96,6 +100,9 @@ services:
       - brain_private
 
 networks:
+  control_cells:
+    name: agesoma-control-cells
+    external: true
   control_outbound:
     driver: bridge
   brain_private:
