@@ -88,7 +88,7 @@ jobs:
           grep -q 'containsSensitiveKey' apps/web/app/api/connections/route.ts
           grep -q 'maxInterruptionsPerDay' apps/web/app/api/proactivity/route.ts
           grep -q 'proactive_interruptions' services/worker/src/product-output.ts
-          grep -q 'suppressInterruptions' services/worker/src/dispatch/watchers.ts
+          grep -q 'suppressInterruptions' services/worker/src/dispatch/routine-runtime.ts
           grep -q 'href="/settings"' apps/web/app/agesoma-client.tsx
 
       - name: Enforce MUSE-parity runtime and attention
