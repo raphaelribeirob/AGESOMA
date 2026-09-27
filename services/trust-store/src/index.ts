@@ -272,8 +272,16 @@ async function browserSafetyEvent(input:Record<string,unknown>){
   const tenantId=text(input,"tenantId")!;
   const taskId=text(input,"taskId");
   const sessionId=text(input,"sessionId");
-  if(!taskId||!sessionId) throw new Error("task_and_session_required");
-  await browserSessionContext(input);
+  if(!taskId) throw new Error("task_id_required");
+
+  const [task]=await sql<{id:string}>(`
+    select id from tasks
+    where tenant_id=$1 and id=$2 and status in ('running','queued')
+    limit 1
+  `,[tenantId,taskId]);
+  if(!task) throw new Error("task_not_executable");
+
+  if(sessionId) await browserSessionContext(input);
 
   const decision=text(input,"decision")??"ALLOW";
   const eventType=text(input,"eventType")??"browser_safety";
@@ -282,17 +290,19 @@ async function browserSafetyEvent(input:Record<string,unknown>){
     ? input.reasons.filter((item):item is string=>typeof item==="string").slice(0,12)
     : [];
 
-  await sql(`
-    update browser_sessions
-    set last_snapshot_at=case when $4='snapshot' then now() else last_snapshot_at end,
-        last_url=coalesce($5,last_url),
-        safety_state=$6::jsonb,
-        updated_at=now()
-    where tenant_id=$1 and task_id=$2 and provider_session_id=$3 and status='live'
-  `,[
-    tenantId,taskId,sessionId,eventType,url,
-    JSON.stringify({decision,reasons,eventType,updatedAt:new Date().toISOString()})
-  ]);
+  if(sessionId){
+    await sql(`
+      update browser_sessions
+      set last_snapshot_at=case when $4 like '%snapshot%' then now() else last_snapshot_at end,
+          last_url=coalesce($5,last_url),
+          safety_state=$6::jsonb,
+          updated_at=now()
+      where tenant_id=$1 and task_id=$2 and provider_session_id=$3 and status='live'
+    `,[
+      tenantId,taskId,sessionId,eventType,url,
+      JSON.stringify({decision,reasons,eventType,updatedAt:new Date().toISOString()})
+    ]);
+  }
 
   await sql(`
     insert into runtime_events (tenant_id,task_id,session_ref,event_type,trust_zone,summary,metadata)
