@@ -216,6 +216,21 @@ HERMES has no direct `HTTP_PROXY`/internet path and no real OpenAI, Anthropic or
 
 See `docs/MODEL_GATEWAY.md`.
 
+## Browser Subagent and Browser Safety
+
+Browser control is further separated behind two services that HERMES cannot reach directly:
+
+- Browser Subagent — drives the live Steel session through accessibility-tree refs only;
+- Browser Safety — independently classifies observed text and proposed browser actions.
+
+A dedicated CDP Gateway validates the tenant/task/session in Trust Store, resolves the separate `browser.cdp` Steel capability through Authd and connects only to the fixed Steel CDP host.
+
+HERMES receives no raw DOM, JavaScript execution, upload verb, DevTools endpoint or CDP URL.
+
+Accessibility snapshots and existing scrape results are passed through Browser Safety before entering HERMES. Suspicious prompt-injection/exfiltration content and high-risk form actions fail closed.
+
+See `docs/BROWSER_SUBAGENT_SAFETY.md`.
+
 ## Dynamic API tools
 
 `api.tool_read` no longer performs provider fetches directly from the control worker.
@@ -232,6 +247,7 @@ Apply in order:
 0013_api_tool_builder.sql
 0014_muse_trust_boundary.sql
 0015_forced_egress_and_authd_acl.sql
+0016_browser_subagent_safety.sql
 ```
 
 Then re-provision every Work Cell.
@@ -251,10 +267,10 @@ The P0 audit findings above are closed by this architecture, but this is still n
 
 Remaining work:
 
-- interactive browser subagent with accessibility-tree interface;
-- secure human takeover;
-- OTP/magic-link/password-reset filtering;
-- stronger prompt-injection classifiers outside the runtime;
+- secure human takeover with hard agent pause;
+- secure credential/OTP injection;
+- image/media/download prompt-injection classifiers;
+- known-malicious-site intelligence;
 - kernel/eBPF-grade taint propagation;
 - replay-complete, tamper-evident runtime event log;
 - first-class once/task/session/time-bounded capability UX.
