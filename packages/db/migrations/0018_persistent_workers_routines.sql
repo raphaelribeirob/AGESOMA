@@ -85,8 +85,8 @@ create table if not exists worker_handoffs (
   tenant_id uuid not null references tenants(id) on delete cascade,
   source_worker_id uuid not null,
   target_worker_id uuid not null,
-  source_task_id uuid references tasks(id) on delete set null,
-  target_task_id uuid references tasks(id) on delete set null,
+  source_task_id uuid,
+  target_task_id uuid,
   status text not null default 'requested',
   reason text not null,
   context jsonb not null default '{}'::jsonb,
@@ -97,6 +97,12 @@ create table if not exists worker_handoffs (
   check (status in ('requested','accepted','completed','rejected','cancelled'))
 );
 
+alter table worker_handoffs
+  add constraint worker_handoffs_source_task_tenant_fk
+  foreign key (tenant_id,source_task_id) references tasks(tenant_id,id) on delete set null;
+alter table worker_handoffs
+  add constraint worker_handoffs_target_task_tenant_fk
+  foreign key (tenant_id,target_task_id) references tasks(tenant_id,id) on delete set null;
 alter table worker_handoffs
   add constraint worker_handoffs_source_tenant_fk
   foreign key (tenant_id,source_worker_id) references persistent_workers(tenant_id,id) on delete cascade;
