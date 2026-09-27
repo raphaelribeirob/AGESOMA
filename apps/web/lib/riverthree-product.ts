@@ -18,7 +18,7 @@ export type RiverThreeStep = {
 
 export const agesomaPackage = {
   authority: "RIVERTHREE_DESIGN.md",
-  designContractVersion: "4.18.0",
+  designContractVersion: "4.19.0",
   product: {
     id: "agesoma",
     name: "AGESOMA",
@@ -36,7 +36,7 @@ export const agesomaPackage = {
   expression: {
     genZ: "subtle" as RiverThreeExpressionLevel,
     targetRange: "5-10",
-    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing", "agesoma"] as const,
+    preferredSurfaces: ["welcome", "resultPreview", "success", "marketing", "agesoma", "goals", "ideas", "artifacts", "activity"] as const,
     grain: "contextual" as const,
     gradient: "contextual" as const,
     editorialAsymmetry: "off" as const,
@@ -92,6 +92,8 @@ export const agesomaPackage = {
     mode: "agesomaConversation" as RiverThreeHomeMode,
     primaryOutcome: "personal_delegation_and_verified_completion",
     nextBestAction: "handle_the_next_useful_task_without_exposing_system_complexity",
+    navigation: ["chat","goals","ideas","artifacts"] as const,
+    conversationModel: "persistent_main_plus_side_chats" as const,
     supportingMetricsMax: 0
   },
   runtime: {
