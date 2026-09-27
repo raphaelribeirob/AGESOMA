@@ -259,7 +259,7 @@ jobs:
           grep -q '/v1/navigate' services/browser-broker/src/index.ts
           grep -q '/v1/action' services/browser-broker/src/index.ts
           grep -q 'If Browser Broker reports safety decision REVIEW or BLOCK' services/worker/src/hermes.ts
-          if grep -Eq '["'"'](eval|upload)["'"']' services/browser-subagent/src/index.ts; then
+          if grep -Eq '"(eval|upload)"' services/browser-subagent/src/index.ts; then
             echo "Browser Subagent must not expose eval or upload verbs"
             exit 1
           fi
@@ -474,7 +474,30 @@ jobs:
           printf '%s\n' "$hermes_block" | grep -q 'OPENAI_BASE_URL: http://model-gateway-'
           printf '%s\n' "$hermes_block" | grep -q 'ANTHROPIC_BASE_URL: http://model-gateway-'
           printf '%s\n' "$hermes_block" | grep -q 'NOUS_INFERENCE_BASE_URL: http://model-gateway-'
-          p      - name: Validate production topology
+          printf '%s\n' "$hermes_block" | grep -q 'hermes-entrypoint.sh:/usr/local/bin/agesoma-hermes-entrypoint:ro'
+          printf '%s\n' "$hermes_block" | grep -q 'command: \["/bin/sh", "/usr/local/bin/agesoma-hermes-entrypoint"\]'
+          if printf '%s\n' "$hermes_block" | grep -Eq 'OPENAI_API_KEY: ${OPENAI_API_KEY|ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY|NOUS_API_KEY: ${NOUS_API_KEY'; then
+            echo "Real model-provider secrets must never be injected into HERMES"
+            exit 1
+          fi
+
+          grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'docker network create --internal "agesoma-browser-control-$TENANT_ID"' deploy/production/provision-workcell.sh
+          grep -q 'derive_token sentinel' deploy/production/provision-workcell.sh
+          grep -q 'derive_token authd-browser' deploy/production/provision-workcell.sh
+          grep -q 'derive_token egress-browser' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser_cdp_gateway' deploy/production/provision-workcell.sh
+          grep -q 'derive_token authd-browser-cdp' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-cdp' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-subagent' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-safety' deploy/production/provision-workcell.sh
+          grep -q 'derive_token model-gateway' deploy/production/provision-workcell.sh
+          grep -q 'cred://steel/default' deploy/production/provision-workcell.sh
+          grep -q 'cred://whatsapp/default' deploy/production/provision-workcell.sh
+          grep -q 'cred://windsor/default' deploy/production/provision-workcell.sh
+
+      - name: Validate production topology
         run: |
           sh -n deploy/production/provision-workcell.sh
           sh -n deploy/production/hermes-entrypoint.sh
