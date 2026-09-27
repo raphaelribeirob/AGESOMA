@@ -30,6 +30,16 @@ type HermesRunStatus = {
   usage?: Record<string, unknown>;
 };
 
+export class HermesExecutionError extends Error {
+  usage?: Record<string, unknown>;
+
+  constructor(message: string, usage?: Record<string, unknown>) {
+    super(message);
+    this.name = "HermesExecutionError";
+    this.usage = usage;
+  }
+}
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function headers(token: string, mission: HermesMission) {
@@ -680,7 +690,10 @@ export async function executeWithHermes(mission: HermesMission) {
       };
     }
     if (run.status === "failed" || run.status === "cancelled") {
-      throw new Error(`Hermes run ${run.status}: ${JSON.stringify(run.error ?? null)}`);
+      throw new HermesExecutionError(
+        `Hermes run ${run.status}: ${JSON.stringify(run.error ?? null)}`,
+        run.usage
+      );
     }
     await sleep(pollMs);
   }
