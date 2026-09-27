@@ -251,7 +251,7 @@ jobs:
           grep -q 'EGRESS_GATEWAY_URL' services/browser-broker/src/index.ts
           grep -q 'EGRESS_GATEWAY_URL' services/privsep-broker/src/index.ts
           grep -q 'external_untrusted' services/browser-broker/src/index.ts
-          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
+          grep -q 'resolveWorkcellServiceBaseUrl' services/worker/src/api-tool-runtime.ts
           grep -q 'browserAccess' services/worker/src/hermes.ts
           grep -q 'external_untrusted' services/worker/src/hermes.ts
           if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/browser-subagent services/browser-safety services/browser-cdp-gateway services/privsep-broker services/egress-gateway services/model-gateway services/workcell-control-gateway; then
