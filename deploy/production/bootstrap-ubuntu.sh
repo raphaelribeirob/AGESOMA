@@ -22,17 +22,16 @@ if [ ! -f .env ]; then
   cp .env.example .env
   chmod 600 .env
   echo "Created $ROOT/deploy/production/.env"
-  echo "Fill DATABASE_URL, HERMES_SERVICE_TOKEN and one model-provider API key, then run this script again."
+  echo "Fill DATABASE_URL, Better Auth, trust/egress/workcell-control secrets, Hermes/broker secrets and AI provider configuration, then run this script again."
   exit 2
 fi
 
 chmod 600 .env
-if grep -q 'replace-with-random-secret' .env; then
-  echo "Refusing to start with placeholder HERMES_SERVICE_TOKEN. Update .env first."
+if grep -q 'replace-with' .env; then
+  echo "Refusing to start while placeholder secrets remain in .env. Update every required secret first."
   exit 3
 fi
 
-docker compose pull hermes
-docker compose build worker
+docker compose build worker trust-store brain
 docker compose up -d
 docker compose ps
