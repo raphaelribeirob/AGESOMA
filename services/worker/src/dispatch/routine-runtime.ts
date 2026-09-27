@@ -144,6 +144,7 @@ export async function queueRoutineObservation(input:{
     destination:null,
     resource:typeof watcher.config.resource === "string" ? watcher.config.resource : null,
     watcherId:watcher.id,
+    routineEventId:event?.id??null,
     goalId:watcher.goal_id,
     routine:{
       id:watcher.id,
