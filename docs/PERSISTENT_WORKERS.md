@@ -28,6 +28,7 @@ A persistent worker has:
 - a worker-scoped Hermes session namespace;
 - a worker-scoped browser namespace and provider profile;
 - worker-scoped file and memory namespaces;
+- recent completed-work memory injected per worker, while the tenant Company Brain remains shared;
 - enforced bounded parallelism and optional budget metadata (hard monthly budget enforcement is a later phase);
 - owned routines;
 - bounded handoffs to other workers.
