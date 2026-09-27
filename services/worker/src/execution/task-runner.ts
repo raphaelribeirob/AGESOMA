@@ -300,6 +300,7 @@ export async function executeQueuedTask(queued: ExecuteJob) {
             fileNamespace: persistentWorker.fileNamespace,
             memoryNamespace: persistentWorker.memoryNamespace,
             runtimeStrategy: persistentWorker.runtimeStrategy,
+            recentWork: persistentWorker.recentWork,
             role: persistentWorker.agent.roleTitle,
             domain: persistentWorker.agent.domain,
             purpose: persistentWorker.agent.purpose,
