@@ -72,6 +72,10 @@ create index if not exists routine_events_pending_idx
 create index if not exists routine_events_tenant_watcher_idx
   on routine_events (tenant_id,watcher_id,received_at desc);
 
+create unique index if not exists tasks_routine_event_unique_idx
+  on tasks (tenant_id,(payload->>'routineEventId'))
+  where payload->>'routineEventId' is not null;
+
 alter table routine_webhook_secrets enable row level security;
 alter table routine_webhook_secrets force row level security;
 drop policy if exists tenant_isolation on routine_webhook_secrets;
