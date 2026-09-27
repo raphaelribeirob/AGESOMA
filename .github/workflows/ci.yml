@@ -88,7 +88,7 @@ jobs:
           grep -q 'containsSensitiveKey' apps/web/app/api/connections/route.ts
           grep -q 'maxInterruptionsPerDay' apps/web/app/api/proactivity/route.ts
           grep -q 'proactive_interruptions' services/worker/src/product-output.ts
-          grep -q 'suppressInterruptions' services/worker/src/dispatch/watchers.ts
+          grep -q 'suppressInterruptions' services/worker/src/dispatch/routine-runtime.ts
           grep -q 'href="/settings"' apps/web/app/agesoma-client.tsx
 
       - name: Enforce MUSE-parity runtime and attention
@@ -155,6 +155,43 @@ jobs:
           grep -q 'AGESOMA_UNKNOWN_TASK_RESERVE_CENTS' deploy/production/docker-compose.yml
           grep -q 'monthlyBudgetCents' apps/web/app/api/usage/route.ts
           grep -q 'committedCents' apps/web/app/api/usage/route.ts
+
+      - name: Enforce event-driven routine boundary
+        run: |
+          test -f packages/db/migrations/0020_event_driven_routines.sql
+          test -f services/worker/src/dispatch/routine-runtime.ts
+          test -f services/worker/src/dispatch/routine-events.ts
+          test -f apps/web/app/api/routines/webhook/[id]/route.ts
+          test -f apps/web/app/api/routines/events/route.ts
+          test -f docs/EVENT_DRIVEN_ROUTINES.md
+          grep -q 'create table if not exists routine_webhook_secrets' packages/db/migrations/0020_event_driven_routines.sql
+          grep -q 'create table if not exists routine_events' packages/db/migrations/0020_event_driven_routines.sql
+          grep -q 'tasks_routine_event_unique_idx' packages/db/migrations/0020_event_driven_routines.sql
+          grep -q 'skip locked' services/worker/src/dispatch/routine-events.ts
+          grep -q 'business.observe' services/worker/src/dispatch/routine-runtime.ts
+          grep -q 'instructionsAreAuthority:false' services/worker/src/dispatch/routine-runtime.ts
+          grep -q 'dispatchRoutineEvents' services/worker/src/index.ts
+          grep -q 'randomBytes(32)' apps/web/app/api/proactivity/route.ts
+          grep -q 'createHash("sha256")' apps/web/app/api/proactivity/route.ts
+          grep -q 'insert into routine_events' apps/web/app/api/routines/webhook/[id]/route.ts
+          grep -q 'requireInternalApi' apps/web/app/api/routines/events/route.ts
+          grep -q 'AGESOMA_ROUTINE_WEBHOOK_MAX_PER_HOUR' .env.example
+          if grep -q 'insert into tasks' apps/web/app/api/routines/webhook/[id]/route.ts; then
+            echo "Public webhook ingress must never create tasks directly"
+            exit 1
+          fi
+          if grep -q 'insert into tasks' apps/web/app/api/routines/events/route.ts; then
+            echo "Connector event ingress must never create tasks directly"
+            exit 1
+          fi
+          if grep -Eq 'business\.(act|commit)|paid_media\.(create|enable|set|pause)' apps/web/app/api/routines/webhook/[id]/route.ts apps/web/app/api/routines/events/route.ts; then
+            echo "Event ingress must not encode consequential actions"
+            exit 1
+          fi
+          if grep -Eq 'grant (select|insert|update|delete).*routine_webhook_secrets' packages/db/migrations/0020_event_driven_routines.sql; then
+            echo "Webhook secret hashes must not be granted to the authenticated product role"
+            exit 1
+          fi
 
       - name: Enforce free API discovery boundary
         run: |
