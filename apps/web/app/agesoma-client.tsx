@@ -172,6 +172,11 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
     return()=>window.clearInterval(timer);
   },[threadId]);
   useEffect(()=>{
+    if(!threadId) return;
+    const timer=window.setInterval(()=>void loadThreads(threadId),6000);
+    return()=>window.clearInterval(timer);
+  },[threadId]);
+  useEffect(()=>{
     if(view==="goals") void loadGoals();
     if(view==="ideas") void loadIdeas();
     if(view==="artifacts") void loadArtifacts();
