@@ -193,6 +193,9 @@ jobs:
           grep -q 'credential_handles_scopes_array_check' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
           grep -q 'browser_cdp_gateway:browser.cdp' packages/db/migrations/0016_browser_subagent_safety.sql
           grep -q 'browser_safety' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'alter table conversation_threads force row level security' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'alter table conversation_messages force row level security' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'conversation_messages_thread_created_idx' packages/db/migrations/0017_muse_product_experience.sql
           grep -q 'safety_state' packages/db/migrations/0016_browser_subagent_safety.sql
           grep -q 'buildCapabilityScope' services/sentinel/src/index.ts
           grep -q 'concreteRequestMatches' services/sentinel/src/index.ts
@@ -294,6 +297,41 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce MUSE product experience
+        run: |
+          test -f packages/db/migrations/0017_muse_product_experience.sql
+          test -f apps/web/lib/conversation.ts
+          test -f apps/web/lib/approval-card.ts
+          test -f apps/web/app/api/threads/route.ts
+          test -f apps/web/app/api/ideas/route.ts
+          test -f apps/web/app/api/artifacts/route.ts
+          test -f docs/MUSE_PRODUCT_EXPERIENCE.md
+          grep -q 'create table if not exists conversation_threads' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'create table if not exists conversation_messages' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'conversation_threads_one_main_idx' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'alter table conversation_threads force row level security' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'alter table conversation_messages force row level security' packages/db/migrations/0017_muse_product_experience.sql
+          grep -q 'appendConversationMessage' apps/web/app/api/agesoma/route.ts
+          grep -q 'threadId: threadId ?? null' apps/web/app/api/agesoma/route.ts
+          grep -q 'conversation_messages' services/worker/src/product-output.ts
+          grep -q 'artifactId: persistedArtifact.id' services/worker/src/product-output.ts
+          grep -q 'className="museShell"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museNav"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museThreadRail"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museDecisionCard"' apps/web/app/agesoma-client.tsx
+          grep -q 'view==="goals"' apps/web/app/agesoma-client.tsx
+          grep -q 'view==="ideas"' apps/web/app/agesoma-client.tsx
+          grep -q 'view==="artifacts"' apps/web/app/agesoma-client.tsx
+          grep -q 'loadActivityPanel' apps/web/app/agesoma-client.tsx
+          grep -q 'Memória & permissões' apps/web/app/agesoma-client.tsx
+          grep -q 'Conversar sobre isto' apps/web/app/agesoma-client.tsx
+          grep -q 'action:"deny"' apps/web/app/agesoma-client.tsx
+          grep -q 'approvalCard' apps/web/app/page.tsx
+          if grep -n -E 'HERMES|Sentinel|Work Cell|digital_agents|runtime_events' apps/web/app/agesoma-client.tsx; then
+            echo "Internal architecture language must stay out of the Muse product shell"
+            exit 1
+          fi
+
       - name: Enforce RiverThree product package
         run: |
           grep -q 'id: "agesoma"' apps/web/lib/riverthree-product.ts
@@ -324,12 +362,14 @@ jobs:
 
       - name: Enforce canonical RiverThree UI bindings
         run: |
-          grep -q 'className="agesomaShell"' apps/web/app/agesoma-client.tsx
-          grep -q 'className="agesomaHeader"' apps/web/app/agesoma-client.tsx
-          grep -q 'className="agesomaConversation"' apps/web/app/agesoma-client.tsx
-          grep -q 'className="agesomaComposer"' apps/web/app/agesoma-client.tsx
-          grep -q 'agesomaOrb' apps/web/app/agesoma-client.tsx
-          grep -q 'agesomaApproval' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museShell"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museTopbar"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museConversation"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museComposer"' apps/web/app/agesoma-client.tsx
+          grep -q 'museAvatar' apps/web/app/agesoma-client.tsx
+          grep -q 'museDecisionCard' apps/web/app/agesoma-client.tsx
+          grep -q 'museIdeaGrid' apps/web/app/agesoma-client.tsx
+          grep -q 'museArtifactView' apps/web/app/agesoma-client.tsx
           grep -q 'className="onboardingCard"' apps/web/app/onboarding/page.tsx
           grep -q 'className="r3WelcomeMaterial"' apps/web/app/onboarding/page.tsx
           grep -q 'className="choiceCheck"' apps/web/app/onboarding/page.tsx
