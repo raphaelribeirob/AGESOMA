@@ -44,7 +44,7 @@ alter table persistent_workers
   foreign key (tenant_id,agent_id) references digital_agents(tenant_id,id) on delete cascade;
 alter table persistent_workers
   add constraint persistent_workers_work_cell_tenant_fk
-  foreign key (tenant_id,work_cell_id) references work_cells(tenant_id,id) on delete set null;
+  foreign key (tenant_id,work_cell_id) references work_cells(tenant_id,id) on delete set null (work_cell_id);
 
 create index if not exists persistent_workers_tenant_status_idx
   on persistent_workers (tenant_id,status,updated_at desc);
@@ -57,7 +57,7 @@ alter table tasks
 alter table tasks drop constraint if exists tasks_worker_tenant_fk;
 alter table tasks
   add constraint tasks_worker_tenant_fk
-  foreign key (tenant_id,worker_id) references persistent_workers(tenant_id,id) on delete set null;
+  foreign key (tenant_id,worker_id) references persistent_workers(tenant_id,id) on delete set null (worker_id);
 
 create index if not exists tasks_tenant_worker_status_idx
   on tasks (tenant_id,worker_id,status,updated_at desc);
@@ -99,10 +99,10 @@ create table if not exists worker_handoffs (
 
 alter table worker_handoffs
   add constraint worker_handoffs_source_task_tenant_fk
-  foreign key (tenant_id,source_task_id) references tasks(tenant_id,id) on delete set null;
+  foreign key (tenant_id,source_task_id) references tasks(tenant_id,id) on delete set null (source_task_id);
 alter table worker_handoffs
   add constraint worker_handoffs_target_task_tenant_fk
-  foreign key (tenant_id,target_task_id) references tasks(tenant_id,id) on delete set null;
+  foreign key (tenant_id,target_task_id) references tasks(tenant_id,id) on delete set null (target_task_id);
 alter table worker_handoffs
   add constraint worker_handoffs_source_tenant_fk
   foreign key (tenant_id,source_worker_id) references persistent_workers(tenant_id,id) on delete cascade;
