@@ -597,8 +597,13 @@ jobs:
 
       - name: Validate production topology
         run: |
+          sh -n deploy/production/bootstrap-ubuntu.sh
           sh -n deploy/production/provision-workcell.sh
           sh -n deploy/production/hermes-entrypoint.sh
+          if grep -q 'docker compose pull hermes' deploy/production/bootstrap-ubuntu.sh; then
+            echo "Control-plane bootstrap must not reference a shared Hermes service"
+            exit 1
+          fi
           DATABASE_URL=postgresql://user:pass@db.example.invalid/agesoma \
           TRUST_STORE_MASTER_SECRET=test-trust-master \
           WORKCELL_CONTROL_MASTER_SECRET=test-workcell-control-master \
