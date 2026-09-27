@@ -179,7 +179,7 @@ export default function SettingsPage() {
     setConnections(connectionsBody.services ?? []);
     setProviders(connectionsBody.providers ?? []);
     setPreferences(proactivityBody.preferences);
-    setWatchers(proactivityBody.watchers ?? []);
+    setWatchers(proactivityBody.routines ?? proactivityBody.watchers ?? []);
     setInterruptions(proactivityBody.interruptions ?? []);
     setGoals(goalsBody.goals ?? []);
     setActivity(activityBody.activity ?? []);
@@ -354,18 +354,18 @@ export default function SettingsPage() {
           interruptPolicy: "only_if_actionable"
         })
       });
-      if (!response.ok) throw new Error("Não foi possível criar o acompanhamento.");
+      if (!response.ok) throw new Error("Não foi possível criar a rotina.");
       setWatchObjective("");
       await load();
-    }, "Não foi possível criar o acompanhamento.");
+    }, "Não foi possível criar a rotina.");
   }
 
   async function pauseWatcher(id: string) {
     await run(async () => {
       const response = await fetch(`/api/proactivity?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Não foi possível pausar esse acompanhamento.");
+      if (!response.ok) throw new Error("Não foi possível pausar essa rotina.");
       await load();
-    }, "Não foi possível pausar esse acompanhamento.");
+    }, "Não foi possível pausar essa rotina.");
   }
 
   async function markInterruption(id: string, status: "read" | "dismissed") {
@@ -545,7 +545,7 @@ export default function SettingsPage() {
 
       <section className="settingsSection">
         <div className="settingsIntro">
-          <span className="monoLabel">PROATIVIDADE</span>
+          <span className="monoLabel">ROTINAS</span>
           <h2>Quando devo agir sozinho?</h2>
           <p>O Attention Engine decide entre guardar, incluir no resumo, avisar agora ou pedir aprovação.</p>
         </div>
@@ -553,7 +553,7 @@ export default function SettingsPage() {
           <div className="settingsPanel">
             <label className="settingsToggle">
               <input type="checkbox" checked={preferences.enabled} onChange={(event) => setPreferences({ ...preferences, enabled: event.target.checked })} />
-              <span>Permitir acompanhamento proativo</span>
+              <span>Permitir rotinas proativas</span>
             </label>
             <div className="settingsFields">
               <label>Fuso horário<input value={preferences.timezone} onChange={(event) => setPreferences({ ...preferences, timezone: event.target.value })} /></label>
@@ -561,18 +561,18 @@ export default function SettingsPage() {
               <label>Silêncio a partir de<input type="time" value={preferences.quiet_hours_start ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_start: event.target.value || null })} /></label>
               <label>Silêncio até<input type="time" value={preferences.quiet_hours_end ?? ""} onChange={(event) => setPreferences({ ...preferences, quiet_hours_end: event.target.value || null })} /></label>
             </div>
-            <button className="settingsPrimary" disabled={busy} onClick={() => void savePreferences()}>Salvar proatividade</button>
+            <button className="settingsPrimary" disabled={busy} onClick={() => void savePreferences()}>Salvar preferências</button>
           </div>
 
           <div className="settingsPanel">
-            <span className="monoLabel">NOVO ACOMPANHAMENTO</span>
+            <span className="monoLabel">NOVA ROTINA</span>
             <textarea className="settingsTextarea" rows={3} placeholder="Ex.: acompanhe meu Meta Ads e me avise somente se houver desperdício relevante ou uma decisão que precise de mim." value={watchObjective} onChange={(event) => setWatchObjective(event.target.value)} />
             <div className="settingsFields compact">
               <label>Tipo<select value={watchKind} onChange={(event) => setWatchKind(event.target.value)}><option value="general">Geral</option><option value="calendar">Agenda</option><option value="communication">Comunicação</option><option value="paid_media">Tráfego pago</option></select></label>
               <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label>
             </div>
-            <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar acompanhamento</button>
-            {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Acompanhamento"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
+            <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar rotina</button>
+            {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Rotina"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
           </div>
         </div>
       </section>
