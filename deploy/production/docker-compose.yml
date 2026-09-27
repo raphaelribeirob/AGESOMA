@@ -102,7 +102,8 @@ services:
 networks:
   control_cells:
     name: agesoma-control-cells
-    external: true
+    driver: bridge
+    internal: true
   control_outbound:
     driver: bridge
   brain_private:
