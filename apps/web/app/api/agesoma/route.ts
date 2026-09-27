@@ -16,6 +16,7 @@ import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
 import { approvalCard } from "../../../lib/approval-card";
 import { appendConversationMessage, resolveConversationThread } from "../../../lib/conversation";
+import { ensurePersistentWorker } from "../../../lib/persistent-worker";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
@@ -372,6 +373,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   if (!explicitHuman && !selectedAgent) {
     return { reply: "Minhas capacidades de execução ainda não foram provisionadas corretamente. Não vou iniciar essa tarefa até isso estar corrigido.", approval: await firstApproval(tenantId) };
   }
+  const selectedWorker = selectedAgent ? await ensurePersistentWorker(tenantId, selectedAgent) : null;
 
   const decision = explicitHuman
     ? humanDecision
@@ -400,7 +402,9 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     source: "agesoma_conversation",
     plan,
     digitalAgentId: selectedAgent?.id ?? null,
-    digitalAgentKey: selectedAgent?.template_key ?? null
+    digitalAgentKey: selectedAgent?.template_key ?? null,
+    persistentWorkerId: selectedWorker?.id ?? null,
+    persistentWorkerKey: selectedWorker?.worker_key ?? null
   })]);
 
   const teamContext = team.map((member) => ({
@@ -420,6 +424,16 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     operation: plan.operation,
     coordination: decision,
     digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
+    persistentWorker: selectedWorker ? {
+      id: selectedWorker.id,
+      key: selectedWorker.worker_key,
+      name: selectedWorker.name,
+      sessionNamespace: selectedWorker.session_namespace,
+      browserProfileRef: selectedWorker.browser_profile_ref,
+      fileNamespace: selectedWorker.file_namespace,
+      memoryNamespace: selectedWorker.memory_namespace,
+      runtimeStrategy: selectedWorker.runtime_strategy
+    } : null,
     teamContext,
     personalContext: {
       source: "personal_context_entries",
@@ -455,12 +469,13 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
 
   const [task] = await tenantSql<{ id: string; status: string }>(tenantId, `
     insert into tasks (
-      tenant_id,workflow_id,status,action_type,risk_class,reversible,external,payload,dispatched_at
-    ) values ($1,$2,'queued',$3,$4,$5,$6,$7::jsonb,$8)
+      tenant_id,workflow_id,worker_id,status,action_type,risk_class,reversible,external,payload,dispatched_at
+    ) values ($1,$2,$3,'queued',$4,$5,$6,$7,$8::jsonb,$9)
     returning id,status
   `, [
     tenantId,
     workflow.id,
+    selectedWorker?.id ?? null,
     policy.type,
     policy.riskClass,
     policy.reversible,
@@ -499,6 +514,12 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
       update digital_agents set last_used_at=now(),updated_at=now()
       where id=$1 and tenant_id=$2
     `, [selectedAgent.id, tenantId]);
+    if (selectedWorker) {
+      await tenantSql(tenantId, `
+        update persistent_workers set last_active_at=now(),updated_at=now()
+        where id=$1 and tenant_id=$2
+      `, [selectedWorker.id, tenantId]);
+    }
   }
 
   const responsible = explicitHuman
