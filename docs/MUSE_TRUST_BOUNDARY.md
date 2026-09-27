@@ -31,6 +31,41 @@ Trust Store -> Postgres
 
 The Work Cell services do not receive `DATABASE_URL`.
 
+## Single control-plane ingress
+
+The shared control worker does not join tenant runtime or credential networks.
+
+Each Work Cell exposes exactly one narrow internal ingress on the shared `agesoma-control-cells` network:
+
+```text
+Control Worker
+     |
+     | tenant-derived HMAC token
+     v
+Work Cell Control Gateway
+     |-- /v1/hermes/* -> Hermes
+     |-- /v1/broker/* -> Credential Broker
+     `-- /v1/egress/* -> Egress Gateway
+```
+
+The gateway:
+
+- has no database credential;
+- has no model, browser or provider credential;
+- accepts only GET/POST/HEAD;
+- routes only three fixed internal service prefixes;
+- strips its own gateway token before proxying;
+- cannot select an arbitrary upstream host;
+- is the only Work Cell service attached to the shared control-cell network.
+
+The control worker derives the per-tenant gateway token from a separate
+`WORKCELL_CONTROL_MASTER_SECRET`. Existing direct tenant-network routes are available only
+behind the explicit `AGESOMA_ALLOW_DIRECT_WORKCELL_NETWORK=true` compatibility flag and are
+disabled in production.
+
+Re-provisioning a Work Cell disconnects the control worker from any legacy tenant runtime or
+credential networks.
+
 ## Forced egress
 
 Privileged Work Cell services have no direct outbound network:
