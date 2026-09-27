@@ -47,6 +47,20 @@ export async function dispatchRoutineEvents() {
 
   for(const event of events){
     try{
+      const [existingTask]=await sql<{id:string}>(`
+        select id from tasks
+        where tenant_id=$1 and payload->>'routineEventId'=$2
+        limit 1
+      `,[event.tenant_id,event.id]);
+      if(existingTask){
+        await sql(`
+          update routine_events
+          set status='dispatched',task_id=$3,processed_at=now(),failure_reason=null,updated_at=now()
+          where id=$1 and tenant_id=$2 and status='pending'
+        `,[event.id,event.tenant_id,existingTask.id]);
+        continue;
+      }
+
       const watcher=await loadWatcher(event);
       if(!watcher||watcher.trigger_kind!==event.trigger_kind){
         await sql(`
