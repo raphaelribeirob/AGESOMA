@@ -11,6 +11,7 @@ import { loadAutonomy } from "../autonomy";
 import { brainQueryForTask, recallCompanyContext, rememberCompanyEpisode } from "../company-brain";
 import { executeWithHermes } from "../hermes";
 import { persistProductOutput } from "../product-output";
+import { loadPersistentWorkerForTask } from "../persistent-worker";
 import type { QueuedTask } from "../types";
 
 export type ExecuteJob = {
@@ -20,7 +21,7 @@ export type ExecuteJob = {
 
 export async function executeQueuedTask(queued: ExecuteJob) {
   const [task] = await sql<QueuedTask>(`
-    select id, tenant_id, workflow_id, action_type, risk_class, reversible, external,
+    select id, tenant_id, workflow_id, worker_id, action_type, risk_class, reversible, external,
       expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
     from tasks
     where id=$1 and tenant_id=$2 and status='queued'
@@ -32,6 +33,7 @@ export async function executeQueuedTask(queued: ExecuteJob) {
   const data = {
     taskId: task.id,
     tenantId: task.tenant_id,
+    workerId: task.worker_id,
     action: task.action_type,
     riskClass: task.risk_class,
     reversible: task.reversible,
@@ -42,6 +44,12 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     confidence: Number(task.confidence),
     payload: task.payload
   };
+
+  const persistentWorker = await loadPersistentWorkerForTask({
+    tenantId: data.tenantId,
+    taskId: data.taskId,
+    workerId: data.workerId
+  });
 
   const personalContext = data.payload.personalContext && typeof data.payload.personalContext === "object"
     ? data.payload.personalContext as Record<string, unknown>
@@ -279,7 +287,27 @@ export async function executeQueuedTask(queued: ExecuteJob) {
   `, [data.tenantId]);
 
   try {
-    let executionPayload = data.payload;
+    let executionPayload = persistentWorker
+      ? {
+          ...data.payload,
+          persistentWorker: {
+            id: persistentWorker.id,
+            key: persistentWorker.workerKey,
+            name: persistentWorker.name,
+            sessionNamespace: persistentWorker.sessionNamespace,
+            browserProfileRef: persistentWorker.browserProfileRef,
+            fileNamespace: persistentWorker.fileNamespace,
+            memoryNamespace: persistentWorker.memoryNamespace,
+            runtimeStrategy: persistentWorker.runtimeStrategy,
+            role: persistentWorker.agent.roleTitle,
+            domain: persistentWorker.agent.domain,
+            purpose: persistentWorker.agent.purpose,
+            responsibilities: persistentWorker.agent.responsibilities,
+            skills: persistentWorker.agent.skills,
+            preferredResources: persistentWorker.agent.preferredResources
+          }
+        }
+      : data.payload;
 
     if (data.action === "business.observe" || data.action === "business.work") {
       const approvedApiTools = await sql<{
@@ -343,7 +371,17 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       action: data.action,
       payload: executionPayload,
       grantRef,
-      capabilityHash
+      capabilityHash,
+      worker: persistentWorker ? {
+        id: persistentWorker.id,
+        key: persistentWorker.workerKey,
+        sessionNamespace: persistentWorker.sessionNamespace,
+        browserProfileRef: persistentWorker.browserProfileRef,
+        fileNamespace: persistentWorker.fileNamespace,
+        memoryNamespace: persistentWorker.memoryNamespace,
+        credentialNamespace: persistentWorker.credentialNamespace,
+        runtimeStrategy: persistentWorker.runtimeStrategy
+      } : undefined
     });
 
     await sql(
