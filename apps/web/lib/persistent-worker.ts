@@ -6,6 +6,7 @@ export type PersistentWorkerRef = {
   worker_key: string;
   name: string;
   session_namespace: string;
+  browser_namespace: string;
   browser_profile_ref: string | null;
   file_namespace: string;
   memory_namespace: string;
@@ -48,21 +49,21 @@ export async function ensurePersistentWorker(
   const [worker] = await tenantSql<PersistentWorkerRef>(tenantId, `
     insert into persistent_workers (
       tenant_id,agent_id,work_cell_id,worker_key,name,runtime_strategy,
-      session_namespace,browser_profile_ref,file_namespace,memory_namespace,
+      session_namespace,browser_namespace,browser_profile_ref,file_namespace,memory_namespace,
       credential_namespace,last_active_at
-    ) values ($1,$2,$3,$4,$5,'shared_cell',$6,$7,$8,$9,$10,now())
+    ) values ($1,$2,$3,$4,$5,'shared_cell',$6,$7,null,$8,$9,$10,now())
     on conflict (tenant_id,agent_id) do update set
       work_cell_id=coalesce(excluded.work_cell_id,persistent_workers.work_cell_id),
       worker_key=excluded.worker_key,
       name=excluded.name,
       session_namespace=excluded.session_namespace,
-      browser_profile_ref=coalesce(persistent_workers.browser_profile_ref,excluded.browser_profile_ref),
+      browser_namespace=excluded.browser_namespace,
       file_namespace=excluded.file_namespace,
       memory_namespace=excluded.memory_namespace,
       credential_namespace=excluded.credential_namespace,
       status=case when persistent_workers.status='retired' then persistent_workers.status else 'active' end,
       updated_at=now()
-    returning id,agent_id,worker_key,name,session_namespace,browser_profile_ref,
+    returning id,agent_id,worker_key,name,session_namespace,browser_namespace,browser_profile_ref,
       file_namespace,memory_namespace,credential_namespace,runtime_strategy
   `, [
     tenantId,
