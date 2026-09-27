@@ -13,6 +13,7 @@ import { executeWithHermes } from "../hermes";
 import { persistProductOutput } from "../product-output";
 import { loadPersistentWorkerForTask } from "../persistent-worker";
 import { scheduleWorkerHandoffs } from "../worker-handoffs";
+import { releaseTaskReservation, reserveWorkerBudget, settleTaskUsage } from "../usage-metering";
 import type { QueuedTask } from "../types";
 
 export type ExecuteJob = {
@@ -219,6 +220,36 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     return { status: "replan", reason: margin.reason };
   }
 
+  const budget = await reserveWorkerBudget({
+    tenantId: data.tenantId,
+    taskId: data.taskId,
+    workerId: persistentWorker?.id ?? data.workerId,
+    expectedCostCents: data.expectedCostCents
+  });
+
+  if (!budget.allowed) {
+    await sql(
+      `update tasks set status='failed',failure_reason=$3,updated_at=now()
+       where id=$1 and tenant_id=$2`,
+      [data.taskId,data.tenantId,budget.reason]
+    );
+    await sql(`
+      insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
+      values ($1,$2,'budget_blocked','control',$3,$4::jsonb)
+    `, [
+      data.tenantId,
+      data.taskId,
+      budget.reason,
+      JSON.stringify({
+        workerId: persistentWorker?.id ?? data.workerId,
+        monthlyBudgetCents: budget.monthlyBudgetCents,
+        monthCommittedCents: budget.monthCommittedCents,
+        currency: budget.currency
+      })
+    ]);
+    return { status: "replan", reason: budget.reason };
+  }
+
   let grantRef: string | undefined;
 
   if (registeredAction.riskClass === "R2" || registeredAction.riskClass === "R3") {
@@ -227,6 +258,7 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     } else {
       const grantId = grants[0]?.id;
       if (!grantId) {
+        await releaseTaskReservation({ tenantId: data.tenantId, taskId: data.taskId });
         await sql(
           `update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now()
            where id=$1 and tenant_id=$2`,
@@ -243,6 +275,7 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       `, [grantId, data.tenantId, data.taskId, data.action, capabilityHash]);
 
       if (!consumed[0]) {
+        await releaseTaskReservation({ tenantId: data.tenantId, taskId: data.taskId });
         await sql(
           `update tasks set status='awaiting_approval', dispatched_at=null, updated_at=now()
            where id=$1 and tenant_id=$2`,
@@ -393,6 +426,40 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       [data.taskId, data.tenantId, JSON.stringify(result)]
     );
 
+    const metering = await settleTaskUsage({
+      tenantId: data.tenantId,
+      taskId: data.taskId,
+      workerId: persistentWorker?.id ?? data.workerId,
+      usage: result.usage
+    }).catch(async (error) => {
+      const reason = error instanceof Error ? error.message : "Usage settlement failed";
+      await sql(`
+        insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
+        values ($1,$2,'usage_metering_failed','control',$3,$4::jsonb)
+      `, [data.tenantId,data.taskId,reason,JSON.stringify({ workerId: persistentWorker?.id ?? data.workerId })])
+        .catch(() => undefined);
+      return null;
+    });
+
+    if (metering) {
+      await sql(`
+        insert into runtime_events (tenant_id,task_id,event_type,trust_zone,summary,metadata)
+        values ($1,$2,'usage_settled','control','Task usage settled',$3::jsonb)
+      `, [
+        data.tenantId,
+        data.taskId,
+        JSON.stringify({
+          workerId: persistentWorker?.id ?? data.workerId,
+          actualCostCents: metering.actualCostCents,
+          currency: metering.currency,
+          costSource: metering.costSource,
+          inputTokens: metering.inputTokens,
+          outputTokens: metering.outputTokens,
+          totalTokens: metering.totalTokens
+        })
+      ]);
+    }
+
     await persistProductOutput(task, result);
 
     await sql(`
@@ -449,6 +516,13 @@ export async function executeQueuedTask(queued: ExecuteJob) {
     return result;
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Execution failed";
+
+    await settleTaskUsage({
+      tenantId: data.tenantId,
+      taskId: data.taskId,
+      workerId: persistentWorker?.id ?? data.workerId,
+      usage: { executionFailed: true }
+    }).catch(() => undefined);
 
     await sql(
       `update tasks
