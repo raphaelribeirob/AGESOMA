@@ -15,7 +15,7 @@ function sameSecret(a:string,b:string){
   return left.length===right.length&&left.length>0&&timingSafeEqual(left,right);
 }
 
-function reject(socket:import("node:net").Socket,status=403,message="Forbidden"){
+function reject(socket:import("node:stream").Duplex,status=403,message="Forbidden"){
   socket.write(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
   socket.destroy();
 }
