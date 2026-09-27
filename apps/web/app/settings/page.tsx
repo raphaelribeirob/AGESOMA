@@ -60,6 +60,7 @@ type Watcher = {
   config: { objective?: string; proactivityKind?: string };
   status: string;
   interrupt_policy: string;
+  trigger_kind: "cadence" | "webhook" | "event" | "manual";
 };
 
 type Interruption = {
@@ -142,6 +143,8 @@ export default function SettingsPage() {
   const [watchObjective, setWatchObjective] = useState("");
   const [watchKind, setWatchKind] = useState("general");
   const [watchCadence, setWatchCadence] = useState("6h");
+  const [watchTriggerKind, setWatchTriggerKind] = useState<"cadence" | "webhook">("cadence");
+  const [newWebhook, setNewWebhook] = useState<{ path: string; secret: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -349,13 +352,20 @@ export default function SettingsPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           objective: watchObjective.trim(),
-          cadence: watchCadence,
+          ...(watchTriggerKind === "cadence" ? { cadence: watchCadence } : {}),
           kind: watchKind,
+          triggerKind: watchTriggerKind,
           interruptPolicy: "only_if_actionable"
         })
       });
-      if (!response.ok) throw new Error("Não foi possível criar a rotina.");
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error ?? "Não foi possível criar a rotina.");
       setWatchObjective("");
+      if (body?.webhook?.path && body?.webhook?.secret) {
+        setNewWebhook({ path: body.webhook.path, secret: body.webhook.secret });
+      } else {
+        setNewWebhook(null);
+      }
       await load();
     }, "Não foi possível criar a rotina.");
   }
@@ -569,10 +579,12 @@ export default function SettingsPage() {
             <textarea className="settingsTextarea" rows={3} placeholder="Ex.: acompanhe meu Meta Ads e me avise somente se houver desperdício relevante ou uma decisão que precise de mim." value={watchObjective} onChange={(event) => setWatchObjective(event.target.value)} />
             <div className="settingsFields compact">
               <label>Tipo<select value={watchKind} onChange={(event) => setWatchKind(event.target.value)}><option value="general">Geral</option><option value="calendar">Agenda</option><option value="communication">Comunicação</option><option value="paid_media">Tráfego pago</option></select></label>
-              <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label>
+              <label>Disparo<select value={watchTriggerKind} onChange={(event) => setWatchTriggerKind(event.target.value as "cadence" | "webhook")}><option value="cadence">Agendada</option><option value="webhook">Webhook</option></select></label>
+              {watchTriggerKind === "cadence" ? <label>Frequência<select value={watchCadence} onChange={(event) => setWatchCadence(event.target.value)}><option value="1h">A cada hora</option><option value="6h">A cada 6 horas</option><option value="1d">Diariamente</option><option value="7d">Semanalmente</option></select></label> : null}
             </div>
             <button className="settingsPrimary" disabled={busy || watchObjective.trim().length < 3} onClick={() => void addWatcher()}>Criar rotina</button>
-            {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Rotina"}</strong><span>{watcher.cadence} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
+            {newWebhook ? <div className="settingsNotice" role="status"><strong>Webhook criado — salve o segredo agora.</strong><p><code>{newWebhook.path}</code></p><p><code>{newWebhook.secret}</code></p><p>Envie o segredo como <code>Authorization: Bearer &lt;segredo&gt;</code>. Ele não será mostrado novamente.</p></div> : null}
+            {watchers.length ? <div className="watcherList">{watchers.map((watcher) => <div key={watcher.id}><strong>{watcher.config.objective ?? "Rotina"}</strong><span>{watcher.trigger_kind === "cadence" ? watcher.cadence : watcher.trigger_kind} · {watcher.status}</span>{watcher.status === "active" ? <button className="watcherPause" disabled={busy} onClick={() => void pauseWatcher(watcher.id)}>Pausar</button> : null}</div>)}</div> : null}
           </div>
         </div>
       </section>
