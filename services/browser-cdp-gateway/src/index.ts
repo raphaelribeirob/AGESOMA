@@ -79,19 +79,36 @@ server.on("upgrade",async(req,socket,head)=>{
 
     wss.handleUpgrade(req,socket,head,(client)=>{
       const upstream=new WebSocket(upstreamUrl,{perMessageDeflate:false,maxPayload:16*1024*1024});
+      const pending:Array<{data:import("ws").RawData;isBinary:boolean}>=[];
+      let pendingBytes=0;
 
       const closeBoth=(code=1011,reason="bridge_closed")=>{
         if(client.readyState===WebSocket.OPEN) client.close(code,reason);
         if(upstream.readyState===WebSocket.OPEN) upstream.close(code,reason);
       };
 
+      client.on("message",(data,isBinary)=>{
+        if(upstream.readyState===WebSocket.OPEN){
+          upstream.send(data,{binary:isBinary});
+          return;
+        }
+        const size=typeof data==="string"?Buffer.byteLength(data):
+          Array.isArray(data)?data.reduce((sum,item)=>sum+item.length,0):data.byteLength;
+        pendingBytes+=size;
+        if(pending.length>=128||pendingBytes>2*1024*1024){
+          closeBoth(1009,"cdp_queue_limit");
+          return;
+        }
+        pending.push({data,isBinary});
+      });
+
       upstream.on("open",()=>{
-        client.on("message",(data,isBinary)=>{
-          if(upstream.readyState===WebSocket.OPEN) upstream.send(data,{binary:isBinary});
-        });
-        upstream.on("message",(data,isBinary)=>{
-          if(client.readyState===WebSocket.OPEN) client.send(data,{binary:isBinary});
-        });
+        for(const item of pending) upstream.send(item.data,{binary:item.isBinary});
+        pending.length=0;
+        pendingBytes=0;
+      });
+      upstream.on("message",(data,isBinary)=>{
+        if(client.readyState===WebSocket.OPEN) client.send(data,{binary:isBinary});
       });
       client.on("close",()=>{if(upstream.readyState===WebSocket.OPEN) upstream.close();});
       upstream.on("close",(code,reason)=>{
