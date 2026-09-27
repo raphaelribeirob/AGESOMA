@@ -2,6 +2,7 @@ import { sql } from "@agesoma/db";
 import { discoverFreeApis } from "./api-discovery";
 import { buildApiToolFromSpec } from "./api-tool-builder";
 import { executeApprovedApiTool } from "./api-tool-runtime";
+import { resolveWorkcellServiceBaseUrl, workcellControlHeaders } from "./workcell-control";
 
 export interface HermesMission {
   taskId: string;
@@ -50,7 +51,8 @@ function headers(token: string, mission: HermesMission) {
     "content-type": "application/json",
     authorization: `Bearer ${token}`,
     "idempotency-key": `agesoma-${mission.taskId}`,
-    "x-hermes-session-key": workerSession
+    "x-hermes-session-key": workerSession,
+    ...workcellControlHeaders(mission.tenantId)
   };
 }
 
@@ -62,27 +64,12 @@ function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
-function tenantUrl(template: string, tenantId: string, name: string) {
-  if (!template.includes("{tenantId}")) throw new Error(`${name} must contain {tenantId}`);
-  return template.replaceAll("{tenantId}", encodeURIComponent(tenantId)).replace(/\/$/, "");
-}
-
 function resolveWorkCellBaseUrl(mission: HermesMission) {
-  const template = process.env.HERMES_BASE_URL_TEMPLATE?.trim();
-  if (template) return tenantUrl(template, mission.tenantId, "HERMES_BASE_URL_TEMPLATE");
-
-  if (process.env.AGESOMA_ALLOW_SHARED_HERMES === "true") {
-    const shared = process.env.HERMES_BASE_URL?.trim();
-    if (shared) return shared.replace(/\/$/, "");
-  }
-
-  throw new Error("Tenant-routed Hermes Work Cell is required; shared Hermes is disabled");
+  return resolveWorkcellServiceBaseUrl(mission.tenantId, "hermes");
 }
 
 function resolveCredentialBrokerBaseUrl(mission: HermesMission) {
-  const template = process.env.CREDENTIAL_BROKER_BASE_URL_TEMPLATE?.trim();
-  if (!template) throw new Error("Tenant credential broker is not configured");
-  return tenantUrl(template, mission.tenantId, "CREDENTIAL_BROKER_BASE_URL_TEMPLATE");
+  return resolveWorkcellServiceBaseUrl(mission.tenantId, "broker");
 }
 
 function normalizeRecipient(value: string) {
@@ -263,6 +250,9 @@ async function paidMediaBrokerFetch(
   const requestHeaders = new Headers(init?.headers);
   requestHeaders.set("x-agesoma-broker-token", brokerToken);
   requestHeaders.set("x-agesoma-task-id", mission.taskId);
+  for (const [name,value] of Object.entries(workcellControlHeaders(mission.tenantId))) {
+    requestHeaders.set(name,value);
+  }
   if (mission.grantRef) requestHeaders.set("x-agesoma-grant-ref", mission.grantRef);
   if (mission.capabilityHash) requestHeaders.set("x-agesoma-capability-hash", mission.capabilityHash);
 
@@ -505,6 +495,7 @@ async function maybeExecuteCredentialedAction(mission: HermesMission) {
       "x-agesoma-broker-token": brokerToken,
       "x-agesoma-task-id": mission.taskId,
       "x-agesoma-grant-ref": mission.grantRef,
+      ...workcellControlHeaders(mission.tenantId),
       ...(mission.capabilityHash ? { "x-agesoma-capability-hash": mission.capabilityHash } : {})
     },
     body: JSON.stringify({
@@ -675,7 +666,10 @@ export async function executeWithHermes(mission: HermesMission) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const response = await fetch(`${baseUrl}/v1/runs/${created.run_id}`, {
-      headers: { authorization: `Bearer ${token}` },
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...workcellControlHeaders(mission.tenantId)
+      },
       signal: AbortSignal.timeout(15_000)
     });
     if (!response.ok) throw new Error(`Hermes run status failed: ${response.status}`);
@@ -700,7 +694,10 @@ export async function executeWithHermes(mission: HermesMission) {
 
   await fetch(`${baseUrl}/v1/runs/${created.run_id}/stop`, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}` },
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...workcellControlHeaders(mission.tenantId)
+    },
     signal: AbortSignal.timeout(10_000)
   }).catch(() => undefined);
 

@@ -5,6 +5,7 @@ TENANT_ID="${1:?usage: provision-workcell.sh <tenant-uuid>}"
 BASE_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 : "${DATABASE_URL:?DATABASE_URL is required to register the Work Cell}"
 : "${TRUST_STORE_MASTER_SECRET:?TRUST_STORE_MASTER_SECRET is required}"
+: "${WORKCELL_CONTROL_MASTER_SECRET:?WORKCELL_CONTROL_MASTER_SECRET is required}"
 : "${EGRESS_CONTROL_TOKEN:?EGRESS_CONTROL_TOKEN is required}"
 
 derive_token() {
@@ -25,10 +26,16 @@ BROWSER_CDP_TOKEN="$(derive_token browser-cdp)"
 BROWSER_SUBAGENT_TOKEN="$(derive_token browser-subagent)"
 BROWSER_SAFETY_TOKEN="$(derive_token browser-safety)"
 MODEL_GATEWAY_TOKEN="$(derive_token model-gateway)"
+WORKCELL_CONTROL_TOKEN="$(printf '%s' "workcell-control:$TENANT_ID" | openssl dgst -sha256 -hmac "$WORKCELL_CONTROL_MASTER_SECRET" | awk '{print $2}')"
 
 case "$TENANT_ID" in
   *[!0-9a-fA-F-]*|'') echo "invalid tenant id" >&2; exit 2 ;;
 esac
+
+docker network inspect "agesoma-control-cells" >/dev/null 2>&1 || {
+  echo "agesoma-control-cells is not available; start the control-plane compose first" >&2
+  exit 3
+}
 
 docker network inspect "agesoma-cell-$TENANT_ID" >/dev/null 2>&1 || \
   docker network create --internal "agesoma-cell-$TENANT_ID" >/dev/null
@@ -61,6 +68,7 @@ BROWSER_CDP_TOKEN="$BROWSER_CDP_TOKEN" \
 BROWSER_SUBAGENT_TOKEN="$BROWSER_SUBAGENT_TOKEN" \
 BROWSER_SAFETY_TOKEN="$BROWSER_SAFETY_TOKEN" \
 MODEL_GATEWAY_TOKEN="$MODEL_GATEWAY_TOKEN" \
+WORKCELL_CONTROL_TOKEN="$WORKCELL_CONTROL_TOKEN" \
   docker compose \
     --project-name "agesoma-cell-$TENANT_ID" \
     --file "$BASE_DIR/workcell-compose.yml" \
@@ -71,15 +79,16 @@ docker inspect agesoma-control-worker >/dev/null 2>&1 || {
   exit 3
 }
 
-docker network connect "agesoma-cell-$TENANT_ID" agesoma-control-worker 2>/dev/null || true
-docker network connect "agesoma-credentials-$TENANT_ID" agesoma-control-worker 2>/dev/null || true
+docker network disconnect "agesoma-cell-$TENANT_ID" agesoma-control-worker >/dev/null 2>&1 || true
+docker network disconnect "agesoma-credentials-$TENANT_ID" agesoma-control-worker >/dev/null 2>&1 || true
 
-docker exec agesoma-control-worker node -e "fetch('http://hermes-$TENANT_ID:8642/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-docker exec agesoma-control-worker node -e "fetch('http://broker-$TENANT_ID:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-docker exec agesoma-control-worker node -e "fetch('http://sentinel-$TENANT_ID:8081/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-docker exec agesoma-control-worker node -e "fetch('http://egress-$TENANT_ID:8085/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-docker exec agesoma-control-worker node -e "fetch('http://model-gateway-$TENANT_ID:8086/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
-docker exec agesoma-control-worker node -e "fetch('http://trust-store-$TENANT_ID:8084/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec agesoma-control-worker node -e "fetch('http://cell-control-$TENANT_ID:8090/health').then(async r=>{if(!r.ok)process.exit(1);const j=await r.json();if(!j.ok||!Array.isArray(j.dependencies)||j.dependencies.some(x=>!x.ok))process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-hermes-1" python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8642/health')"
+docker exec "agesoma-cell-$TENANT_ID-credential-broker-1" node -e "fetch('http://127.0.0.1:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-sentinel-1" node -e "fetch('http://127.0.0.1:8081/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-egress-gateway-1" node -e "fetch('http://127.0.0.1:8085/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-model-gateway-1" node -e "fetch('http://127.0.0.1:8086/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-workcell-control-gateway-1" node -e "fetch('http://127.0.0.1:8090/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-browser-broker-1" node -e "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-browser-subagent-1" node -e "fetch('http://127.0.0.1:8087/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-browser-cdp-gateway-1" node -e "fetch('http://127.0.0.1:8088/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
@@ -90,7 +99,7 @@ RUNTIME_NAMESPACE="cell:$TENANT_ID"
 FILE_NAMESPACE="$RUNTIME_NAMESPACE:files"
 MEMORY_NAMESPACE="$RUNTIME_NAMESPACE:memory"
 CREDENTIAL_NAMESPACE="$RUNTIME_NAMESPACE:credentials"
-CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"browserSubagentHost\":\"browser-subagent\",\"browserCdpGatewayHost\":\"browser-cdp-gateway\",\"browserSafetyHost\":\"browser-safety\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"modelGatewayHost\":\"model-gateway-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"browserControl\":\"aria-subagent-safety-v1\",\"modelCredentials\":\"gateway-only\",\"isolation\":\"per-tenant-networks-no-workcell-db\"}"
+CONFIG_JSON="{\"controlGatewayHost\":\"cell-control-$TENANT_ID\",\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"browserSubagentHost\":\"browser-subagent\",\"browserCdpGatewayHost\":\"browser-cdp-gateway\",\"browserSafetyHost\":\"browser-safety\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"modelGatewayHost\":\"model-gateway-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"browserControl\":\"aria-subagent-safety-v1\",\"modelCredentials\":\"gateway-only\",\"isolation\":\"per-tenant-private-networks-single-control-gateway-no-workcell-db\"}"
 
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
