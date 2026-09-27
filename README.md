@@ -71,6 +71,7 @@ The target interaction is not “chat with AI.” It is “give this to AGESOMA.
 | **Model Gateway** | Per-tenant model inference boundary; real model credentials stay outside HERMES |
 | **Sentinel** | Independent policy and authorization boundary |
 | **Work Cells** | Isolated execution environments |
+| **Work Cell Control Gateway** | Single narrow control-plane ingress; the shared worker never joins tenant-private runtime/credential networks |
 | **Outcome verification** | Separates execution claims from evidence-backed completion |
 | **Usage Metering** | Tenant/worker/task cost ledger with pre-execution reservations and monthly hard ceilings |
 
