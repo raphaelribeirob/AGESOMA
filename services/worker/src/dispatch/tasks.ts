@@ -4,7 +4,7 @@ import type { QueuedTask } from "../types";
 
 export async function dispatchQueuedTasks(boss: PgBoss) {
   const tasks = await sql<QueuedTask>(`
-    select id, tenant_id, workflow_id, action_type, risk_class, reversible, external,
+    select id, tenant_id, workflow_id, worker_id, action_type, risk_class, reversible, external,
       expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
     from tasks
     where status='queued' and action_type is not null and dispatched_at is null
