@@ -143,7 +143,7 @@ async function safety(path:string,body:Record<string,unknown>){
 }
 
 async function recordSafety(input:{
-  taskId:string;sessionId:string;decision:string;reasons:string[];eventType:string;url?:string|null;
+  taskId:string;sessionId?:string;decision:string;reasons:string[];eventType:string;url?:string|null;
 }){
   await trust("/v1/browser/safety-event",input);
 }
@@ -318,6 +318,13 @@ async function scrape(input:Record<string,unknown>){
     snapshot:JSON.stringify(result).slice(0,250_000),
     url:target.toString(),
     title:null
+  });
+  await recordSafety({
+    taskId,
+    decision:contentDecision.decision,
+    reasons:contentDecision.reasons,
+    eventType:"scrape_safety",
+    url:target.toString()
   });
   if(contentDecision.decision!=="ALLOW"){
     return {
