@@ -195,7 +195,7 @@ jobs:
           grep -q 'Dynamic API tool is not approved' services/worker/src/api-tool-runtime.ts
           grep -q 'Dynamic API runtime only permits GET/HEAD operations' services/worker/src/api-tool-runtime.ts
           grep -q 'gatewayRead' services/worker/src/api-tool-runtime.ts
-          grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
+          grep -q 'resolveWorkcellServiceBaseUrl' services/worker/src/api-tool-runtime.ts
           grep -q 'approvedApiTools' services/worker/src/execution/task-runner.ts
           grep -q 'toolInvocation' services/worker/src/product-output.ts
           grep -q 'status=.approved.' apps/web/app/api/tools/route.ts
@@ -254,7 +254,7 @@ jobs:
           grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
           grep -q 'browserAccess' services/worker/src/hermes.ts
           grep -q 'external_untrusted' services/worker/src/hermes.ts
-          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/browser-subagent services/browser-safety services/browser-cdp-gateway services/privsep-broker services/egress-gateway services/model-gateway; then
+          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/browser-subagent services/browser-safety services/browser-cdp-gateway services/privsep-broker services/egress-gateway services/model-gateway services/workcell-control-gateway; then
             echo "Work Cell trust-boundary services must not have database credentials"
             exit 1
           fi
