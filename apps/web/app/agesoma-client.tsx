@@ -115,7 +115,14 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
     const body=await response.json();
     setThreads(body.threads ?? []);
     setMainThreadId(body.mainThreadId ?? null);
-    setThreadId(body.selectedThreadId ?? body.mainThreadId ?? null);
+    const selected=body.selectedThreadId ?? body.mainThreadId ?? null;
+    setThreadId(selected);
+    if(selected){
+      const approvalResponse=await fetch("/api/agesoma?threadId="+encodeURIComponent(selected),{cache:"no-store"});
+      if(approvalResponse.ok) setApproval((await approvalResponse.json()).approval ?? null);
+    }else{
+      setApproval(null);
+    }
     const persisted=(body.messages ?? []) as Array<{
       id:string; role:"user"|"assistant"; content:string; metadata?:Record<string,unknown>;
     }>;
