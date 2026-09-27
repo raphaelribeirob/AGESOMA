@@ -214,8 +214,10 @@ async function browserContext(input:Record<string,unknown>){
   const tenantId=text(input,"tenantId")!;
   const taskId=text(input,"taskId");
   if(!taskId) throw new Error("task_id_required");
-  const [task]=await sql<{id:string;action_type:string|null;data_taint:string;worker_id:string|null}>(`
-    select id,action_type,data_taint,worker_id from tasks
+  const [task]=await sql<{id:string;action_type:string|null;data_taint:string;worker_id:string|null;internal_handoff:boolean}>(`
+    select id,action_type,data_taint,worker_id,
+           (payload->>'handoffFromTaskId') is not null as internal_handoff
+    from tasks
     where tenant_id=$1 and id=$2 and status in ('running','queued')
     limit 1
   `,[tenantId,taskId]);
