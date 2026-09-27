@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
+import { ensurePersistentWorkerByTemplate, workerTemplateForRoutine } from "../../../lib/persistent-worker";
 
 const cadenceSchema = z.enum(["15m", "1h", "6h", "1d", "7d"]);
 const interruptSchema = z.enum(["silent", "only_if_actionable", "always"]);
+const triggerSchema = z.literal("cadence");
 
 const preferencesSchema = z.object({
   enabled: z.boolean(),
@@ -21,7 +23,9 @@ const watcherSchema = z.object({
   resource: z.string().max(120).optional(),
   kind: z.string().min(1).max(80).default("general"),
   connectedServiceId: z.string().uuid().optional(),
-  interruptPolicy: interruptSchema.default("only_if_actionable")
+  interruptPolicy: interruptSchema.default("only_if_actionable"),
+  triggerKind: triggerSchema.default("cadence"),
+  triggerConfig: z.record(z.string(), z.unknown()).default({})
 });
 
 export async function GET() {
@@ -37,7 +41,7 @@ export async function GET() {
 
   const watchers = await tenantSql(authenticated.tenantId, `
     select id,kind,status,cadence,config,connected_service_id,interrupt_policy,
-      last_checked_at,next_check_at,created_at,updated_at
+      worker_id,trigger_kind,trigger_config,last_checked_at,next_check_at,created_at,updated_at
     from watchers
     where tenant_id=$1
     order by created_at desc
@@ -61,6 +65,7 @@ export async function GET() {
       allowed_kinds: ["calendar", "communication", "paid_media", "general"]
     },
     watchers,
+    routines: watchers,
     interruptions
   });
 }
@@ -119,11 +124,20 @@ export async function POST(req: Request) {
     if (!service) return NextResponse.json({ error: "Conexão ativa não encontrada." }, { status: 400 });
   }
 
+  const workerTemplate = workerTemplateForRoutine(input.kind, input.resource);
+  const worker = await ensurePersistentWorkerByTemplate(authenticated.tenantId, workerTemplate);
+
   const [watcher] = await tenantSql(authenticated.tenantId, `
     insert into watchers (
-      tenant_id,kind,status,cadence,config,next_check_at,connected_service_id,interrupt_policy
-    ) values ($1,'watch','active',$2,$3::jsonb,now(),$4,$5)
-    returning id,kind,status,cadence,config,connected_service_id,interrupt_policy,next_check_at,created_at
+      tenant_id,kind,status,cadence,config,next_check_at,connected_service_id,interrupt_policy,
+      worker_id,trigger_kind,trigger_config
+    ) values (
+      $1,'watch','active',$2,$3::jsonb,
+      case when $6='cadence' then now() else null end,
+      $4,$5,$7,$6,$8::jsonb
+    )
+    returning id,kind,status,cadence,config,connected_service_id,interrupt_policy,
+      worker_id,trigger_kind,trigger_config,next_check_at,created_at
   `, [
     authenticated.tenantId,
     input.cadence,
@@ -133,7 +147,10 @@ export async function POST(req: Request) {
       proactivityKind: input.kind
     }),
     input.connectedServiceId ?? null,
-    input.interruptPolicy
+    input.interruptPolicy,
+    input.triggerKind,
+    worker?.id ?? null,
+    JSON.stringify(input.triggerConfig)
   ]);
 
   return NextResponse.json(watcher, { status: 201 });

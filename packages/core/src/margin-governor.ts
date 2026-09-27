@@ -13,6 +13,7 @@ export interface MarginConfig {
   minimumNetValueCents?: number;
   maxTaskCostCents?: number;
   maxDiscoveryCostCents?: number;
+  maxInternalHandoffCostCents?: number;
 }
 
 export interface MarginResult {
@@ -26,9 +27,19 @@ export function evaluateMargin(input: MarginInput, config: MarginConfig = {}): M
   const minimum = config.minimumNetValueCents ?? 100;
   const maxCost = config.maxTaskCostCents ?? 500;
   const maxDiscoveryCost = config.maxDiscoveryCostCents ?? 100;
+  const maxInternalHandoffCost = config.maxInternalHandoffCostCents ?? Math.min(maxCost, 200);
   const expectedNetValueCents = input.expectedValueCents - input.expectedCostCents - input.expectedLossCents;
   const riskAdjustedValueCents = Math.round(expectedNetValueCents * input.confidence);
   const userRequested = input.userRequested === true || input.payload?.ownerRequested === true;
+  const handoffDepth = typeof input.payload?.workerHandoffDepth === "number"
+    ? Math.trunc(input.payload.workerHandoffDepth)
+    : 0;
+  const boundedInternalHandoff =
+    input.action === "business.work" &&
+    input.riskClass === "R1" &&
+    typeof input.payload?.handoffFromTaskId === "string" &&
+    handoffDepth >= 1 &&
+    handoffDepth <= 2;
 
   const boundedDiscovery = input.action === "business.observe" && input.riskClass === "R0";
   if (boundedDiscovery && input.expectedValueCents === 0 && input.expectedLossCents === 0) {
@@ -38,12 +49,19 @@ export function evaluateMargin(input: MarginInput, config: MarginConfig = {}): M
     return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "Bounded read-only discovery may run before business value is known." };
   }
 
+  if (boundedInternalHandoff) {
+    if (input.expectedCostCents > maxInternalHandoffCost) {
+      return { decision: "REVIEW", expectedNetValueCents, riskAdjustedValueCents, reason: "Internal specialist handoff exceeds its bounded orchestration cost ceiling." };
+    }
+    return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "Bounded internal specialist work may run before its marginal value is known." };
+  }
+
   if (input.expectedCostCents > maxCost) {
     return { decision: "REVIEW", expectedNetValueCents, riskAdjustedValueCents, reason: "Expected task cost exceeds the configured P0 ceiling." };
   }
 
-  if (userRequested && (input.riskClass === "R2" || input.riskClass === "R3")) {
-    return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "User-requested consequential work is within the execution cost ceiling." };
+  if (userRequested && input.riskClass !== "R4") {
+    return { decision: "EXECUTE", expectedNetValueCents, riskAdjustedValueCents, reason: "Explicit user-requested work is within the execution cost ceiling." };
   }
 
   if (riskAdjustedValueCents < minimum) {

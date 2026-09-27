@@ -10,6 +10,16 @@ export interface HermesMission {
   payload: Record<string, unknown>;
   grantRef?: string;
   capabilityHash?: string;
+  worker?: {
+    id: string;
+    key: string;
+    sessionNamespace: string;
+    browserProfileRef: string | null;
+    fileNamespace: string;
+    memoryNamespace: string;
+    credentialNamespace: string;
+    runtimeStrategy: "shared_cell" | "dedicated_cell";
+  };
 }
 
 type HermesRunStatus = {
@@ -23,11 +33,14 @@ type HermesRunStatus = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function headers(token: string, mission: HermesMission) {
+  const workerSession = mission.worker?.sessionNamespace
+    ? `agesoma:tenant:${mission.tenantId}:${mission.worker.sessionNamespace}`
+    : `agesoma:tenant:${mission.tenantId}`;
   return {
     "content-type": "application/json",
     authorization: `Bearer ${token}`,
     "idempotency-key": `agesoma-${mission.taskId}`,
-    "x-hermes-session-key": `agesoma:tenant:${mission.tenantId}`
+    "x-hermes-session-key": workerSession
   };
 }
 
@@ -581,6 +594,8 @@ export async function executeWithHermes(mission: HermesMission) {
           mode: "brokered",
           endpoint: `http://browser-${mission.tenantId}:8082`,
           taskId: mission.taskId,
+          profileRef: mission.worker?.browserProfileRef ?? null,
+          workerKey: mission.worker?.key ?? null,
           operations: {
             scrape: { method: "POST", path: "/v1/scrape", readOnly: true, safetyFiltered: true },
             createSession: { method: "POST", path: "/v1/sessions", cdpExposed: false },
@@ -613,14 +628,19 @@ export async function executeWithHermes(mission: HermesMission) {
     method: "POST",
     headers: headers(token, mission),
     body: JSON.stringify({
-      session_id: `agesoma-runtime-${mission.tenantId}:task-${mission.taskId}`,
+      session_id: mission.worker
+        ? `agesoma-runtime-${mission.tenantId}:${mission.worker.sessionNamespace}:task-${mission.taskId}`
+        : `agesoma-runtime-${mission.tenantId}:task-${mission.taskId}`,
       input: JSON.stringify({
         action: mission.action,
         payload: executionPayload,
         authorization: { grantRef: mission.grantRef ?? null }
       }),
       instructions: [
-        "You are the AGESOMA execution substrate inside one persistent personal runtime for this tenant, not the authorization authority.",
+        mission.worker
+          ? `You are executing as the hidden persistent worker "${mission.worker.key}" inside AGESOMA. Keep continuity inside its worker-scoped session, memory and files, but never expose internal worker orchestration unless the user explicitly asks.`
+          : "You are the AGESOMA execution substrate inside one persistent personal runtime for this tenant, not the authorization authority.",
+        "AGESOMA is the only user-facing assistant identity. Specialized workers are internal implementation details.",
         "Operate only on public resources or resources the user has already authorized.",
         "Never bypass authentication, access controls, tenant boundaries or security protections.",
         "Never seek, expose or reuse credentials outside the connected user context.",
@@ -631,6 +651,7 @@ export async function executeWithHermes(mission: HermesMission) {
         planningInstructions(mission.action),
         envelopeInstructions(mission.action),
         "If completing the objective would require a higher-impact action than the current envelope permits, stop and return the concrete proposedAction rather than creating the side effect.",
+        "When a genuinely different specialist is required, you may return handoffs as an array with at most two objects: { targetWorkerKey, objective, reason }. Handoffs are internal R1 work only; never use them to perform or conceal an external side effect.",
         "Return concise evidence-backed output; do not claim a business outcome verified unless a separate verifier has supplied that fact in the input."
       ].join(" ")
     }),

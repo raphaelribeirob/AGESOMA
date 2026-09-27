@@ -56,7 +56,9 @@ export async function dispatchDueWatchers() {
     with due as (
       select id
       from watchers
-      where status='active' and coalesce(next_check_at, now()) <= now()
+      where status='active'
+        and trigger_kind='cadence'
+        and coalesce(next_check_at, now()) <= now()
       order by coalesce(next_check_at, created_at) asc
       for update skip locked
       limit 20
@@ -66,7 +68,8 @@ export async function dispatchDueWatchers() {
     from due
     where w.id=due.id
     returning w.id, w.tenant_id, w.goal_id, w.cadence, w.config,
-      w.connected_service_id, w.interrupt_policy
+      w.connected_service_id, w.worker_id, w.trigger_kind, w.trigger_config,
+      w.interrupt_policy
   `);
 
   for (const watcher of watchers) {
@@ -149,16 +152,22 @@ export async function dispatchDueWatchers() {
 
     await sql(`
       insert into tasks (
-        tenant_id, status, action_type, risk_class, reversible, external,
+        tenant_id, worker_id, status, action_type, risk_class, reversible, external,
         expected_value_cents, expected_cost_cents, expected_loss_cents, confidence, payload
-      ) values ($1,'queued','business.observe','R0',true,true,0,0,0,0,$2::jsonb)
-    `, [watcher.tenant_id, JSON.stringify({
+      ) values ($1,$2,'queued','business.observe','R0',true,true,0,0,0,0,$3::jsonb)
+    `, [watcher.tenant_id, watcher.worker_id, JSON.stringify({
       objective,
       operation: "discover",
       destination: null,
       resource: typeof watcher.config.resource === "string" ? watcher.config.resource : null,
       watcherId: watcher.id,
       goalId: watcher.goal_id,
+      routine: {
+        id: watcher.id,
+        triggerKind: watcher.trigger_kind,
+        triggerConfig: watcher.trigger_config,
+        cadence: watcher.cadence
+      },
       connectedServiceId: watcher.connected_service_id,
       interruptPolicy: watcher.interrupt_policy,
       proactivityKind,
