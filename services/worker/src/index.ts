@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 import { dispatchQueuedTasks } from "./dispatch/tasks";
 import { dispatchDueWatchers } from "./dispatch/watchers";
+import { dispatchRoutineEvents } from "./dispatch/routine-events";
 import { executeQueuedTask, type ExecuteJob } from "./execution/task-runner";
 import { reportHeartbeat } from "./runtime/heartbeat";
 
@@ -18,6 +19,7 @@ await boss.work("agesoma.execute", async ([job]) => {
 
 await reportHeartbeat();
 await dispatchDueWatchers();
+await dispatchRoutineEvents();
 await dispatchQueuedTasks(boss);
 
 setInterval(
@@ -28,6 +30,11 @@ setInterval(
 setInterval(
   () => dispatchDueWatchers().catch((error) => console.error("AGESOMA watcher dispatcher", error)),
   30_000
+).unref();
+
+setInterval(
+  () => dispatchRoutineEvents().catch((error) => console.error("AGESOMA routine event dispatcher", error)),
+  5_000
 ).unref();
 
 setInterval(
