@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 
 type Taint="clean"|"public"|"personal"|"sensitive"|"credential";
 type BrowserContext={
-  task:{id:string;action_type:string|null;data_taint:Taint};
+  task:{id:string;action_type:string|null;data_taint:Taint;internal_handoff?:boolean};
   browserProfileRef:string|null;sessionCount:number;scrapeCount:number;
 };
 
@@ -223,8 +223,11 @@ async function browserAction(input:Record<string,unknown>){
   const action=typeof input.action==="string"?input.action:"";
   const ref=typeof input.ref==="string"?input.ref:null;
   if(!taskId||!sessionId||!action) throw new Error("task_session_action_required");
-  await context(taskId);
+  const ctx=await context(taskId);
   await sessionContext(taskId,sessionId);
+  if(ctx.task.internal_handoff===true && action!=="scroll"){
+    throw new Error("browser_internal_handoff_readonly");
+  }
 
   const pre=await subagent("/v1/snapshot",{taskId,sessionId});
   const preFiltered=await filterSnapshot(taskId,sessionId,pre,"pre_action_snapshot");
@@ -355,7 +358,7 @@ const server=createServer(async(req,res)=>{
     return json(res,404,{error:"not_found"});
   }catch(error){
     const message=error instanceof Error?error.message:"browser_broker_error";
-    const status=["browser_capability_not_granted","https_required"].includes(message)?403:
+    const status=["browser_capability_not_granted","browser_internal_handoff_readonly","https_required"].includes(message)?403:
       message==="request_too_large"?413:400;
     return json(res,status,{error:message});
   }
