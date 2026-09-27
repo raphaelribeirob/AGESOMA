@@ -104,7 +104,8 @@ This layer requires:
 3. `0013_api_tool_builder.sql`
 4. `0014_muse_trust_boundary.sql`
 5. `0015_forced_egress_and_authd_acl.sql`
-6. application deployment
+6. `0016_browser_subagent_safety.sql`
+7. application deployment
 
 The repository still does not automatically execute SQL migrations during the web build. Apply the listed migrations in order before deploying code that depends on these schemas.
 
@@ -133,6 +134,7 @@ Implemented:
 - a per-tenant Model Gateway so HERMES receives no real model-provider credential and has no direct internet egress;
 - provider execution in a Privsep Broker with request-scoped credentials;
 - Steel behind a Browser Broker with CDP/viewer URLs hidden from the runtime;
+- a separate ARIA Browser Subagent and independent Browser Safety layer for prompt-injection/action filtering;
 - logical personal-data taint;
 - runtime event logging for credential resolution, egress decisions and browser actions.
 

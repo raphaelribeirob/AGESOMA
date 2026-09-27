@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 
-type Caller="browser_broker"|"privsep_broker";
+type Caller="browser_broker"|"browser_cdp_gateway"|"privsep_broker";
 
 const port=Number(process.env.PORT??8083);
 const tenantId=process.env.AGESOMA_TENANT_ID?.trim()??"";
@@ -9,11 +9,13 @@ const trustStoreUrl=(process.env.TRUST_STORE_URL??"http://trust-store:8084").rep
 const trustStoreToken=process.env.TRUST_STORE_TENANT_TOKEN?.trim()??"";
 const callerTokens:Record<Caller,string>={
   browser_broker:process.env.AUTHD_BROWSER_TOKEN?.trim()??"",
+  browser_cdp_gateway:process.env.AUTHD_BROWSER_CDP_TOKEN?.trim()??"",
   privsep_broker:process.env.AUTHD_PRIVSEP_TOKEN?.trim()??""
 };
 
 const policy:Record<Caller,Record<string,Set<string>>>={
   browser_broker:{steel:new Set(["browser.provider"])},
+  browser_cdp_gateway:{steel:new Set(["browser.cdp"])},
   privsep_broker:{
     whatsapp:new Set(["whatsapp.send"]),
     windsor:new Set(["paid_media.read","paid_media.write"])
@@ -34,7 +36,7 @@ function sameSecret(a:string,b:string){
 function caller(req:IncomingMessage){
   const name=req.headers["x-agesoma-authd-caller"];
   const token=req.headers["x-agesoma-authd-token"];
-  if((name!=="browser_broker"&&name!=="privsep_broker")||typeof token!=="string") throw new Error("forbidden");
+  if((name!=="browser_broker"&&name!=="browser_cdp_gateway"&&name!=="privsep_broker")||typeof token!=="string") throw new Error("forbidden");
   if(!sameSecret(token,callerTokens[name])) throw new Error("forbidden");
   return name as Caller;
 }
@@ -108,5 +110,5 @@ const server=createServer(async(req,res)=>{
 
 if(!tenantId) throw new Error("AGESOMA_TENANT_ID is required");
 if(!trustStoreToken) throw new Error("TRUST_STORE_TENANT_TOKEN is required");
-if(!callerTokens.browser_broker||!callerTokens.privsep_broker) throw new Error("Caller-scoped Authd tokens are required");
+if(!callerTokens.browser_broker||!callerTokens.browser_cdp_gateway||!callerTokens.privsep_broker) throw new Error("Caller-scoped Authd tokens are required");
 server.listen(port,"0.0.0.0",()=>console.log(`AGESOMA Authd listening on ${port}`));

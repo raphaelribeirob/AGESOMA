@@ -1,0 +1,18 @@
+{
+  "name": "@agesoma/browser-subagent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "agent-browser": "0.38.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "7.0.2",
+    "@types/node": "^22.0.0"
+  }
+}

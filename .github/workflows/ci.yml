@@ -175,17 +175,25 @@ jobs:
         run: |
           test -f packages/db/migrations/0014_muse_trust_boundary.sql
           test -f packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          test -f packages/db/migrations/0016_browser_subagent_safety.sql
           test -f services/sentinel/src/index.ts
           test -f services/authd/src/index.ts
           test -f services/privsep-broker/src/index.ts
           test -f services/browser-broker/src/index.ts
+          test -f services/browser-subagent/src/index.ts
+          test -f services/browser-safety/src/index.ts
+          test -f services/browser-cdp-gateway/src/index.ts
           test -f services/egress-gateway/src/index.ts
           test -f services/trust-store/src/index.ts
           test ! -f services/worker/src/sentinel-client.ts
           test -f docs/MUSE_TRUST_BOUNDARY.md
+          test -f docs/BROWSER_SUBAGENT_SAFETY.md
           grep -q 'create table if not exists browser_sessions' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'create table if not exists runtime_events' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'credential_handles_scopes_array_check' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'browser_cdp_gateway:browser.cdp' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'browser_safety' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'safety_state' packages/db/migrations/0016_browser_subagent_safety.sql
           grep -q 'buildCapabilityScope' services/sentinel/src/index.ts
           grep -q 'concreteRequestMatches' services/sentinel/src/index.ts
           grep -q 'capability_hash_mismatch' services/sentinel/src/index.ts
@@ -193,6 +201,8 @@ jobs:
           grep -q 'x-agesoma-trust-caller' services/trust-store/src/index.ts
           grep -q 'caller_provider_scope_denied' services/authd/src/index.ts
           grep -q 'browser_broker:browser.provider' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'browser_cdp_gateway' services/authd/src/index.ts
+          grep -q 'browser.cdp' services/authd/src/index.ts
           grep -q 'privsep_broker:whatsapp.send' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
           grep -q 'callerMayUse' services/egress-gateway/src/index.ts
           grep -q 'lookup:(_hostname,_options,callback)' services/egress-gateway/src/index.ts
@@ -203,7 +213,7 @@ jobs:
           grep -q 'EGRESS_GATEWAY_BASE_URL_TEMPLATE' services/worker/src/api-tool-runtime.ts
           grep -q 'browserAccess' services/worker/src/hermes.ts
           grep -q 'external_untrusted' services/worker/src/hermes.ts
-          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/privsep-broker services/egress-gateway services/model-gateway; then
+          if grep -R -n 'from "@agesoma/db"' services/sentinel services/authd services/browser-broker services/browser-subagent services/browser-safety services/browser-cdp-gateway services/privsep-broker services/egress-gateway services/model-gateway; then
             echo "Work Cell trust-boundary services must not have database credentials"
             exit 1
           fi
@@ -221,6 +231,40 @@ jobs:
           fi
           if grep -R -n -E 'lookup|httpsRequest' services/browser-broker/src services/privsep-broker/src services/authd/src services/sentinel/src; then
             echo "Only the Egress Gateway may resolve or open privileged internet connections"
+            exit 1
+          fi
+
+      - name: Enforce browser subagent safety boundary
+        run: |
+          test -f services/browser-subagent/src/index.ts
+          test -f services/browser-safety/src/index.ts
+          test -f services/browser-safety/src/policy.ts
+          test -f services/browser-safety/test/policy.test.mjs
+          test -f services/browser-cdp-gateway/src/index.ts
+          test -f docs/BROWSER_SUBAGENT_SAFETY.md
+          grep -q '"agent-browser": "0.38.1"' services/browser-subagent/package.json
+          grep -q 'AGENT_BROWSER_NO_WEBMCP:"1"' services/browser-subagent/src/index.ts
+          grep -q 'snapshot","-c","-d","8"' services/browser-subagent/src/index.ts
+          grep -q 'rawDomExposed:false' services/browser-subagent/src/index.ts
+          grep -q 'cdpExposed:false' services/browser-subagent/src/index.ts
+          grep -q 'connect.steel.dev' services/browser-cdp-gateway/src/index.ts
+          grep -q '/v1/browser/cdp-context' services/browser-cdp-gateway/src/index.ts
+          grep -q 'browser_cdp_gateway' services/browser-cdp-gateway/src/index.ts
+          grep -q 'prompt_injection_signature' services/browser-safety/src/policy.ts
+          grep -q 'sensitive_credential_field' services/browser-safety/src/policy.ts
+          grep -q 'high_consequence_click' services/browser-safety/src/policy.ts
+          grep -q 'browser_subagent_rejected' services/browser-broker/src/index.ts
+          grep -q 'browser_safety_rejected' services/browser-broker/src/index.ts
+          grep -q '/v1/snapshot' services/browser-broker/src/index.ts
+          grep -q '/v1/navigate' services/browser-broker/src/index.ts
+          grep -q '/v1/action' services/browser-broker/src/index.ts
+          grep -q 'If Browser Broker reports safety decision REVIEW or BLOCK' services/worker/src/hermes.ts
+          if grep -Eq '"(eval|upload)"' services/browser-subagent/src/index.ts; then
+            echo "Browser Subagent must not expose eval or upload verbs"
+            exit 1
+          fi
+          if grep -q 'fetch(' services/browser-safety/src/index.ts; then
+            echo "Browser Safety v1 must remain independent and network-free"
             exit 1
           fi
 
@@ -343,28 +387,43 @@ jobs:
           fi
 
           hermes_block="$(awk '/^  hermes:/{flag=1} /^networks:/{if(flag)flag=0} flag' deploy/production/workcell-compose.yml)"
-          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|CREDENTIAL_BROKER_SERVICE_TOKEN|AUTHD_|SENTINEL_SERVICE_TOKEN|TRUST_STORE_'; then
-            echo "User/provider and trust-boundary secrets must never be injected into Hermes"
-            exit 1
-          fi
-
           sentinel_block="$(awk '/^  sentinel:/{flag=1} /^  authd:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           authd_block="$(awk '/^  authd:/{flag=1} /^  egress-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           egress_block="$(awk '/^  egress-gateway:/{flag=1} /^  credential-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           broker_block="$(awk '/^  credential-broker:/{flag=1} /^  browser-broker:/{flag=0} flag' deploy/production/workcell-compose.yml)"
-          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  model-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          browser_block="$(awk '/^  browser-broker:/{flag=1} /^  browser-safety:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          safety_block="$(awk '/^  browser-safety:/{flag=1} /^  browser-cdp-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          cdp_block="$(awk '/^  browser-cdp-gateway:/{flag=1} /^  browser-subagent:/{flag=0} flag' deploy/production/workcell-compose.yml)"
+          subagent_block="$(awk '/^  browser-subagent:/{flag=1} /^  model-gateway:/{flag=0} flag' deploy/production/workcell-compose.yml)"
           model_block="$(awk '/^  model-gateway:/{flag=1} /^  hermes:/{flag=0} flag' deploy/production/workcell-compose.yml)"
 
+          if printf '%s\n' "$hermes_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY|CREDENTIAL_BROKER_SERVICE_TOKEN|AUTHD_|SENTINEL_SERVICE_TOKEN|TRUST_STORE_|BROWSER_(CDP|SUBAGENT|SAFETY)_TOKEN'; then
+            echo "Trust-boundary secrets must never be injected into Hermes"
+            exit 1
+          fi
+          if printf '%s\n' "$hermes_block" | grep -Eq 'browser_control_cell|browser_cdp_outbound|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|runtime_outbound|model_outbound|privileged_outbound'; then
+            echo "HERMES must not reach browser-control or outbound networks"
+            exit 1
+          fi
+
           printf '%s\n' "$egress_block" | grep -q 'privileged_outbound'
+          printf '%s\n' "$cdp_block" | grep -q 'browser_cdp_outbound'
           printf '%s\n' "$model_block" | grep -q 'model_outbound'
-          for block in "$sentinel_block" "$authd_block" "$broker_block" "$browser_block"; do
-            if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|model_outbound|runtime_outbound'; then
-              echo "Only dedicated egress services may have outbound networking"
+
+          for block in "$sentinel_block" "$authd_block" "$broker_block" "$browser_block" "$safety_block" "$subagent_block"; do
+            if printf '%s\n' "$block" | grep -Eq 'privileged_outbound|browser_cdp_outbound|model_outbound|runtime_outbound'; then
+              echo "Only dedicated gateway services may have outbound networking"
               exit 1
             fi
           done
-          if printf '%s\n' "$model_block" | grep -Eq 'privileged_outbound|runtime_outbound'; then
-            echo "Model Gateway must have only model_outbound"
+
+          printf '%s\n' "$browser_block" | grep -q 'browser_control_cell'
+          printf '%s\n' "$safety_block" | grep -q 'browser_control_cell'
+          printf '%s\n' "$subagent_block" | grep -q 'browser_control_cell'
+          printf '%s\n' "$cdp_block" | grep -q 'browser_control_cell'
+          printf '%s\n' "$cdp_block" | grep -q 'credential_cell'
+          if printf '%s\n' "$safety_block$subagent_block" | grep -Eq 'credential_cell|tenant_cell'; then
+            echo "Browser Safety and Subagent must remain isolated on browser_control_cell"
             exit 1
           fi
 
@@ -376,21 +435,28 @@ jobs:
           printf '%s\n' "$broker_block" | grep -q 'EGRESS_PRIVSEP_TOKEN'
 
           if printf '%s\n' "$browser_block" | grep -q 'STEEL_API_KEY'; then
-            echo "Browser Broker must not receive the Steel key directly"
+            echo "Browser Broker must resolve Steel through Authd"
             exit 1
           fi
           printf '%s\n' "$browser_block" | grep -q 'AUTHD_BROWSER_TOKEN'
           printf '%s\n' "$browser_block" | grep -q 'EGRESS_BROWSER_TOKEN'
+          printf '%s\n' "$browser_block" | grep -q 'BROWSER_SUBAGENT_TOKEN'
+          printf '%s\n' "$browser_block" | grep -q 'BROWSER_SAFETY_TOKEN'
+
+          printf '%s\n' "$authd_block" | grep -q 'AUTHD_BROWSER_CDP_TOKEN'
+          printf '%s\n' "$cdp_block" | grep -q 'AUTHD_BROWSER_CDP_TOKEN'
+          printf '%s\n' "$cdp_block" | grep -q 'TRUST_STORE_BROWSER_CDP_TOKEN'
+          printf '%s\n' "$cdp_block" | grep -q 'BROWSER_CDP_TOKEN'
+          if printf '%s\n' "$cdp_block" | grep -q 'STEEL_API_KEY'; then
+            echo "CDP Gateway must resolve Steel through Authd, never environment injection"
+            exit 1
+          fi
 
           printf '%s\n' "$authd_block" | grep -q 'WHATSAPP_CLOUD_ACCESS_TOKEN'
           printf '%s\n' "$authd_block" | grep -q 'WINDSOR_API_KEY'
           printf '%s\n' "$authd_block" | grep -q 'STEEL_API_KEY'
-          if printf '%s\n' "$sentinel_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
-            echo "Sentinel must never receive provider credentials"
-            exit 1
-          fi
-          if printf '%s\n' "$egress_block" | grep -Eq 'WHATSAPP_CLOUD_ACCESS_TOKEN|WINDSOR_API_KEY|STEEL_API_KEY'; then
-            echo "Egress Gateway must receive credentials only per request"
+          if printf '%s\n' "$sentinel_block$egress_block$model_block$safety_block$subagent_block" | grep -q 'STEEL_API_KEY'; then
+            echo "Steel credential may exist only in Authd"
             exit 1
           fi
 
@@ -410,10 +476,6 @@ jobs:
           printf '%s\n' "$hermes_block" | grep -q 'NOUS_INFERENCE_BASE_URL: http://model-gateway-'
           printf '%s\n' "$hermes_block" | grep -q 'hermes-entrypoint.sh:/usr/local/bin/agesoma-hermes-entrypoint:ro'
           printf '%s\n' "$hermes_block" | grep -q 'command: \["/bin/sh", "/usr/local/bin/agesoma-hermes-entrypoint"\]'
-          if printf '%s\n' "$hermes_block" | grep -Eq 'HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|runtime_outbound|model_outbound|privileged_outbound'; then
-            echo "HERMES must not have direct internet egress"
-            exit 1
-          fi
           if printf '%s\n' "$hermes_block" | grep -Eq 'OPENAI_API_KEY: ${OPENAI_API_KEY|ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY|NOUS_API_KEY: ${NOUS_API_KEY'; then
             echo "Real model-provider secrets must never be injected into HERMES"
             exit 1
@@ -421,10 +483,15 @@ jobs:
 
           grep -q 'docker network create --internal "agesoma-cell-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'docker network create --internal "agesoma-credentials-$TENANT_ID"' deploy/production/provision-workcell.sh
-          grep -q 'trust-store-$TENANT_ID' deploy/production/provision-workcell.sh
+          grep -q 'docker network create --internal "agesoma-browser-control-$TENANT_ID"' deploy/production/provision-workcell.sh
           grep -q 'derive_token sentinel' deploy/production/provision-workcell.sh
           grep -q 'derive_token authd-browser' deploy/production/provision-workcell.sh
           grep -q 'derive_token egress-browser' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser_cdp_gateway' deploy/production/provision-workcell.sh
+          grep -q 'derive_token authd-browser-cdp' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-cdp' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-subagent' deploy/production/provision-workcell.sh
+          grep -q 'derive_token browser-safety' deploy/production/provision-workcell.sh
           grep -q 'derive_token model-gateway' deploy/production/provision-workcell.sh
           grep -q 'cred://steel/default' deploy/production/provision-workcell.sh
           grep -q 'cred://whatsapp/default' deploy/production/provision-workcell.sh
@@ -446,11 +513,16 @@ jobs:
           TRUST_STORE_SENTINEL_TOKEN=test-trust-sentinel \
           TRUST_STORE_AUTHD_TOKEN=test-trust-authd \
           TRUST_STORE_BROWSER_TOKEN=test-trust-browser \
+          TRUST_STORE_BROWSER_CDP_TOKEN=test-trust-browser-cdp \
           AUTHD_BROWSER_TOKEN=test-authd-browser \
+          AUTHD_BROWSER_CDP_TOKEN=test-authd-browser-cdp \
           AUTHD_PRIVSEP_TOKEN=test-authd-privsep \
           EGRESS_BROWSER_TOKEN=test-egress-browser \
           EGRESS_PRIVSEP_TOKEN=test-egress-privsep \
           EGRESS_CONTROL_TOKEN=test-control-egress \
+          BROWSER_CDP_TOKEN=test-browser-cdp \
+          BROWSER_SUBAGENT_TOKEN=test-browser-subagent \
+          BROWSER_SAFETY_TOKEN=test-browser-safety \
           STEEL_API_KEY=test-steel-key \
           WINDSOR_API_KEY=test-windsor-key \
           WHATSAPP_GRAPH_VERSION=v23.0 \
@@ -485,6 +557,10 @@ jobs:
           grep -q 'tasks_data_taint_check' packages/db/migrations/0014_muse_trust_boundary.sql
           grep -q 'credential_handles_scopes_array_check' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
           grep -q 'sentinel-v3' packages/db/migrations/0015_forced_egress_and_authd_acl.sql
+          grep -q 'browser_cdp_gateway:browser.cdp' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'browser_sessions_tenant_task_live_idx' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'browser_subagent' packages/db/migrations/0016_browser_subagent_safety.sql
+          grep -q 'browser_safety' packages/db/migrations/0016_browser_subagent_safety.sql
 
       - name: Build web app
         run: npm run build --workspace @agesoma/web

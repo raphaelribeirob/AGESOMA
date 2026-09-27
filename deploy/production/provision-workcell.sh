@@ -15,10 +15,15 @@ derive_token() {
 TRUST_STORE_SENTINEL_TOKEN="$(derive_token sentinel)"
 TRUST_STORE_AUTHD_TOKEN="$(derive_token authd)"
 TRUST_STORE_BROWSER_TOKEN="$(derive_token browser_broker)"
+TRUST_STORE_BROWSER_CDP_TOKEN="$(derive_token browser_cdp_gateway)"
 AUTHD_BROWSER_TOKEN="$(derive_token authd-browser)"
+AUTHD_BROWSER_CDP_TOKEN="$(derive_token authd-browser-cdp)"
 AUTHD_PRIVSEP_TOKEN="$(derive_token authd-privsep)"
 EGRESS_BROWSER_TOKEN="$(derive_token egress-browser)"
 EGRESS_PRIVSEP_TOKEN="$(derive_token egress-privsep)"
+BROWSER_CDP_TOKEN="$(derive_token browser-cdp)"
+BROWSER_SUBAGENT_TOKEN="$(derive_token browser-subagent)"
+BROWSER_SAFETY_TOKEN="$(derive_token browser-safety)"
 MODEL_GATEWAY_TOKEN="$(derive_token model-gateway)"
 
 case "$TENANT_ID" in
@@ -31,6 +36,9 @@ docker network inspect "agesoma-cell-$TENANT_ID" >/dev/null 2>&1 || \
 docker network inspect "agesoma-credentials-$TENANT_ID" >/dev/null 2>&1 || \
   docker network create --internal "agesoma-credentials-$TENANT_ID" >/dev/null
 
+docker network inspect "agesoma-browser-control-$TENANT_ID" >/dev/null 2>&1 || \
+  docker network create --internal "agesoma-browser-control-$TENANT_ID" >/dev/null
+
 docker inspect agesoma-trust-store >/dev/null 2>&1 || {
   echo "agesoma-trust-store is not running" >&2
   exit 3
@@ -42,11 +50,16 @@ AGESOMA_TENANT_ID="$TENANT_ID" \
 TRUST_STORE_SENTINEL_TOKEN="$TRUST_STORE_SENTINEL_TOKEN" \
 TRUST_STORE_AUTHD_TOKEN="$TRUST_STORE_AUTHD_TOKEN" \
 TRUST_STORE_BROWSER_TOKEN="$TRUST_STORE_BROWSER_TOKEN" \
+TRUST_STORE_BROWSER_CDP_TOKEN="$TRUST_STORE_BROWSER_CDP_TOKEN" \
 AUTHD_BROWSER_TOKEN="$AUTHD_BROWSER_TOKEN" \
+AUTHD_BROWSER_CDP_TOKEN="$AUTHD_BROWSER_CDP_TOKEN" \
 AUTHD_PRIVSEP_TOKEN="$AUTHD_PRIVSEP_TOKEN" \
 EGRESS_BROWSER_TOKEN="$EGRESS_BROWSER_TOKEN" \
 EGRESS_PRIVSEP_TOKEN="$EGRESS_PRIVSEP_TOKEN" \
 EGRESS_CONTROL_TOKEN="$EGRESS_CONTROL_TOKEN" \
+BROWSER_CDP_TOKEN="$BROWSER_CDP_TOKEN" \
+BROWSER_SUBAGENT_TOKEN="$BROWSER_SUBAGENT_TOKEN" \
+BROWSER_SAFETY_TOKEN="$BROWSER_SAFETY_TOKEN" \
 MODEL_GATEWAY_TOKEN="$MODEL_GATEWAY_TOKEN" \
   docker compose \
     --project-name "agesoma-cell-$TENANT_ID" \
@@ -68,13 +81,16 @@ docker exec agesoma-control-worker node -e "fetch('http://egress-$TENANT_ID:8085
 docker exec agesoma-control-worker node -e "fetch('http://model-gateway-$TENANT_ID:8086/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec agesoma-control-worker node -e "fetch('http://trust-store-$TENANT_ID:8084/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-browser-broker-1" node -e "fetch('http://127.0.0.1:8082/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-browser-subagent-1" node -e "fetch('http://127.0.0.1:8087/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-browser-cdp-gateway-1" node -e "fetch('http://127.0.0.1:8088/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+docker exec "agesoma-cell-$TENANT_ID-browser-safety-1" node -e "fetch('http://127.0.0.1:8089/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 docker exec "agesoma-cell-$TENANT_ID-authd-1" node -e "fetch('http://127.0.0.1:8083/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 RUNTIME_NAMESPACE="cell:$TENANT_ID"
 FILE_NAMESPACE="$RUNTIME_NAMESPACE:files"
 MEMORY_NAMESPACE="$RUNTIME_NAMESPACE:memory"
 CREDENTIAL_NAMESPACE="$RUNTIME_NAMESPACE:credentials"
-CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"modelGatewayHost\":\"model-gateway-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"modelCredentials\":\"gateway-only\",\"isolation\":\"per-tenant-networks-no-workcell-db\"}"
+CONFIG_JSON="{\"hermesHost\":\"hermes-$TENANT_ID\",\"browserBrokerHost\":\"browser-$TENANT_ID\",\"browserSubagentHost\":\"browser-subagent\",\"browserCdpGatewayHost\":\"browser-cdp-gateway\",\"browserSafetyHost\":\"browser-safety\",\"credentialBrokerHost\":\"broker-$TENANT_ID\",\"sentinelHost\":\"sentinel-$TENANT_ID\",\"egressGatewayHost\":\"egress-$TENANT_ID\",\"modelGatewayHost\":\"model-gateway-$TENANT_ID\",\"trustStoreHost\":\"trust-store-$TENANT_ID\",\"authdMode\":\"caller-scoped-surrogates\",\"egress\":\"forced-sentinel-v3-gateway\",\"browserControl\":\"aria-subagent-safety-v1\",\"modelCredentials\":\"gateway-only\",\"isolation\":\"per-tenant-networks-no-workcell-db\"}"
 
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
@@ -114,7 +130,7 @@ on conflict (tenant_id) do update set
 
 insert into credential_handles (tenant_id,provider,handle,scopes,secret_class,status)
 values
-  (:'"'"'tenant'"'"'::uuid,'steel','cred://steel/default','["browser_broker:browser.provider"]'::jsonb,'browser_provider','active'),
+  (:'"'"'tenant'"'"'::uuid,'steel','cred://steel/default','["browser_broker:browser.provider","browser_cdp_gateway:browser.cdp"]'::jsonb,'browser_provider','active'),
   (:'"'"'tenant'"'"'::uuid,'whatsapp','cred://whatsapp/default','["privsep_broker:whatsapp.send"]'::jsonb,'provider_token','active'),
   (:'"'"'tenant'"'"'::uuid,'windsor','cred://windsor/default','["privsep_broker:paid_media.read","privsep_broker:paid_media.write"]'::jsonb,'api_key','active')
 on conflict (tenant_id,provider,handle) do update set
