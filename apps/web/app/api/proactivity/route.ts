@@ -6,7 +6,7 @@ import { ensurePersistentWorkerByTemplate, workerTemplateForRoutine } from "../.
 
 const cadenceSchema = z.enum(["15m", "1h", "6h", "1d", "7d"]);
 const interruptSchema = z.enum(["silent", "only_if_actionable", "always"]);
-const triggerSchema = z.enum(["cadence", "event", "webhook", "manual"]);
+const triggerSchema = z.enum(["cadence", "manual"]);
 
 const preferencesSchema = z.object({
   enabled: z.boolean(),
@@ -65,6 +65,7 @@ export async function GET() {
       allowed_kinds: ["calendar", "communication", "paid_media", "general"]
     },
     watchers,
+    routines: watchers,
     interruptions
   });
 }
