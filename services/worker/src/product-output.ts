@@ -466,9 +466,45 @@ export async function persistProductOutput(task: ProductTask, result: HermesResu
   const content = artifact?.content ?? output;
   const evidence = record(output.evidence) ?? {};
 
-  await sql(`insert into artifacts (tenant_id, task_id, kind, title, content, evidence) values ($1,$2,$3,$4,$5::jsonb,$6::jsonb)`, [
+  const [persistedArtifact] = await sql<{ id: string }>(`
+    insert into artifacts (tenant_id, task_id, kind, title, content, evidence)
+    values ($1,$2,$3,$4,$5::jsonb,$6::jsonb)
+    returning id
+  `, [
     task.tenant_id, task.id, kind, title, JSON.stringify(content), JSON.stringify(evidence)
   ]);
+
+  const threadId = typeof task.payload.threadId === "string" ? task.payload.threadId : null;
+  if (threadId && persistedArtifact?.id) {
+    const [thread] = await sql<{ id: string }>(`
+      select id from conversation_threads
+      where tenant_id=$1 and id=$2 and status='active'
+      limit 1
+    `, [task.tenant_id, threadId]);
+
+    if (thread) {
+      const completionText = text(output.summary) ?? `${title} está pronto.`;
+      await sql(`
+        insert into conversation_messages (tenant_id,thread_id,task_id,role,content,metadata)
+        values ($1,$2,$3,'assistant',$4,$5::jsonb)
+      `, [
+        task.tenant_id,
+        threadId,
+        task.id,
+        completionText,
+        JSON.stringify({
+          completed: true,
+          artifactId: persistedArtifact.id,
+          artifactKind: kind
+        })
+      ]);
+      await sql(`
+        update conversation_threads
+        set last_message_at=now(),updated_at=now()
+        where tenant_id=$1 and id=$2
+      `, [task.tenant_id, threadId]);
+    }
+  }
 
   await queueApiToolBuild(task,content);
 
