@@ -8,6 +8,17 @@ export async function GET() {
     return NextResponse.json({ error: "Sua sessão expirou. Entre novamente." }, { status: 401 });
   }
 
+  const [budget] = await tenantSql<{
+    monthly_budget_cents: string | number;
+    currency: string;
+    status: string;
+  }>(authenticated.tenantId, `
+    select monthly_budget_cents,currency,status
+    from tenant_usage_budgets
+    where tenant_id=$1
+    limit 1
+  `, [authenticated.tenantId]);
+
   const [summary] = await tenantSql<{
     committed_cents: string | number;
     settled_cents: string | number;
@@ -72,7 +83,9 @@ export async function GET() {
 
   return NextResponse.json({
     periodStart: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString().slice(0,10),
-    currency: summary?.currency ?? "USD",
+    currency: budget?.currency ?? summary?.currency ?? "USD",
+    monthlyBudgetCents: budget ? Number(budget.monthly_budget_cents) : null,
+    budgetStatus: budget?.status ?? "uninitialized",
     committedCents: Number(summary?.committed_cents ?? 0),
     settledCents: Number(summary?.settled_cents ?? 0),
     reservedCents: Number(summary?.reserved_cents ?? 0),
