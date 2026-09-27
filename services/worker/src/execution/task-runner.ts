@@ -242,8 +242,10 @@ export async function executeQueuedTask(queued: ExecuteJob) {
       budget.reason,
       JSON.stringify({
         workerId: persistentWorker?.id ?? data.workerId,
-        monthlyBudgetCents: budget.monthlyBudgetCents,
+        tenantMonthlyBudgetCents: budget.tenantMonthlyBudgetCents,
+        workerMonthlyBudgetCents: budget.workerMonthlyBudgetCents,
         monthCommittedCents: budget.monthCommittedCents,
+        workerMonthCommittedCents: budget.workerMonthCommittedCents,
         currency: budget.currency
       })
     ]);
