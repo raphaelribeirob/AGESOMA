@@ -1,5 +1,6 @@
 import { sql } from "@agesoma/db";
 import type { ApiToolRecipeDefinition, ApiToolOperation } from "./api-tool-builder";
+import { resolveWorkcellServiceBaseUrl, workcellControlHeaders } from "./workcell-control";
 
 type ToolRecipeRow = {
   id: string;
@@ -78,11 +79,6 @@ export function buildToolRequestUrl(
   return url;
 }
 
-function tenantUrl(template: string, tenantId: string) {
-  if (!template.includes("{tenantId}")) throw new Error("EGRESS_GATEWAY_BASE_URL_TEMPLATE must contain {tenantId}");
-  return template.replaceAll("{tenantId}", encodeURIComponent(tenantId)).replace(/\/$/, "");
-}
-
 async function gatewayRead(input: {
   tenantId: string;
   taskId: string;
@@ -92,15 +88,16 @@ async function gatewayRead(input: {
   dataTaint: "clean" | "public" | "personal" | "sensitive" | "credential";
   requestMeta: Record<string, unknown>;
 }) {
-  const template=process.env.EGRESS_GATEWAY_BASE_URL_TEMPLATE?.trim();
   const token=process.env.EGRESS_CONTROL_TOKEN?.trim();
-  if(!template||!token) throw new Error("Tenant egress gateway is not configured");
-  const response=await fetch(`${tenantUrl(template,input.tenantId)}/v1/fetch`,{
+  if(!token) throw new Error("Tenant egress gateway is not configured");
+  const baseUrl=resolveWorkcellServiceBaseUrl(input.tenantId,"egress");
+  const response=await fetch(`${baseUrl}/v1/fetch`,{
     method:"POST",
     headers:{
       "content-type":"application/json",
       "x-agesoma-egress-caller":"control_worker",
-      "x-agesoma-egress-token":token
+      "x-agesoma-egress-token":token,
+      ...workcellControlHeaders(input.tenantId)
     },
     body:JSON.stringify({
       tenantId:input.tenantId,
