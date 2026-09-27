@@ -35,8 +35,8 @@ jobs:
           test -f apps/web/app/agesoma-client.tsx
           grep -q 'decideExecutor' packages/core/src/request-router.ts
           grep -q 'AgesomaClient' apps/web/app/page.tsx
-          grep -q 'className="agesomaConversation"' apps/web/app/agesoma-client.tsx
-          grep -q 'className="agesomaComposer"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museConversation"' apps/web/app/agesoma-client.tsx
+          grep -q 'className="museComposer"' apps/web/app/agesoma-client.tsx
           if grep -q -E 'href="#(equipe|trabalho|resultados)"' apps/web/app/page.tsx; then
             echo "Dashboard navigation must not return to the canonical AGESOMA owner experience"
             exit 1
