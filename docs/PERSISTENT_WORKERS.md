@@ -47,14 +47,14 @@ This is intentional. It gives AGESOMA persistent specialist behavior without mul
 
 Existing watchers become the routine substrate.
 
-Supported trigger classes in the data model:
+Supported trigger classes:
 
-- `cadence`
-- `event`
-- `webhook`
-- `manual`
+- `cadence` — scheduled and dispatched automatically;
+- `event` — authenticated internal connector event;
+- `webhook` — per-routine authenticated public event;
+- `manual` — reserved in the data model, not yet exposed.
 
-Only `cadence` is auto-dispatched in this phase. Event and webhook triggers must not be presented as functional until authenticated trigger ingress exists.
+Cadence, event and webhook runs share the same eligibility, cost and authority boundaries. See [`EVENT_DRIVEN_ROUTINES.md`](EVENT_DRIVEN_ROUTINES.md).
 
 ## Handoffs
 
