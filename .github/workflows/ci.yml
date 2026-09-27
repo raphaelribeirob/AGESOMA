@@ -139,6 +139,20 @@ jobs:
             exit 1
           fi
 
+      - name: Enforce usage metering and worker budgets
+        run: |
+          test -f packages/db/migrations/0019_usage_metering_budget.sql
+          test -f services/worker/src/usage-metering.ts
+          test -f services/worker/test/usage-metering.test.mjs
+          test -f apps/web/app/api/usage/route.ts
+          grep -q 'create table if not exists task_usage_ledger' packages/db/migrations/0019_usage_metering_budget.sql
+          grep -q 'on delete set null (worker_id)' packages/db/migrations/0019_usage_metering_budget.sql
+          grep -q 'reserveWorkerBudget' services/worker/src/execution/task-runner.ts
+          grep -q 'settleTaskUsage' services/worker/src/execution/task-runner.ts
+          grep -q 'monthly_budget_cents' services/worker/src/usage-metering.ts
+          grep -q 'AGESOMA_UNKNOWN_TASK_RESERVE_CENTS' deploy/production/docker-compose.yml
+          grep -q 'committedCents' apps/web/app/api/usage/route.ts
+
       - name: Enforce free API discovery boundary
         run: |
           test -f services/worker/src/api-discovery.ts
