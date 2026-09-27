@@ -72,6 +72,7 @@ The target interaction is not “chat with AI.” It is “give this to AGESOMA.
 | **Sentinel** | Independent policy and authorization boundary |
 | **Work Cells** | Isolated execution environments |
 | **Outcome verification** | Separates execution claims from evidence-backed completion |
+| **Usage Metering** | Tenant/worker/task cost ledger with pre-execution reservations and monthly hard ceilings |
 
 HERMES, Sentinel and Work Cells are internal implementation concepts and must not appear in normal user-facing product copy.
 
