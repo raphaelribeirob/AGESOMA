@@ -10,6 +10,13 @@ export type PersistentWorkerRuntime = {
   memoryNamespace: string;
   credentialNamespace: string;
   runtimeStrategy: "shared_cell" | "dedicated_cell";
+  recentWork: Array<{
+    taskId: string;
+    action: string;
+    objective: string | null;
+    completedAt: string | null;
+    resultSnapshot: string | null;
+  }>;
   agent: {
     id: string;
     templateKey: string;
@@ -42,7 +49,7 @@ type WorkerRow = {
   preferred_resources: unknown;
 };
 
-function runtime(row: WorkerRow): PersistentWorkerRuntime {
+function runtime(row: WorkerRow, recentWork: PersistentWorkerRuntime["recentWork"]): PersistentWorkerRuntime {
   return {
     id: row.id,
     workerKey: row.worker_key,
@@ -53,6 +60,7 @@ function runtime(row: WorkerRow): PersistentWorkerRuntime {
     memoryNamespace: row.memory_namespace,
     credentialNamespace: row.credential_namespace,
     runtimeStrategy: row.runtime_strategy,
+    recentWork,
     agent: {
       id: row.agent_id,
       templateKey: row.template_key,
@@ -112,5 +120,35 @@ export async function loadPersistentWorkerForTask(input: {
     where id=$1 and tenant_id=$2
   `, [row.id,input.tenantId]);
 
-  return runtime(row);
+  const recentRows = await sql<{
+    id: string;
+    action_type: string;
+    objective: string | null;
+    completed_at: Date | string | null;
+    result_snapshot: string | null;
+  }>(`
+    select
+      id,
+      action_type,
+      nullif(payload->>'objective','') as objective,
+      execution_finished_at as completed_at,
+      left(execution_result::text,2000) as result_snapshot
+    from tasks
+    where tenant_id=$1
+      and worker_id=$2
+      and id<>$3
+      and status='completed'
+    order by execution_finished_at desc nulls last,updated_at desc
+    limit 6
+  `, [input.tenantId,row.id,input.taskId]);
+
+  const recentWork = recentRows.map((item) => ({
+    taskId: item.id,
+    action: item.action_type,
+    objective: item.objective,
+    completedAt: item.completed_at ? new Date(item.completed_at).toISOString() : null,
+    resultSnapshot: item.result_snapshot
+  }));
+
+  return runtime(row,recentWork);
 }
