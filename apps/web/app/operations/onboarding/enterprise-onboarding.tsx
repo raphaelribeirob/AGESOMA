@@ -121,7 +121,7 @@ export default function EnterpriseOnboarding({canCreate}:{canCreate:boolean}) {
           </div>
           {error?<p role="alert" style={{color:"#b91c1c",margin:0}}>{error}</p>:null}
           {!canCreate?<p style={{color:"#92400e"}}>Somente owner/admin pode registrar um diagnóstico. Você pode consultar os planos existentes.</p>:null}
-          <button type="submit" disabled={busy||!canCreate} style={{border:0,borderRadius:10,padding:"13px 17px",background:"#111827",color:"#fff",fontWeight:650,cursor:"pointer",opacity:busy||!canCreate?.6:1}}>
+          <button type="submit" disabled={busy||!canCreate} style={{border:0,borderRadius:10,padding:"13px 17px",background:"#111827",color:"#fff",fontWeight:650,cursor:"pointer",opacity:(busy || !canCreate) ? 0.6 : 1}}>
             {busy?"Preparando plano...":"Gerar blueprint e critérios de aceite"}
           </button>
           {saved?<p role="status" style={{color:"#166534",margin:0}}>Plano salvo como rascunho. Nenhum agente foi ativado.</p>:null}
