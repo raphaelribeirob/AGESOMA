@@ -18,7 +18,7 @@ create table if not exists support_tickets (
   foreign key (tenant_id,message_id) references support_messages(tenant_id,id) on delete cascade,
   check (
     (status='open' and operator_reply is null and resolved_at is null and resolved_by is null)
-    or (status='resolved' and length(trim(operator_reply)) between 2 and 2000
+    or (status='resolved' and operator_reply is not null and length(trim(operator_reply)) between 2 and 2000
       and resolved_at is not null and resolved_by is not null)
   )
 );
