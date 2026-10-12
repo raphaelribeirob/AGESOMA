@@ -90,4 +90,6 @@ The current app still includes personal-first interfaces and routing. Product/ar
 
 **Pre-production.** The repository contains reusable routing, authorization, worker and memory primitives, but does **not** yet operate a client's finance or logistics department end to end. Release requires tenant isolation, evidence provenance, audited permissions, real document integrations, settlement verification, service contracts, live-pilot metrics and green CI.
 
+ProofTree verification: [independent, risk-adaptive evidence gate](docs/PROOFTREE.md). Domain recovery gating is staged; live verifier scheduling remains a release prerequisite.
+
 **AGESOMA — Business outcomes, handled.**
