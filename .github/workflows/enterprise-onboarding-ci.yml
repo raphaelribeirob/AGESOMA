@@ -13,6 +13,7 @@ on:
       - 'packages/db/migrations/0026_support_evals.sql'
       - 'tests/selfserve-support-db.test.mjs'
       - 'tests/support-operations-db.test.mjs'
+      - 'tests/paddle-lifecycle-db.test.mjs'
       - 'packages/core/src/support-product.ts'
       - 'packages/core/src/support-session.ts'
       - 'packages/core/test/support-product.test.mjs'
@@ -82,5 +83,7 @@ jobs:
         run: npx tsx --test tests/support-operations-db.test.mjs
       - name: Test signed visitor session
         run: npx tsx --test packages/core/test/support-session.test.mjs
+      - name: Test webhook lifecycle using actual PostgreSQL upsert
+        run: npx tsx --test tests/paddle-lifecycle-db.test.mjs
       - name: Test end-to-end domain simulation
         run: npx tsx --test packages/core/test/enterprise-deployment.test.mjs
