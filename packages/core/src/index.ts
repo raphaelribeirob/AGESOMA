@@ -13,3 +13,4 @@ export * from "./prooftree";
 export * from "./enterprise-deployment";
 export * from "./support-product";
 export * from "./paddle-billing";
+export * from "./support-session";
