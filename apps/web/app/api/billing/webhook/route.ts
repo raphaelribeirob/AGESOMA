@@ -30,7 +30,7 @@ export async function POST(req:Request) {
     "), applied as (",
     "insert into billing_entitlements(tenant_id,product_key,provider,subscription_id,customer_id,status,latest_occurred_at)",
     "select intent.tenant_id,'support','paddle',$5,$6,$7,$8::timestamptz from intent cross join incoming",
-    "on conflict (tenant_id,product_key) do update set",
+    "on conflict (tenant_id,product_key,subscription_id) do update set",
     "status=excluded.status,customer_id=excluded.customer_id,updated_at=now(),",
     "latest_occurred_at=excluded.latest_occurred_at",
     "where billing_entitlements.subscription_id=excluded.subscription_id",
