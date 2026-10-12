@@ -22,7 +22,7 @@ export async function POST(req:Request) {
   const tenantId=directory.tenant_id;
   const [[workspace],entitlements,knowledge]=await Promise.all([
     tenantSql<Workspace>(tenantId,"select id,owner_enabled from support_workspaces where tenant_id=$1 and id=$2 limit 1",[tenantId,directory.workspace_id]),
-    tenantSql<Entitlement>(tenantId,"select status from billing_entitlements where tenant_id=$1 and product_key='support' limit 1",[tenantId]),
+    tenantSql<Entitlement>(tenantId,"select status from billing_entitlements where tenant_id=$1 and product_key='support' and status in ('active','trialing') order by latest_occurred_at desc limit 1",[tenantId]),
     tenantSql<Knowledge>(tenantId,"select id,question,answer,enabled from support_knowledge where tenant_id=$1 and workspace_id=$2 and enabled=true limit 200",[tenantId,directory.workspace_id])
   ]);
   if(!workspace || !canPublishSupport({paidStatus:entitlements[0]?.status??null,ownerEnabled:workspace.owner_enabled,faqCount:knowledge.length})){
