@@ -1,5 +1,10 @@
 # AGESOMA Product Scope
 
+## Current release priority (October 2026)
+
+**The first B2B self-service product with B2C purchase experience is AGESOMA Atendimento.** A customer can configure an approved FAQ, test safely, subscribe through Paddle, receive messages via hosted web chat, hand uncertain cases to an authenticated human queue, and share private ticket response codes. This is not the full Wonderful enterprise platform, not a live WhatsApp/Gmail automation, and not an LLM autonomous worker. The freight recovery offer below remains an enterprise pilot wedge, not the first low-touch SKU. Product UI, release gates, checkout and operator metrics must be tested against this narrow factual offer.
+
+
 ## One job
 
 AGESOMA is an **AI-native business operations** company that sells completed, measurable services to enterprises. It is software internally and an accountable operations provider externally.
