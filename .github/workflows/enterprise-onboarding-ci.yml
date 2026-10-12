@@ -8,6 +8,15 @@ on:
     paths:
       - 'tests/enterprise-deployment-db.test.mjs'
       - 'packages/db/migrations/0023_enterprise_deployments.sql'
+      - 'packages/db/migrations/0024_selfserve_support.sql'
+      - 'tests/selfserve-support-db.test.mjs'
+      - 'packages/core/src/support-product.ts'
+      - 'packages/core/test/support-product.test.mjs'
+      - 'packages/core/src/paddle-billing.ts'
+      - 'packages/core/test/paddle-billing.test.mjs'
+      - 'apps/web/app/api/support/**'
+      - 'apps/web/app/api/billing/**'
+      - 'apps/web/app/console/support/**'
       - 'packages/core/src/enterprise-deployment.ts'
       - 'packages/core/test/enterprise-deployment.test.mjs'
       - 'apps/web/app/api/enterprise-deployments/route.ts'
@@ -55,7 +64,12 @@ jobs:
           grant usage on schema agesoma_p0 to authenticated;
           SQL
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0023_enterprise_deployments.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0024_selfserve_support.sql
       - name: Test draft persistence, replay and RLS in real PostgreSQL
         run: npx tsx --test tests/enterprise-deployment-db.test.mjs
+      - name: Test self-serve tenant and entitlement isolation in PostgreSQL
+        run: npx tsx --test tests/selfserve-support-db.test.mjs
+      - name: Test self-serve verified billing and bounded knowledge agent
+        run: npx tsx --test packages/core/test/support-product.test.mjs packages/core/test/paddle-billing.test.mjs
       - name: Test end-to-end domain simulation
         run: npx tsx --test packages/core/test/enterprise-deployment.test.mjs
