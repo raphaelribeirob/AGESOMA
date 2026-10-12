@@ -20,10 +20,16 @@ jobs:
       - name: Test core behavior
         run: npm test
 
-      - name: Enforce single AGESOMA purpose
+      - name: Enforce AGESOMA Operations purpose and compatibility
         run: |
           test -f docs/PRODUCT_SCOPE.md
-          grep -q 'personal executive assistant' docs/PRODUCT_SCOPE.md
+          grep -q 'AI-native business operations' docs/PRODUCT_SCOPE.md
+          test -f docs/OPERATIONS_THESIS.md
+          test -f docs/OPERATIONS_RELEASE_GATE.md
+          test -f packages/core/src/operations-recovery.ts
+          test -f packages/core/test/operations-recovery.test.mjs
+          grep -q 'independent' docs/OPERATIONS_RELEASE_GATE.md
+          grep -q 'billableSuccessFeeCents' packages/core/src/operations-recovery.ts
           test -f packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists team_members' packages/db/migrations/0007_team_coordination.sql
           grep -q 'create table if not exists work_assignments' packages/db/migrations/0007_team_coordination.sql
