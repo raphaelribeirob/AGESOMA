@@ -1,0 +1,29 @@
+name: AGESOMA New Vercel Project Preflight
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/vercel.json'
+      - 'apps/web/.env.vercel.example'
+      - 'scripts/vercel-preflight.mjs'
+      - 'docs/VERCEL_NEW_ACCOUNT_BOOTSTRAP.md'
+      - 'package.json'
+      - '.github/workflows/vercel-bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate Vercel web project scaffold (no secrets)
+        run: npm run preflight:vercel
