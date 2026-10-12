@@ -47,3 +47,43 @@ export function hasPaddleSupportPrice(data:PaddleSubscriptionEvent["data"],price
 export function isServerBoundPaddleCheckout(data:PaddleSubscriptionEvent["data"]):boolean{
  return data.custom_data?.product==="support"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.custom_data?.checkout_ref??"");
 }
+
+
+/**
+ * Shared parameterized statement used by the webhook AND PostgreSQL integration
+ * tests. Known subscriptions may update without custom_data; previously unseen
+ * subscriptions require a signed price match + server-origin checkout intent.
+ */
+export const PADDLE_ENTITLEMENT_SQL=[
+ "with existing as (",
+ "select tenant_id from billing_entitlements where subscription_id=$5 and provider='paddle' and product_key='support'",
+ "), intent as (",
+ "select tenant_id from billing_checkout_intents",
+ "where id=$1 and product_key='support' and price_id=$2 and paddle_transaction_id is not null",
+ "and $9::boolean and not exists(select 1 from existing)",
+ "), target as (",
+ "select tenant_id from existing union select tenant_id from intent",
+ "), incoming as (",
+ "insert into billing_webhook_events(event_id,event_type)",
+ "select $3,$4 from target on conflict do nothing returning event_id",
+ "), applied as (",
+ "insert into billing_entitlements(tenant_id,product_key,provider,subscription_id,customer_id,status,latest_occurred_at)",
+ "select target.tenant_id,'support','paddle',$5,$6,$7,$8::timestamptz",
+ "from target cross join incoming",
+ "on conflict(tenant_id,product_key,subscription_id) do update set",
+ "status=excluded.status,customer_id=excluded.customer_id,latest_occurred_at=excluded.latest_occurred_at,updated_at=now()",
+ "where billing_entitlements.latest_occurred_at<=excluded.latest_occurred_at",
+ "returning tenant_id",
+ ") select exists(select 1 from incoming) as accepted,exists(select 1 from applied) as updated"
+].join(" ");
+
+export function paddleEntitlementParams(event:PaddleSubscriptionEvent,priceId:string):unknown[]{
+ const matches=hasPaddleSupportPrice(event.data,priceId);
+ const bound=isServerBoundPaddleCheckout(event.data);
+ return [
+  bound?event.data.custom_data!.checkout_ref!:null,
+  priceId,event.event_id,event.event_type,event.data.id,event.data.customer_id,
+  Array.isArray(event.data.items)&&!matches?"plan_mismatch":event.data.status,
+  event.occurred_at,bound&&matches
+ ];
+}
