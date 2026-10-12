@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { tenantSql } from "@agesoma/db";
+import { sql, tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../../lib/auth-workspace";
 
 const error=(message:string,status:number)=>NextResponse.json({error:message},{status});
@@ -49,7 +49,7 @@ export async function POST(req:Request) {
     return error("Checkout não corresponde ao domínio aprovado.",502);
   }
   // Only a verified subscription webhook can grant entitlement, never redirect.
-  await tenantSql(actor.tenantId,
+  await sql(
     "update billing_checkout_intents set paddle_transaction_id=$3 where tenant_id=$1 and id=$2",
     [actor.tenantId,intentId,id]);
   return NextResponse.json({checkoutUrl:url,activation:"after_verified_webhook"});
