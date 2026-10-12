@@ -9,9 +9,14 @@ on:
       - 'tests/enterprise-deployment-db.test.mjs'
       - 'packages/db/migrations/0023_enterprise_deployments.sql'
       - 'packages/db/migrations/0024_selfserve_support.sql'
+      - 'packages/db/migrations/0025_support_operations.sql'
+      - 'packages/db/migrations/0026_support_evals.sql'
       - 'tests/selfserve-support-db.test.mjs'
+      - 'tests/support-operations-db.test.mjs'
       - 'packages/core/src/support-product.ts'
+      - 'packages/core/src/support-session.ts'
       - 'packages/core/test/support-product.test.mjs'
+      - 'packages/core/test/support-session.test.mjs'
       - 'packages/core/src/paddle-billing.ts'
       - 'packages/core/test/paddle-billing.test.mjs'
       - 'apps/web/app/api/support/**'
@@ -65,11 +70,17 @@ jobs:
           SQL
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0023_enterprise_deployments.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0024_selfserve_support.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0025_support_operations.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0026_support_evals.sql
       - name: Test draft persistence, replay and RLS in real PostgreSQL
         run: npx tsx --test tests/enterprise-deployment-db.test.mjs
       - name: Test self-serve tenant and entitlement isolation in PostgreSQL
         run: npx tsx --test tests/selfserve-support-db.test.mjs
       - name: Test self-serve verified billing and bounded knowledge agent
         run: npx tsx --test packages/core/test/support-product.test.mjs packages/core/test/paddle-billing.test.mjs
+      - name: Test operational tickets, quotas and evaluations in real PostgreSQL
+        run: npx tsx --test tests/support-operations-db.test.mjs
+      - name: Test signed visitor session
+        run: npx tsx --test packages/core/test/support-session.test.mjs
       - name: Test end-to-end domain simulation
         run: npx tsx --test packages/core/test/enterprise-deployment.test.mjs
