@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import SupportInbox from "./support-inbox";
 import {FormEvent,useEffect,useState} from "react";
 type Knowledge={id:string;question:string;answer:string;enabled:boolean};
 type OwnerData={
@@ -100,5 +101,6 @@ export default function SupportConsole(){
    <p style={{margin:0}}>Últimas 50 interações: {data.events.total} · Respostas encontradas: {data.events.answered} · Encaminhadas para revisão humana: {data.events.needsHuman}</p>
    <p style={{fontSize:12,margin:0}}>Indicadores de uso, não prova de satisfação ou resolução efetiva. Os casos ainda não têm interface de resposta humana.</p>
   </section>:null}
+  {data?.workspace?<SupportInbox/>:null}
  </main>;
 }
