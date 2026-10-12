@@ -7,3 +7,4 @@ export * from "./agent-registry";
 export * from "./personalization";
 export * from "./autonomy";
 export * from "./company-ontology";
+export * from "./operations-recovery";

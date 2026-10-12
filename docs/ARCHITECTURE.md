@@ -1,129 +1,72 @@
-# AGESOMA Architecture
+# AGESOMA Architecture — Operations First
 
-## Product rule
+## Purpose and status
 
-AGESOMA has one job: act as a personal executive assistant.
+AGESOMA is an **AI-native business operations provider**, not merely a personal assistant or chatbot. The current repository is pre-production; the personal UI and some personal-domain routing remain until an isolated, tested B2B service workflow is ready.
 
-It remembers useful context, understands the user's current situation, plans work, delegates to internal capabilities, executes authorized digital actions, verifies completion and interrupts the user only when judgment or permission is required.
+## Canonical service workflow
 
-## Canonical chain
+    Customer + signed scope / SLA
+       -> tenant-isolated document intake
+       -> deterministic rules + assisted extraction
+       -> rate-table/contract reconciliation
+       -> reviewer validation of evidence
+       -> scoped customer approval (Sentinel)
+       -> approved, idempotent claim submission
+       -> response and cash-settlement verification
+       -> verified recovery + contracted success-fee eligibility
+       -> customer reporting and prevention learning
 
-```text
-User / desired outcome
-        ↓
-Personal context + current commitments
-        ↓
-AGESOMA plans the work
-        ↓
-Capability selection
-        ↓
-Isolated digital execution
-        ↓
-Policy + scoped authorization
-        ↓
-Completion verification
-        ↓
-AGESOMA reports what matters
-        ↓
-Memory learns from corrections and outcomes
-```
+**Do not treat model output, an email claim, or an accounting entry as proof that cash was recovered.**
 
-## Responsibilities
+## System responsibilities
 
-AGESOMA owns:
+**AGESOMA control plane:** tenant/workspace, signed service scope, connectors and credential boundaries, work-order state, policies and approvals, SLA monitoring, case audit trail, case-to-document provenance.
 
-- user-facing conversation;
-- personal context;
-- memory and retrieval;
-- task planning and coordination;
-- prioritization;
-- permission requests;
-- approval state;
-- recurring routines;
-- completion verification;
-- preference learning;
-- deciding when the user should be interrupted.
+**Execution plane:** typed task queues, isolated workers, authorized connector actions, retries, idempotency, deterministic comparisons, bounded model usage.
 
-The execution substrate owns only the digital work explicitly delegated to it:
+**Verification plane:** independent document validation, human exception reviews, confirmation of signed approval, bank/ERP settlement verification, client reporting, success-fee eligibility.
 
-- browser work;
-- computer use;
-- APIs;
-- files and transformations;
-- messaging;
-- calendar operations;
-- connected-service actions.
+**Human operators:** disputed contracts, uncertain tariffs, exceptional claims, account management and accountable escalations.
 
-The execution layer is never the authorization authority.
+## Existing reusable components
 
-## Personal context model
+- PostgreSQL + pgvector: tenant state, cases, contextual retrieval.
+- pg-boss: durable work and scheduling.
+- HERMES / Work Cells: runtime isolation (existing implementation must be independently tested).
+- Sentinel: permission and risk classification; external operations require scoped grants.
+- Model Gateway / metering: per-tenant usage controls.
+- Verified outcomes: event and calculation primitives; independent proof remains required.
+- Operations recovery evaluator: pure and fail-closed, not a bank reconciliation integration.
 
-Personal context is broader than preferences. It can include:
+The current routing system still uses business.* action aliases alongside personal runtime concepts. Do not remove those safeguards or re-enable consequential work by simply relabeling actions.
 
-- current projects;
-- recurring commitments;
-- important people;
-- work context;
-- communication patterns;
-- travel and logistical context;
-- decisions and corrections;
-- user-defined goals;
-- connected-service state.
+## Storage and data contracts to implement next
 
-Every memory should have provenance, scope and a path for correction or deletion.
+- service_contracts: tenant, scope, signed terms, rate basis, allowed actions and SLA;
+- source_documents: immutable provenance, hash, verified status and permissions;
+- freight_rate_tables: effective dates, carrier, lane, rule versions;
+- recovery_cases: calculation, references, state, reviewer, approval;
+- claims: customer-signed authorization and external provider status;
+- settlements: matched receipt, verification provenance, amount;
+- service_economics: cost-to-serve, recovered cash, invoiced revenue, paid revenue;
+- audit_events: actor, action, correlation ID, policy decision and timestamps.
 
-## Authority rule
+Use schema migrations and row-level security; never put private tenant documents or secrets into model prompts by default.
 
-The executor is never its own authorization authority.
+## Authority and security
 
-AGESOMA may prepare, draft, research and organize with low friction. External side effects must respect a risk policy and, when required, a scoped grant containing the concrete destination, operation, resource and parameters.
+1. Models do not attest authenticity; verification runs in trusted services.
+2. Sentinel must authorize concrete operations, amounts, destination and contract scope.
+3. Customer-signed service agreement is not unlimited standing permission.
+4. No transfer, bank movement or binding commitment without explicit authorization.
+5. Revocation, retry, audit trail and data deletion are release requirements.
+6. No success fee on estimated savings; only independently confirmed recoveries.
 
-Inference can help determine what the user probably wants. It cannot replace consent.
+## Product separation
 
-## Operating loop
+Retain AGESOMA Personal modules without presenting them as the primary product. Reuse security/queue primitives but isolate client/workspace semantics, credentials, billing and audit events before exposing Operations to customers.
 
-```text
-Understand the user's state
-  ↓
-Identify what can be taken off their plate
-  ↓
-Prioritize
-  ↓
-Plan and choose capabilities
-  ↓
-Execute what is authorized
-  ↓
-Ask only when judgment/permission is required
-  ↓
-Verify completion
-  ↓
-Report concisely
-  ↓
-Learn from correction
-  ↺
-```
+## Rollout
 
-## Core capability domains
-
-P0 prioritizes:
-
-- calendar;
-- email and messaging;
-- research;
-- documents;
-- personal administration;
-- recurring monitoring.
-
-Finance can provide visibility and administrative preparation before any money-moving capability is considered.
-
-## Customer-facing simplicity
-
-The canonical experience is one AGESOMA conversation.
-
-Technical concepts such as HERMES, Sentinel, Work Cells, models, agents, workflows and routing must remain outside the normal user experience.
-
-## Migration rule
-
-The previous SME operating-intelligence implementation contains valuable execution, authorization and durable-work primitives. Those primitives are retained where useful, but business-specific semantics are being removed from the product surface.
-
-Internal legacy names are migration debt, not product doctrine.
+Documentation + pure recovery evaluation (this branch) -> import/verify sandbox -> tenant-isolated case service -> approval/claim adapter -> settlement reconciliation -> three paid pilots -> release assessment. **No production launch implied by repository changes.**

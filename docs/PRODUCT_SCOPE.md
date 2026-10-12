@@ -2,97 +2,60 @@
 
 ## One job
 
-AGESOMA exists for one purpose: act as a **personal executive assistant** that remembers useful context, organizes what matters and executes authorized digital work for the user.
+AGESOMA is an **AI-native business operations** company that sells completed, measurable services to enterprises. It is software internally and an accountable operations provider externally.
 
-The product is not a chatbot with a longer tool list. Its core value is delegation: the user states the outcome, AGESOMA owns the coordination and returns only when a decision, authorization or completed result matters.
+The primary buyer is the financial or operations leader of a company with measurable, recurring manual processing costs and loss leakage. The first outcome is **recover freight overcharges and prevent repeat losses**. The software stack is a means to fulfill a service contract, not the standalone product being sold.
 
-AGESOMA must always be able to answer:
+## What the customer buys
 
-1. What matters to this person now?
-2. What can be taken off their plate?
-3. What context is relevant to the task?
-4. What can be completed safely without interruption?
-5. What requires explicit approval?
-6. What was actually completed and what evidence exists?
+1. A bounded scope of outsourced work with a named accountable operator.
+2. Evidence-backed discrepancies and transparent calculations.
+3. Client-approved corrective actions, never inferred consent.
+4. Verified financial results and auditable service-level reporting.
+5. Clear service pricing, with any recovery success fee tied to verified received funds.
 
-## Canonical operating model
+## First service boundary: freight audit
 
-`User -> AGESOMA -> specialized capability/runtime -> verification -> AGESOMA report`
+**Inputs:** authorized contracts, rate tables, CT-e/freight documents, freight invoices and eventual settlement confirmations.
 
-AGESOMA is the single user-facing intelligence. Internal specialists, models, tools, browsers, APIs and execution runtimes are implementation details.
+**Outputs:** discrepancy case, evidence references, approval request, claim status, verified recovered amount, fee eligibility, SLA evidence.
 
-The primary domains are:
+**Not in P0:** bank transfers, unilateral changes to contracts, collections without approval, automatic regulatory advice, replacing the customer's ERP, general-purpose finance-autopilot claims.
 
-- calendar and commitments;
-- email and communication;
-- research and decision preparation;
-- documents and knowledge work;
-- personal administration;
-- finance visibility and administrative support;
-- recurring routines and monitoring.
+## Customer-facing experience
 
-## Canonical experience
+The canonical experience is an **operations service with a concise client workspace**: cases, approvals, proven recoveries, exceptions, audit trails and SLAs. Agent names, model selection and workflow authoring are internal.
 
-**One AGESOMA conversation. Delegation first.**
+## Architecture principles
 
-The user can ask, delegate, approve and receive the completed result without learning prompts, workflows, agents or model names.
-
-The main prompt is:
-
-**O que você quer que eu resolva?**
-
-## Required product objects
-
-- user identity;
-- personal context;
-- memory with provenance and user control;
-- people and relationships when relevant;
-- commitments and calendar context;
-- tasks and delegated outcomes;
-- authorization grants;
-- connected services;
-- execution state;
-- evidence and verified completion;
-- learned preferences that never expand authority.
-
-## Architectural rules
-
-1. Single-assistant experience, capability-rich architecture.
-2. Memory and authorization are separate systems.
-3. AGESOMA may infer intent, never consent.
-4. Consequential actions require scoped authority.
-5. The executor never grants itself permission.
-6. Personal context is not proof.
-7. Completion claims require evidence appropriate to the task.
-8. Internal architecture terms stay out of the normal product experience.
-9. The user must be able to inspect, correct and forget learned context.
-10. Proactivity must reduce attention cost, not create a notification stream.
-
-## Non-goals
-
-AGESOMA must not become:
-
-- an agent marketplace;
-- an AI-agent builder;
-- a workflow studio;
-- a generic dashboard;
-- a CRM-first product;
-- a project-management suite with AI added;
-- a screen for choosing models or prompts;
-- a system that performs consequential actions based only on inferred intent;
-- a product that requires the user to organize its internal agents.
+1. Every case is tenant-isolated and tied to an explicit contract and service scope.
+2. Source documents carry provenance and trusted verification state.
+3. Models may propose and classify; independent validators decide verification.
+4. Case detection is not booked recovery, cash received or proof of ROI.
+5. Consequential actions use Sentinel and task-scoped, expiring approvals.
+6. Financial success fees require external settlement proof and agreement terms.
+7. External calls are idempotent, logged and retry-safe.
+8. Humans handle disputed documents, ambiguous terms and risky edge cases.
+9. SLA, quality, processing cost and margin are measurable per customer.
+10. Business memory never grants authority.
 
 ## P0 proof
 
-The first release should prove four loops:
+Deliver the complete authorized loop with three paid pilot customers:
 
-1. remember useful personal context;
-2. understand and organize calendar-related work;
-3. understand and prepare communication-related work;
-4. research, prepare and execute a digital task while preserving user authorization.
+- ingest data with permission and source identification;
+- detect a real freight overcharge;
+- produce a reproducible evidence packet;
+- validate the case with an accountable reviewer;
+- obtain client approval before external submission;
+- reconcile the real recovered amount with a verified settlement;
+- calculate contracted fees and unit costs;
+- demonstrate a repeatable path to a positive service gross margin.
 
-If these loops do not work together, adding more integrations does not make the product a better assistant.
+No AI-driven external financial execution launches before this proof and the release gate.
 
-## Compatibility note
+## Product portfolio
 
-The repository still contains internal business-oriented schema names and `business.*` action classes from the previous AGESOMA architecture. During migration they are treated as compatibility primitives only. They are not the product definition and must not leak into the user experience.
+AGESOMA Operations is canonical. The personal executive-assistant implementation is **legacy compatibility / a possible independently branded product later**. Do not allow a personal-assistant roadmap or generic assistant features to displace the freight-recovery P0.
+
+The existing personal UI, database concepts and runtime remain during migration. This document expresses intended positioning, **not a claim that the current frontend already matches it**.
