@@ -1,4 +1,5 @@
 set search_path to agesoma_p0, public;
+create unique index if not exists support_knowledge_tenant_key_idx on support_knowledge(tenant_id,id);
 create table if not exists support_eval_cases (
  id uuid primary key default gen_random_uuid(),
  tenant_id uuid not null references tenants(id) on delete cascade,
@@ -9,7 +10,7 @@ create table if not exists support_eval_cases (
  created_by text not null,
  created_at timestamptz not null default now(),
  foreign key (tenant_id,workspace_id) references support_workspaces(tenant_id,id) on delete cascade,
- foreign key (expected_knowledge_id) references support_knowledge(id) on delete set null,
+ foreign key (tenant_id,expected_knowledge_id) references support_knowledge(tenant_id,id) on delete cascade,
  check((expected_status='needs_human' and expected_knowledge_id is null)
     or (expected_status='answered' and expected_knowledge_id is not null))
 );
