@@ -7,3 +7,7 @@ export * from "./agent-registry";
 export * from "./personalization";
 export * from "./autonomy";
 export * from "./company-ontology";
+export * from "./operations-recovery";
+export * from "./business-understanding";
+export * from "./prooftree";
+export * from "./enterprise-deployment";
