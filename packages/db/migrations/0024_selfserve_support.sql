@@ -92,7 +92,7 @@ create table if not exists billing_entitlements (
   status text not null,
   latest_occurred_at timestamptz not null,
   updated_at timestamptz not null default now(),
-  primary key(tenant_id,product_key)
+  primary key(tenant_id,product_key,subscription_id)
 );
 create table if not exists billing_webhook_events (
   event_id text primary key,
