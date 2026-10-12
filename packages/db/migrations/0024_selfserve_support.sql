@@ -111,6 +111,7 @@ create policy tenant_insert on billing_checkout_intents for insert to authentica
 grant insert,update on support_workspaces to authenticated;
 grant insert,update,delete on support_knowledge to authenticated;
 grant insert on billing_checkout_intents to authenticated;
+-- Checkout association is privileged: authenticated callers never bind transaction IDs.
 -- No select grants or RLS policies for anonymous users: the public endpoint
 -- accesses a constrained, read-only service role after enforcing publication.
 -- billing_entitlements and webhook_events intentionally no authenticated writes.
@@ -218,3 +219,14 @@ grant insert on billing_checkout_intents to authenticated;
 -- accesses a constrained, read-only service role after enforcing publication.
 -- billing_entitlements and webhook_events intentionally no authenticated writes.
 -- The public support_messages write is privileged and only through the bounded API.
+
+
+-- The migration owner's server connection is the trusted control plane.
+-- FORCE RLS still applies to the owner; allow it only for billing control tables.
+-- The authenticated role continues to have no billing write policy.
+do $$
+declare owner_role text := current_user;
+begin
+ execute format('create policy internal_billing_control on billing_checkout_intents for all to %I using(true) with check(true)',owner_role);
+ execute format('create policy internal_entitlement_control on billing_entitlements for all to %I using(true) with check(true)',owner_role);
+end $$;
