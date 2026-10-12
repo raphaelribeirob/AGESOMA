@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessRecoveryCase } from "../src/operations-recovery.ts";
+import { assessRecoveryCase, recoveryProofSubjectHash } from "../src/operations-recovery.ts";
+import { evaluateProofTree } from "../src/prooftree.ts";
 
 const base = {
   caseId: "case-1",
@@ -17,6 +18,29 @@ const base = {
   successFeeBps: 2000
 };
 
+// Test-only trusted-control-plane fixture; never accept this data from a model or customer.
+function proofFor(input) {
+  const hash = recoveryProofSubjectHash(input);
+  const binding = { tenantId: input.tenantId, taskId: input.caseId, subjectHash: hash };
+  return evaluateProofTree({
+    ...binding, executorId: "executor-1",
+    risk: input.status === "recovered" ? "critical" : "high",
+    evidence: [
+      { ...binding, id: "contract-source", kind: "source_document",
+        origin: "trusted_connector", reference: "contract:123", contentHash: "a".repeat(64), verified: true },
+      { ...binding, id: "arithmetic", kind: "calculation",
+        origin: "deterministic_rule", reference: "computed:123", contentHash: "b".repeat(64), verified: true }
+    ],
+    attestations: [
+      { ...binding, id: "source-review", verifierId: "source-checker-1", method: "source_check",
+        decision: "pass", evidenceIds: ["contract-source"] },
+      { ...binding, id: "math-review", verifierId: "calc-checker-1", method: "deterministic_recalculation",
+        decision: "pass", evidenceIds: ["arithmetic"] }
+    ],
+    humanReviewed: input.status === "recovered"
+  });
+}
+
 test("detects potential leakage without claiming collected savings", () => {
   const result = assessRecoveryCase(base);
   assert.equal(result.potentialLeakageCents, 4000);
@@ -27,19 +51,21 @@ test("detects potential leakage without claiming collected savings", () => {
 });
 
 test("approved recovery can be submitted but cannot be billed before settlement", () => {
-  const result = assessRecoveryCase({ ...base, status: "approved", scopedApprovalId: "sentinel-grant-1" });
+  const input = { ...base, status: "approved", scopedApprovalId: "sentinel-grant-1" };
+  const result = assessRecoveryCase(input, proofFor(input));
   assert.equal(result.canSubmitClaim, true);
   assert.equal(result.billableSuccessFeeCents, 0);
 });
 
 test("confirmed settlement is eligible for success fee", () => {
-  const result = assessRecoveryCase({
+  const input = {
     ...base,
     status: "recovered",
     scopedApprovalId: "sentinel-grant-1",
     recoveredAmountCents: 3000,
     evidence: [...base.evidence, { kind: "settlement", reference: "bank-confirmation-1", verified: true }]
-  });
+  };
+  const result = assessRecoveryCase(input, proofFor(input));
   assert.equal(result.verifiedRecoveredCents, 3000);
   assert.equal(result.billableSuccessFeeCents, 600);
 });
@@ -70,4 +96,20 @@ test("rejects malformed money and fee inputs", () => {
   assert.throws(() => assessRecoveryCase({ ...base, billedChargeCents: -1 }), RangeError);
   assert.throws(() => assessRecoveryCase({ ...base, successFeeBps: 10001 }), RangeError);
   assert.throws(() => assessRecoveryCase({ ...base, contractedChargeCents: 2.5 }), RangeError);
+});
+
+test("recovery is blocked when no independent ProofTree decision is supplied", () => {
+  const input = { ...base, status: "approved", scopedApprovalId: "sentinel-grant-1" };
+  const assessment = assessRecoveryCase(input);
+  assert.equal(assessment.canSubmitClaim, false);
+  assert.ok(assessment.blockers.includes("missing_or_stale_prooftree_pass"));
+});
+
+test("a previous recovery proof cannot be replayed for a different invoice, tenant or settlement", () => {
+  const input = { ...base, status: "approved", scopedApprovalId: "sentinel-grant-1" };
+  const proof = proofFor(input);
+  assert.equal(assessRecoveryCase(input, proof).canSubmitClaim, true);
+  assert.equal(assessRecoveryCase({ ...input, billedChargeCents: 15000 }, proof).canSubmitClaim, false);
+  assert.equal(assessRecoveryCase({ ...input, tenantId: "tenant-other" }, proof).canSubmitClaim, false);
+  assert.equal(assessRecoveryCase({ ...input, status: "recovered", recoveredAmountCents: 2000 }, proof).billableSuccessFeeCents, 0);
 });
