@@ -12,7 +12,7 @@ import "./settings.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
-  description: "Seu assistente pessoal para organizar, pesquisar e executar."
+  description: "Agentes operacionais que sua empresa configura e contrata online."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
