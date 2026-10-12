@@ -1,5 +1,7 @@
 # AGESOMA Personal Assistant Migration
 
+> HISTORICAL MIGRATION RECORD (superseded as canonical positioning on 2026-10-12). The primary AGESOMA direction is now **AI-native business operations**. This document remains for legacy compatibility and a potential separately scoped personal product. Refer to [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md) and [OPERATIONS_THESIS.md](OPERATIONS_THESIS.md). Do not discard safety, authentication or permission work from this migration.
+
 ## Objective
 
 Transform AGESOMA from SME operating intelligence into a personal executive assistant without discarding the reliable execution, authorization and durable-work primitives already present in the repository.
