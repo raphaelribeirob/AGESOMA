@@ -43,6 +43,16 @@ export default function SupportConsole(){
   try{const r=await fetch("/api/support/preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:preview})});const b=await r.json();if(!r.ok)throw new Error(b.error);setResult(b);}
   catch(c){setError(c instanceof Error?c.message:"Erro.");}finally{setBusy(false);}
  }
+ async function manageSubscription(){
+  setBusy(true);setError("");
+  try{
+   const r=await fetch("/api/billing/manage",{cache:"no-store"});
+   const b=await r.json();
+   if(!r.ok)throw new Error(b.error??"Portal indisponível.");
+   if(!b.portalUrl)throw new Error("Link temporário ausente.");
+   window.location.assign(b.portalUrl);
+  }catch(e){setError(e instanceof Error?e.message:"Erro no gerenciamento.");setBusy(false);}
+ }
  async function buy(){
   setBusy(true);setError("");
   try{const r=await fetch("/api/billing/checkout",{method:"POST",headers:{"content-type":"application/json"}});const b=await r.json();if(!r.ok)throw new Error(b.error??"Checkout indisponível");if(!b.checkoutUrl)throw new Error("URL de checkout ausente");window.location.assign(b.checkoutUrl);}
@@ -71,6 +81,7 @@ export default function SupportConsole(){
     :<p style={{margin:0,color:"#64748b",fontSize:13}}>O link permanece indisponível até confirmação de pagamento, pelo menos uma resposta e publicação autorizada.</p>}
    <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
     {!data.paid?<button type="button" disabled={busy||!data.canEdit} onClick={()=>void buy()} style={{background:"#111827",color:"#fff",padding:13,borderRadius:8,border:0}}>Contratar assinatura segura</button>:null}
+    {data.paid?<button type="button" disabled={busy||!data.canEdit} onClick={()=>void manageSubscription()} style={{background:"#fff",border:"1px solid #cbd5e1",padding:13,borderRadius:8}}>Gerenciar ou cancelar assinatura</button>:null}
     <button type="button" disabled={busy||!data.canEdit} onClick={()=>void action({action:"publish",enabled:!data.workspace!.owner_enabled})} style={{padding:13,borderRadius:8,border:"1px solid #cbd5e1"}}>{data.workspace.owner_enabled?"Desativar publicação":"Autorizar publicação"}</button>
    </div>
   </section>:null}
