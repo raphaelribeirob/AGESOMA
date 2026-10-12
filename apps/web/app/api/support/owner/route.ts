@@ -22,7 +22,7 @@ export async function GET() {
   const [workspaces, knowledge, entitlements, history]=await Promise.all([
     tenantSql<Workspace>(actor.tenantId,"select id,slug,display_name,greeting,owner_enabled from support_workspaces where tenant_id=$1 limit 1",[actor.tenantId]),
     tenantSql<Knowledge>(actor.tenantId,"select id,question,answer,enabled,created_at from support_knowledge where tenant_id=$1 order by created_at desc limit 200",[actor.tenantId]),
-    tenantSql<Entitlement>(actor.tenantId,"select status,subscription_id from billing_entitlements where tenant_id=$1 and product_key='support' limit 1",[actor.tenantId]),
+    tenantSql<Entitlement>(actor.tenantId,"select status,subscription_id from billing_entitlements where tenant_id=$1 and product_key='support' and status in ('active','trialing') order by latest_occurred_at desc limit 1",[actor.tenantId]),
     tenantSql<{status:string;created_at:Date|string}>(actor.tenantId,"select status,created_at from support_messages where tenant_id=$1 order by created_at desc limit 50",[actor.tenantId])
   ]);
   const workspace=workspaces[0]??null;
