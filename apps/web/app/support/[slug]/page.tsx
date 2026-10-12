@@ -13,7 +13,7 @@ export default async function PublicSupportPage({params}:{params:Promise<{slug:s
   tenantSql<{display_name:string;greeting:string;owner_enabled:boolean}>(directory.tenant_id,
    "select display_name,greeting,owner_enabled from support_workspaces where tenant_id=$1 and id=$2",[directory.tenant_id,directory.workspace_id]),
   tenantSql<{status:string}>(directory.tenant_id,
-   "select status from billing_entitlements where tenant_id=$1 and product_key='support' limit 1",[directory.tenant_id]),
+   "select status from billing_entitlements where tenant_id=$1 and product_key='support' and status in ('active','trialing') order by latest_occurred_at desc limit 1",[directory.tenant_id]),
   tenantSql<{count:string|number}>(directory.tenant_id,
    "select count(*)::int as count from support_knowledge where tenant_id=$1 and workspace_id=$2 and enabled=true",[directory.tenant_id,directory.workspace_id])
  ]);
