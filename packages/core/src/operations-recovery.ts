@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import type { ProofTreeDecision } from "./prooftree";
+
 /**
  * AGESOMA Operations: read-only recovery case assessment.
  *
@@ -42,7 +45,30 @@ function requireNonnegativeCents(value: number, name: string) {
   }
 }
 
-export function assessRecoveryCase(input: RecoveryCase): RecoveryAssessment {
+/**
+ * Hash the exact case being certified. A new settlement, invoice or changed
+ * amount invalidates a previous ProofTree decision.
+ */
+export function recoveryProofSubjectHash(input: RecoveryCase): string {
+  return createHash("sha256").update(JSON.stringify({
+    tenantId: input.tenantId, caseId: input.caseId, status: input.status,
+    contractedChargeCents: input.contractedChargeCents,
+    billedChargeCents: input.billedChargeCents,
+    recoveredAmountCents: input.recoveredAmountCents ?? null,
+    successFeeBps: input.successFeeBps,
+    scopedApprovalId: input.scopedApprovalId ?? null,
+    evidence: [...input.evidence].map(item => ({
+      kind: item.kind, reference: item.reference, verified: item.verified
+    })).sort((a,b) => a.kind.localeCompare(b.kind) || a.reference.localeCompare(b.reference))
+  })).digest("hex");
+}
+
+/**
+ * The ProofTree decision must be obtained by the trusted control-plane
+ * adapter from persisted attestations — never from a customer/LLM payload.
+ * ProofTree PASS certifies the claim; Sentinel grants action authority.
+ */
+export function assessRecoveryCase(input: RecoveryCase, proofTreeGate?: ProofTreeDecision): RecoveryAssessment {
   if (!input.caseId?.trim() || !input.tenantId?.trim()) {
     throw new Error("Case and tenant IDs are required");
   }
@@ -59,9 +85,16 @@ export function assessRecoveryCase(input: RecoveryCase): RecoveryAssessment {
   const evidenceReady = hasVerified("contract") && hasVerified("freight_document");
   const potentialLeakageCents = Math.max(0, input.billedChargeCents - input.contractedChargeCents);
   const approvalPresent = Boolean(input.scopedApprovalId?.trim());
+  const expectedRisk = input.status === "recovered" ? "critical" : "high";
+  const proofAccepted = proofTreeGate?.decision === "PASS" &&
+    proofTreeGate.tenantId === input.tenantId &&
+    proofTreeGate.taskId === input.caseId &&
+    proofTreeGate.subjectHash === recoveryProofSubjectHash(input) &&
+    proofTreeGate.risk === expectedRisk;
   const canSubmitClaim = potentialLeakageCents > 0 &&
     evidenceReady &&
     approvalPresent &&
+    proofAccepted &&
     (input.status === "approved" || input.status === "submitted" || input.status === "recovered");
 
   const requestedRecovery = input.recoveredAmountCents ?? 0;
@@ -78,6 +111,7 @@ export function assessRecoveryCase(input: RecoveryCase): RecoveryAssessment {
   if (potentialLeakageCents === 0) blockers.push("no_positive_discrepancy");
   if (!evidenceReady) blockers.push("missing_verified_contract_or_freight_document");
   if (!approvalPresent) blockers.push("missing_scoped_approval");
+  if (!proofAccepted) blockers.push("missing_or_stale_prooftree_pass");
   if (!["approved", "submitted", "recovered"].includes(input.status)) blockers.push("not_approved_for_claim");
   if (input.status === "recovered" && !settlementReady) blockers.push("missing_verified_settlement");
   if (input.status === "recovered" && (requestedRecovery <= 0 || requestedRecovery > potentialLeakageCents)) {
