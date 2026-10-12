@@ -26,6 +26,8 @@ The first implementation is a **read-only recovery assessment and tests**, not a
 
 See [Operations thesis](docs/OPERATIONS_THESIS.md) and [Operations release gate](docs/OPERATIONS_RELEASE_GATE.md).
 
+Business Understanding Engine P0: [ontology, source-traceable facts and tenant-scoped context](docs/BUSINESS_UNDERSTANDING_ENGINE.md). This is a staged implementation, not a live autonomous service.
+
 ## Business model
 
 - **Phase 1 — Recovery:** success fee for objectively verified, client-approved recoveries.
