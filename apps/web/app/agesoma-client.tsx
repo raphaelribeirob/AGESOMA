@@ -375,6 +375,7 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
           ))}
         </nav>
 
+        <Link href="/operations/onboarding" className="museSettings">Implantar operação</Link>
         <Link href="/settings" className="museSettings">Memória & permissões</Link>
       </header>
 
