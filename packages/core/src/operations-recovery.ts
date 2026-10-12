@@ -73,7 +73,7 @@ export function assessRecoveryCase(input: RecoveryCase): RecoveryAssessment {
     requestedRecovery <= potentialLeakageCents;
   const verifiedRecoveredCents = recoverable ? requestedRecovery : 0;
   // The fee is eligible only after a separately verified settlement, never on a detection.
-  const billableSuccessFeeCents = Math.floor(verifiedRecoveredCents * input.successFeeBps / 10_000);
+  const billableSuccessFeeCents = Number((BigInt(verifiedRecoveredCents) * BigInt(input.successFeeBps)) / 10_000n);
   const blockers: string[] = [];
   if (potentialLeakageCents === 0) blockers.push("no_positive_discrepancy");
   if (!evidenceReady) blockers.push("missing_verified_contract_or_freight_document");
