@@ -93,12 +93,12 @@ Estados: **CÓDIGO** = implementação escrita; **CI** = testes em ambiente isol
 | REA-09 | Evidências independentes | ProofTree no domínio de recuperação | LACUNA no Atendimento | Comprovar resultado por fonte externa e avaliador independente |
 | REA-10 | Avaliações e regressões | QA obrigatória, skill versionada, invalidação após edição | CI | Evals contínuas, alertas e qualidade em produção |
 | REA-11 | Multicanal | Chat web hospedado | LACUNA | Validar individualmente WhatsApp, e-mail e voz se anunciados |
-| REA-12 | Observabilidade e economia | Contadores, histórico e avaliações | Parcial | Latência p95, custo, erros, resolução real e margem |
+| REA-12 | Observabilidade e economia | Métricas de 30 dias: latência de decisão, backlog, p95 humano e confirmação do cliente | CI/parcial | Tracing completo, custo por tarefa, alertas e margem em produção |
 | REA-13 | Portabilidade e APIs | Importação/exportação JSON das FAQs | CI/restrito | Portabilidade de agents, skills, tools e apps versionados |
 | REA-14 | Implantação repetível | Blueprints, migrações e CI | Sem prova real | Vercel autorizado + Neon staging + browser E2E |
 | REA-15 | Compra self-service (diferencial AGESOMA) | Checkout e webhooks Paddle | CI/parcial | Compra, renovação, cancelamento e estorno no Sandbox |
 | REA-16 | Evolução e versionamento | Git, versões de skill e conhecimento | Parcial | Releases independentes, A/B e rollback |
-| REA-17 | Serviços que executam trabalho | Componentes de workers, templates e simulações | Não comprovado no SKU | Uma ação externa idempotente com resultado verificado |
+| REA-17 | Serviços que executam trabalho | Feedback de resolução após resposta humana; ações externas ainda ausentes | CI/parcial | Uma ação externa idempotente, ProofTree e resultado verificado por sistema de origem |
 | REA-18 | Governança comercial | Oferta em documentação e gates | Parcial | Oferta, preço e limitações fiéis ao que funciona |
 
 **Conclusão da matriz:** fundação técnica não equivale a oferta equivalente. A documentação pode comparar princípios, mas não afirmar que o AGESOMA já entrega todos os recursos da Wonderful.
@@ -125,7 +125,7 @@ A AGESOMA deve ampliar esse fluxo para ações externas somente depois de valida
 | Motor conservador | packages/core/src/support-product.ts |
 | Skill e QA release | packages/core/src/support-release.ts |
 | Evidência de publicação | apps/web/lib/support-release.ts |
-| Banco e versionamento | packages/db/migrations/0024_selfserve_support.sql até 0027_support_skill_release_gate.sql |
+| Banco e versionamento | packages/db/migrations/0024_selfserve_support.sql até 0028_support_verified_outcomes.sql |
 | Chat hospedado | apps/web/app/support/[slug]/ |
 | API de atendimento | apps/web/app/api/support/ |
 | Pagamento | apps/web/app/api/billing/ |
@@ -162,7 +162,7 @@ Somente permitir atendimento público se TODAS as condições forem verdadeiras:
 - [ ] Webhook autêntico ativa acesso ao link público.
 - [ ] Visitante recebe resposta fiel à base aprovada.
 - [ ] Pergunta fora do escopo abre ticket; operador responde; cliente visualiza.
-- [ ] Painel exibe histórico e indicadores sem confundir atendimento com resolução final.
+- [ ] Painel exibe histórico, tempo de resposta humana e resultados confirmados pelos clientes, distinguindo-os de tickets apenas encerrados.
 
 ### E2E-B — Segurança, governança e cancelamento
 
@@ -173,6 +173,7 @@ Somente permitir atendimento público se TODAS as condições forem verdadeiras:
 - [ ] Webhook forjado, obsoleto ou repetido não concede acesso.
 - [ ] Cancelar, pausar ou ficar inadimplente revoga acesso conforme contrato.
 - [ ] Rate limiting, bot/WAF, retenção/LGPD, credenciais e logs passam na revisão.
+- [ ] Uma consulta de protocolo resolvido permite ao cliente confirmar ou negar a resolução uma única vez; o painel não inventa satisfação quando não há feedback.
 
 ### E2E-C — Capacidade equivalente à execução da Wonderful
 
@@ -191,12 +192,12 @@ Somente permitir atendimento público se TODAS as condições forem verdadeiras:
 
 | Prioridade | O que entregar | Evidência obrigatória |
 |---|---|---|
-| P0 | Neon staging + equipe Vercel autorizada | Ambiente real, migrações 0021–0027 e testes com duas empresas |
+| P0 | Neon staging + equipe Vercel autorizada | Ambiente real, migrações 0021–0028 e testes com duas empresas |
 | P0 | Paddle Sandbox comercial completo | Compra, assinatura, cancelamento, reativação, webhooks e estorno |
 | P0 | Privacidade, segurança e operação | LGPD, WAF, acessibilidade, SLA, rastreamento e rollback |
 | P1 | Um conector de CRM/ticketing | Registro empresarial realmente criado/atualizado |
 | P1 | Uma skill com execução de trabalho real | Evidência de efeito externo e autorização |
-| P1 | Observabilidade de execução | Custos, erros, latência, feedback e resultados verificáveis |
+| P1 | Completar observabilidade (base de métricas já instrumentada no Atendimento) | Custos, erros, latência ponta a ponta, feedback e resultados verificáveis |
 | P2 | Composição dinâmica de múltiplas skills | Versionamento, testes, A/B e rollback de runtime |
 | P2 | Expansão para novos agentes e canais | E2E, custo e proposta comercial de cada novo SKU |
 
