@@ -7,6 +7,7 @@ type Knowledge={id:string;question:string;answer:string;enabled:boolean};
 type OwnerData={
  workspace:{slug:string;display_name:string;owner_enabled:boolean}|null;
  knowledge:Knowledge[];subscriptionStatus:string;paid:boolean;live:boolean;canEdit:boolean;
+ release:{ready:boolean;reason:string};
  events:{total:number;answered:number;needsHuman:number;window:string};
 };
 type Answer={status:string;reply:string;reason:string;knowledgeId:string|null};
@@ -76,9 +77,9 @@ export default function SupportConsole(){
   {data?.workspace?<section style={card}>
    <h2 style={{fontSize:20,margin:0}}>1. Seu atendimento</h2>
    <p style={{margin:0}}>Empresa: <strong>{data.workspace.display_name}</strong></p>
-   <p style={{margin:0}}>Assinatura: <strong>{data.subscriptionStatus}</strong>. Canal público: <strong>{data.live?"ativo":"bloqueado"}</strong>.</p>
+   <p style={{margin:0}}>Assinatura: <strong>{data.subscriptionStatus}</strong>. Canal público: <strong>{data.live?"ativo":"bloqueado"}</strong> · Qualidade: <strong>{data.release?.ready?"validada":"aguardando testes"}</strong>.</p>
    {data.live?<a style={{textDecoration:"underline",overflowWrap:"anywhere"}} href={"/support/"+data.workspace.slug} target="_blank" rel="noopener noreferrer">Abrir link de atendimento →</a>
-    :<p style={{margin:0,color:"#64748b",fontSize:13}}>O link permanece indisponível até confirmação de pagamento, pelo menos uma resposta e publicação autorizada.</p>}
+    :<p style={{margin:0,color:"#64748b",fontSize:13}}>O link exige assinatura confirmada, respostas aprovadas, autorização do proprietário e avaliação de qualidade atualizada (pelo menos um caso de resposta correta e um de encaminhamento humano).</p>}
    <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
     {!data.paid?<button type="button" disabled={busy||!data.canEdit} onClick={()=>void buy()} style={{background:"#111827",color:"#fff",padding:13,borderRadius:8,border:0}}>Contratar assinatura segura</button>:null}
     {data.paid?<button type="button" disabled={busy||!data.canEdit} onClick={()=>void manageSubscription()} style={{background:"#fff",border:"1px solid #cbd5e1",padding:13,borderRadius:8}}>Gerenciar ou cancelar assinatura</button>:null}
