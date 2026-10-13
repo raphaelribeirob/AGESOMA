@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import {z} from "zod";
-import {canPublishSupport,mintSupportSession,supportSessionSecret,SUPPORT_COOKIE} from "@agesoma/core";
+import {canPublishSupport,mintSupportSession,verifySupportSession,supportSessionSecret,SUPPORT_COOKIE} from "@agesoma/core";
 import {sql,tenantSql} from "@agesoma/db";
 import {latestSupportRelease} from "../../../../lib/support-release";
 const bodySchema=z.object({slug:z.string().regex(/^s-[a-f0-9]{26}$/)});
@@ -22,6 +22,10 @@ export async function POST(req:Request){
  const release=await latestSupportRelease(directory.tenant_id,directory.workspace_id);
  if(!release.ready)return NextResponse.json({error:"quality_gate_not_ready"},{status:503});
  const response=NextResponse.json({ready:true},{headers:{"cache-control":"no-store"}});
+ // Reopening the same chat must not silently reset the per-visitor quota.
+ const stored=req.headers.get("cookie")?.split(";").map(v=>v.trim())
+  .find(v=>v.startsWith(SUPPORT_COOKIE+"="))?.slice(SUPPORT_COOKIE.length+1)??null;
+ if(verifySupportSession(parsed.data.slug,stored,secret))return response;
  response.cookies.set(SUPPORT_COOKIE,mintSupportSession(parsed.data.slug,secret),{
   httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"strict",
   path:"/api/support",maxAge:14*24*3600
