@@ -3,6 +3,8 @@ import {NextResponse} from "next/server";
 import {z} from "zod";
 import {answerSupportQuestion,canPublishSupport,verifySupportSession,supportSessionSecret,SUPPORT_COOKIE} from "@agesoma/core";
 import {sql,tenantSql,transaction} from "@agesoma/db";
+import {latestSupportRelease} from "../../../../lib/support-release";
+import {SUPPORT_SKILL_VERSION} from "@agesoma/core";
 
 const schema=z.object({slug:z.string().regex(/^s-[a-f0-9]{26}$/),message:z.string().trim().min(3).max(1000)});
 const failure=(error:string,status:number)=>NextResponse.json({error},{status});
@@ -32,6 +34,8 @@ export async function POST(req:Request){
  ]);
  if(!workspace||!canPublishSupport({paidStatus:entitlements[0]?.status??null,ownerEnabled:workspace.owner_enabled,faqCount:knowledge.length}))
   return failure("Atendimento indisponível.",404);
+ const release=await latestSupportRelease(tenantId,workspace.id);
+ if(!release.ready)return failure("Atendimento não aprovado na avaliação de qualidade.",503);
  const result=answerSupportQuestion(message,knowledge);
  const token=result.status==="needs_human"?randomBytes(32).toString("hex"):null;
  const tokenHash=token?createHash("sha256").update(token).digest("hex"):null;
@@ -52,8 +56,8 @@ export async function POST(req:Request){
    if(!visitorUsage)throw new QuotaExceeded();
 
    const [stored]=(await client.query<{id:string}>(
-    "insert into support_messages(tenant_id,workspace_id,question,answer,status,knowledge_id) values($1,$2,$3,$4,$5,$6) returning id",
-    [tenantId,workspace.id,message,result.reply,result.status,result.knowledgeId])).rows;
+    "insert into support_messages(tenant_id,workspace_id,question,answer,status,knowledge_id,skill_version) values($1,$2,$3,$4,$5,$6,$7) returning id",
+    [tenantId,workspace.id,message,result.reply,result.status,result.knowledgeId,SUPPORT_SKILL_VERSION])).rows;
    if(tokenHash){
     await client.query(
      "insert into support_tickets(tenant_id,workspace_id,message_id,lookup_hash) values($1,$2,$3,$4)",
