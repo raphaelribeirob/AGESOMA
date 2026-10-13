@@ -24,6 +24,9 @@ jobs:
       - name: Test core behavior
         run: npm test
 
+      - name: Enforce Wonderful REA traceability and published-scope safety
+        run: node --test tests/rea-acceptance.test.mjs
+
       - name: Enforce AGESOMA Operations purpose and compatibility
         run: |
           test -f docs/PRODUCT_SCOPE.md
