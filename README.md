@@ -25,6 +25,7 @@ and isolated PostgreSQL, not a real Paddle/Neon/Vercel end-to-end journey.
 It is not a general autonomous agent or Wonderful feature parity.
 
 - [Engenharia reversa — oferta, capacidades, E2E e critérios de aceite](engenharia%20reversa.md)
+- [Oferta Wonderful aplicada — promessa, AHA, preço e limites](docs/WONDERFUL_OFFER_APPLICATION.md)
 - [Reverse-engineered Wonderful capability matrix](docs/WONDERFUL_REVERSE_ENGINEERING.md)
 - [Self-service release gates](docs/SELFSERVE_RELEASE_GATE.md)
 - [PR #38](https://github.com/raphaelribeirob/AGESOMA/pull/38)
