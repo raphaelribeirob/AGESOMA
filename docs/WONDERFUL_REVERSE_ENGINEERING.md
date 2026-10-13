@@ -1,6 +1,6 @@
 # AGESOMA x Wonderful — Reverse Engineering Acceptance Matrix
 
-Updated: 2026-10-12. This matrix reviews **public behavior** of Wonderful
+Updated: 2026-10-13. This matrix reviews **public behavior** of Wonderful
 and observable AGESOMA source-code. Wonderful is proprietary; this is independent
 capability analysis, not an assertion of matching source code.
 
@@ -40,7 +40,7 @@ business outcome, payments, SLAs and safety.
 | W11 | Observability across tools, actions, cost | Support metrics endpoint: decision latency, operator p95, overdue tickets and voluntary customer feedback | CI / PARTIAL | Cost/margin, error tracing, production sampling and SLA alerts |
 | W12 | Customer deployment in existing environment | Blueprint and CI migrations | NO LIVE PROOF | Neon staging + approved Vercel account |
 | W13 | Platform exports and open interfaces | Owner-only FAQ JSON export/import, internal APIs | CI / narrow | Versioned agent/skill/tool/app export contract + real customer portability test |
-| W14 | Self-service purchase (AGESOMA distinction) | Paddle signed webhook, portal and owner console | CI / partial | Real sandbox checkout/cancel/refund + activation |
+| W14 | Self-service purchase (AGESOMA distinction) | Paddle webhook, owner portal, true synthetic AHA demo and localized price preview | CODE / CI partial | Provider-connected pricing and live browser E2E |
 
 ## Release-critical capability implemented here
 
@@ -85,3 +85,17 @@ Do not declare Wonderful parity or sell to paying customers based on CI alone.
 - Add one authorized external business integration and an independently
   verified business action before describing the first SKU as an autonomous
   operations agent.
+
+## Application of commercial offer and Agent Access — October 2026
+
+See [WONDERFUL_OFFER_APPLICATION.md](WONDERFUL_OFFER_APPLICATION.md).
+
+The AGESOMA demo calls the actual FAQ engine with fictional data; this
+is not evidence of a real customer outcome. The public price component
+calls Paddle.PricePreview when configured and never invents a price.
+
+Wonderful's Agent Access announcement of October 12, 2026 introduces
+permissioned personal-agent delegation. AGESOMA now exposes only
+/api/agent-access/capabilities for read-only product discovery.
+It does NOT implement agent identity, owner consent, authorization
+scopes or delegated execution. Those require further security review.
