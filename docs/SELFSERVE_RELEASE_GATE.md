@@ -25,6 +25,12 @@ compiled UI nor mock billing events prove a production deployment.
 - Owner-only JSON import/export of approved FAQ knowledge. Imported knowledge
   remains blocked from public use until the next passing QA regression.
 - Owner-defined labeled evaluations and historical regression run summaries.
+- Versioned owner-only support metrics: decision latency, open/overdue tickets,
+  operator-response p95, and separately recorded customer-confirmed outcome.
+  Metrics are not proof of customer satisfaction or cost margin on their own.
+- Public feedback is token-bound and one-time; only answered tickets may be rated.
+- Trusted runtime role requires explicit support_messages/support_tickets RLS
+  policies in migration 0028. Confirm deployment role is not superuser or BYPASSRLS.
 - PostgreSQL tenant-isolation, quota rollback, ticket resolution, and subscription
   lifecycle tests in CI; TypeScript compile and Next.js production build.
 
@@ -33,7 +39,7 @@ compiled UI nor mock billing events prove a production deployment.
 - [ ] Confirm the intended Vercel team/account; do not deploy into old R3 team or
       test project without explicit ownership validation.
 - [ ] Provision a dedicated AGESOMA Neon project/staging database and separately
-      provision production secrets; migrations 0021 through 0027 applied in order.
+      provision production secrets; migrations 0021 through 0028 applied in order.
 - [ ] Run two-company real Better Auth browser E2E with RLS, owner vs member,
       session expiration, email/password, ticket access and public routes.
 - [ ] Configure PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_SUPPORT_PRICE_ID,
@@ -44,7 +50,7 @@ compiled UI nor mock billing events prove a production deployment.
       scheduled cancellation, immediate cancellation, pause, restore with a new
       subscription, price change, customer portal link and webhook retries/out-
       of-order delivery. Validate production-price ID, currency, taxes and terms.
-- [ ] Verify the 0024–0027 migrations against the **production-like restricted
+- [ ] Verify the 0024–0028 migrations against the **production-like restricted
       DB role** and audited privileges; the staging CI uses admin Postgres.
 - [ ] Add production bot/WAF/DDOS mitigation, CSRF review, origin/proxy
       configuration, load testing, secrets rotation and request logging hygiene.
@@ -52,7 +58,7 @@ compiled UI nor mock billing events prove a production deployment.
       for user messages and ticket response tokens, including LGPD needs.
 - [ ] Test real support workflows with at least 3 consenting businesses, actual
       unanswered messages, human operator response, customer retrieval and SLA.
-- [ ] Add live error tracing, latency alerting, resolution feedback, abuse/cost
+- [ ] Add live error tracing, full-path latency alerting, resolution feedback, abuse/cost
       dashboards, and an externally reviewed QA regression set.
 - [ ] Audit accessible/mobile UX, Portuguese copy, checkout price and support
       terms; verify no implication that WhatsApp/email/voice bots are live.
