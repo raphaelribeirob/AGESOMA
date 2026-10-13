@@ -39,7 +39,7 @@ business outcome, payments, SLAs and safety.
 | W10 | Omnichannel agent interactions | Hosted web-chat only | PARTIAL | WhatsApp, email or voice only when truly supported |
 | W11 | Observability across tools, actions, cost | Limited counters, QA runs, ticket history | PARTIAL | Real outcome, cost, p95 latency, error feedback |
 | W12 | Customer deployment in existing environment | Blueprint and CI migrations | NO LIVE PROOF | Neon staging + approved Vercel account |
-| W13 | Platform exports and open interfaces | Partial internal API routes | MISSING | Versioned tenant skill/app/tool export contract |
+| W13 | Platform exports and open interfaces | Owner-only FAQ JSON export/import, internal APIs | CI / narrow | Versioned agent/skill/tool/app export contract + real customer portability test |
 | W14 | Self-service purchase (AGESOMA distinction) | Paddle signed webhook, portal and owner console | CI / partial | Real sandbox checkout/cancel/refund + activation |
 
 ## Release-critical capability implemented here
@@ -61,6 +61,7 @@ Key evidence paths:
 - apps/web/lib/support-release.ts
 - apps/web/app/api/support/evals/route.ts
 - apps/web/app/api/support/public/route.ts
+- apps/web/app/api/support/portability/route.ts
 - tests/support-skill-release-db.test.mjs
 - packages/core/test/support-release.test.mjs
 
