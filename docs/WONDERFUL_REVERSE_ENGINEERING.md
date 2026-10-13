@@ -35,9 +35,9 @@ business outcome, payments, SLAs and safety.
 | W06 | End-to-end work resolution | Chat -> unanswered case -> human reply | CI / partial | Complete one business action automatically |
 | W07 | Enforced policy and governance | RLS, Sentinel, ProofTree scaffolds, signed sessions | PARTIAL | Independent approval on external tool effects |
 | W08 | Reusable quality evaluation | QA cases, versioned skill, content revision gate | CI / narrow | Live continual checks, alarms and drift review |
-| W09 | Verified evidence-backed business outcomes | ProofTree core and recovery fixture | NOT FULLY WIRED | Trusted outcome from connected provider |
+| W09 | Verified evidence-backed business outcomes | Customer-confirmed manual support outcome, separate from operator closure; ProofTree still separate | CI / PARTIAL | Independently proven external outcome in live CRM/ERP |
 | W10 | Omnichannel agent interactions | Hosted web-chat only | PARTIAL | WhatsApp, email or voice only when truly supported |
-| W11 | Observability across tools, actions, cost | Limited counters, QA runs, ticket history | PARTIAL | Real outcome, cost, p95 latency, error feedback |
+| W11 | Observability across tools, actions, cost | Support metrics endpoint: decision latency, operator p95, overdue tickets and voluntary customer feedback | CI / PARTIAL | Cost/margin, error tracing, production sampling and SLA alerts |
 | W12 | Customer deployment in existing environment | Blueprint and CI migrations | NO LIVE PROOF | Neon staging + approved Vercel account |
 | W13 | Platform exports and open interfaces | Owner-only FAQ JSON export/import, internal APIs | CI / narrow | Versioned agent/skill/tool/app export contract + real customer portability test |
 | W14 | Self-service purchase (AGESOMA distinction) | Paddle signed webhook, portal and owner console | CI / partial | Real sandbox checkout/cancel/refund + activation |
@@ -79,6 +79,9 @@ Do not declare Wonderful parity or sell to paying customers based on CI alone.
   real customer feedback and rollback authorization.
 - End-to-end proof: signup -> setup -> knowledge -> QA -> checkout ->
   entitlement -> inbound support -> human escalation -> reply -> cancellation.
+- REA-12/17 interim implementation: migration 0028, support customer feedback,
+  decision latency and an owner-only 30-day metrics dashboard. Customer feedback
+  is voluntary and NOT independent proof of an external automated business action.
 - Add one authorized external business integration and an independently
   verified business action before describing the first SKU as an autonomous
   operations agent.
