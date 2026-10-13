@@ -14,7 +14,14 @@ export const COMPANY_ENTITY_TYPES = [
   "evidence",
   "outcome",
   "system",
-  "resource"
+  "resource",
+  "supplier",
+  "contract",
+  "freight_invoice",
+  "shipment",
+  "lane",
+  "rate_table",
+  "policy"
 ] as const;
 
 export type CompanyEntityType = (typeof COMPANY_ENTITY_TYPES)[number];

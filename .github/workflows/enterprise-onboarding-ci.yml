@@ -1,0 +1,108 @@
+name: AGESOMA Enterprise DB Integration
+
+on:
+  push:
+    branches: [feat/enterprise-deployment-pilot-20261012]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/enterprise-deployment-db.test.mjs'
+      - 'packages/db/migrations/0023_enterprise_deployments.sql'
+      - 'packages/db/migrations/0024_selfserve_support.sql'
+      - 'packages/db/migrations/0025_support_operations.sql'
+      - 'packages/db/migrations/0026_support_evals.sql'
+      - 'packages/db/migrations/0027_support_skill_release_gate.sql'
+      - 'packages/db/migrations/0028_support_verified_outcomes.sql'
+      - 'tests/support-outcomes-db.test.mjs'
+      - 'apps/web/app/api/support/metrics/**'
+      - 'apps/web/app/api/support/feedback/**'
+      - 'tests/selfserve-support-db.test.mjs'
+      - 'tests/support-operations-db.test.mjs'
+      - 'tests/support-skill-release-db.test.mjs'
+      - 'tests/support-knowledge-portability-db.test.mjs'
+      - 'apps/web/app/api/support/portability/**'
+      - 'packages/core/src/support-release.ts'
+      - 'packages/core/test/support-release.test.mjs'
+      - 'apps/web/lib/support-release.ts'
+      - 'tests/paddle-lifecycle-db.test.mjs'
+      - 'packages/core/src/support-product.ts'
+      - 'packages/core/src/support-session.ts'
+      - 'packages/core/test/support-product.test.mjs'
+      - 'packages/core/test/support-session.test.mjs'
+      - 'packages/core/src/paddle-billing.ts'
+      - 'packages/core/test/paddle-billing.test.mjs'
+      - 'apps/web/app/api/support/**'
+      - 'apps/web/app/api/billing/**'
+      - 'apps/web/app/console/support/**'
+      - 'packages/core/src/enterprise-deployment.ts'
+      - 'packages/core/test/enterprise-deployment.test.mjs'
+      - 'apps/web/app/api/enterprise-deployments/route.ts'
+      - 'apps/web/app/operations/onboarding/**'
+      - '.github/workflows/enterprise-onboarding-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agesoma_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agesoma_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agesoma_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - name: Prepare isolated schema and role
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create role authenticated nologin;
+          create schema agesoma_p0;
+          create table agesoma_p0.tenants (
+            id uuid primary key default gen_random_uuid(),
+            name text not null
+          );
+          grant usage on schema agesoma_p0 to authenticated;
+          SQL
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0023_enterprise_deployments.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0024_selfserve_support.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0025_support_operations.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0026_support_evals.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0027_support_skill_release_gate.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0028_support_verified_outcomes.sql
+      - name: Test draft persistence, replay and RLS in real PostgreSQL
+        run: npx tsx --test tests/enterprise-deployment-db.test.mjs
+      - name: Test self-serve tenant and entitlement isolation in PostgreSQL
+        run: npx tsx --test tests/selfserve-support-db.test.mjs
+      - name: Test self-serve verified billing and bounded knowledge agent
+        run: npx tsx --test packages/core/test/support-product.test.mjs packages/core/test/paddle-billing.test.mjs
+      - name: Test operational tickets, quotas and evaluations in real PostgreSQL
+        run: npx tsx --test tests/support-operations-db.test.mjs
+      - name: Test signed visitor session
+        run: npx tsx --test packages/core/test/support-session.test.mjs
+      - name: Test production QA skill release gate with PostgreSQL
+        run: npx tsx --test tests/support-skill-release-db.test.mjs packages/core/test/support-release.test.mjs
+      - name: Test portable tenant-owned knowledge import and invalidation
+        run: npx tsx --test tests/support-knowledge-portability-db.test.mjs
+      - name: Test independently confirmed support results and isolation
+        run: npx tsx --test tests/support-outcomes-db.test.mjs
+      - name: Test webhook lifecycle using actual PostgreSQL upsert
+        run: npx tsx --test tests/paddle-lifecycle-db.test.mjs
+      - name: Test end-to-end domain simulation
+        run: npx tsx --test packages/core/test/enterprise-deployment.test.mjs

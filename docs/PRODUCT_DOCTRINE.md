@@ -1,6 +1,10 @@
 # AGESOMA
 
-AGESOMA is a **personal executive assistant**.
+**Current product contract:** AGESOMA is an AI-native business operations product sold B2B through a self-service buying experience. Initial SKU: AGESOMA Atendimento (approved FAQ, hosted inbound messages, accountable human tickets and verified subscription billing). This is a narrow product, not parity with Wonderful. The personal-assistant doctrine below is **legacy compatibility**, not current commercial positioning.
+
+## Legacy personal-assistant specification (noncanonical)
+
+AGESOMA was built initially as a **personal executive assistant**.
 
 Its purpose is to remove coordination work from a person's life: remember useful context, understand what needs to happen, prepare and execute authorized digital work, and involve the user only when a decision or permission is genuinely required.
 

@@ -6,123 +6,108 @@
 
 [![AGESOMA CI](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml/badge.svg)](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml)
 
-**Personal executive assistant for delegated digital work.**
+**AI-native business operations. Services on the outside; software on the inside.**
 
-AGESOMA is being built around one simple idea: a useful assistant should not merely answer questions. It should remember relevant context, organize the work behind an outcome, execute what is authorized and return when a decision or completed result matters.
+AGESOMA is being built to take responsibility for repeatable, measurable business operations. The customer contracts for an outcome and a service-level commitment — not a seat, prompt, chatbot or agent dashboard.
 
-> Product principle: the user delegates the outcome; AGESOMA owns the coordination while the user retains authority.
+> The client delegates a bounded business process. AGESOMA coordinates its execution, obtains scoped authorization for consequential actions, verifies evidence and reports results. The client retains final authority where required.
 
-## Product model
+## Current self-service product: AGESOMA Atendimento
 
-```text
-User / desired outcome
-        ↓
-AGESOMA understands personal context
-        ↓
-AGESOMA plans and selects capabilities
-        ↓
-Authorized digital execution
-        ↓
-Policy + scoped user authority
-        ↓
-Completion verification
-        ↓
-AGESOMA reports what matters
-        ↓
-Memory learns from corrections and outcomes
-```
+The first self-service B2B SKU (sold with a consumer-simple onboarding and checkout)
+is **AGESOMA Atendimento**. Business owners configure approved FAQ knowledge, test
+their responses, subscribe through Paddle, share a hosted support URL and handle
+uncertain cases in a human inbox. New or changed knowledge must pass a versioned
+answer + abstain regression test before the public chat can become available.
 
-## What the product is for
+The product is **in draft, not deployed for customers**. CI validates fixtures
+and isolated PostgreSQL, not a real Paddle/Neon/Vercel end-to-end journey.
+It is not a general autonomous agent or Wonderful feature parity.
 
-AGESOMA is intended to help with work that normally remains fragmented across tools and mental overhead:
+- [Engenharia reversa — oferta, capacidades, E2E e critérios de aceite](engenharia%20reversa.md)
+- [Oferta Wonderful aplicada — promessa, AHA, preço e limites](docs/WONDERFUL_OFFER_APPLICATION.md)
+- [Reverse-engineered Wonderful capability matrix](docs/WONDERFUL_REVERSE_ENGINEERING.md)
+- [Self-service release gates](docs/SELFSERVE_RELEASE_GATE.md)
+- [PR #38](https://github.com/raphaelribeirob/AGESOMA/pull/38)
 
-- calendar and commitments;
-- email and communication;
-- research and decision preparation;
-- documents and knowledge work;
-- personal administration;
-- recurring routines and monitoring;
-- connected digital actions that can be safely delegated.
+## Assisted enterprise pilot: freight audit and financial recovery
 
-The canonical experience is one conversation. Internal models, agents, runtimes, routing and policy systems are implementation details.
+The initial wedge is freight overcharge and contract-leakage audit for Brazilian companies with recurring logistics expenditure.
 
-## P0 thesis
+1. Import freight contracts, rate tables, CT-e documents and invoices from approved sources.
+2. Reconcile the billed charge against the contractual charge and explain each variance.
+3. Produce an evidence-backed recovery case and request client approval before any external claim.
+4. Submit only authorized claims through an explicitly integrated channel; track response and recovery.
+5. Charge a contracted success fee **only on verified recovered cash**; optionally sell ongoing leakage prevention.
 
-The first product does not need dozens of integrations. It needs a few loops that work together reliably:
+The first implementation is a **read-only recovery assessment and tests**, not a complete live recovery service. Verified source ingestion, settlement reconciliation, enterprise onboarding, contracts, claims dispatch and SLA reporting remain to be built.
 
-1. remember useful context;
-2. understand calendar-related work;
-3. understand communication-related work;
-4. research, prepare and execute digital tasks with explicit authorization when needed.
+See [Operations thesis](docs/OPERATIONS_THESIS.md) and [Operations release gate](docs/OPERATIONS_RELEASE_GATE.md).
 
-The target interaction is not “chat with AI.” It is “give this to AGESOMA.”
+Business Understanding Engine P0: [ontology, source-traceable facts and tenant-scoped context](docs/BUSINESS_UNDERSTANDING_ENGINE.md). This is a staged implementation, not a live autonomous service.
 
-## Technical architecture
+## Business model
 
-| Layer | Responsibility |
+- **Phase 1 — Recovery:** success fee for objectively verified, client-approved recoveries.
+- **Phase 2 — Prevention:** contracted monthly operations service preventing repeat leakage.
+- **Phase 3 — Finance operations:** execute bounded accounts-payable, reconciliation and collection work with SLAs.
+- **Phase 4 — Adjacent operations:** contracts, procurement and compliance only after profitable repeatability.
+
+The client-facing promise is a managed outcome, not an AI agent subscription. A human accountable operator remains available for exceptions. Market size or a trillion-dollar outcome is a hypothesis, not a product guarantee.
+
+## Canonical operational flow
+
+    Client contract + bounded service scope
+                    |
+    Trusted data import and reconciliation
+                    |
+    Documented discrepancy and evidence
+                    |
+    Independent validation + scoped client approval
+                    |
+    Authorized execution (where integrated)
+                    |
+    Bank / client settlement reconciliation
+                    |
+    Verified outcome, SLA and unit-economics report
+
+**No inferred authority, no automated payments, no success fees based only on estimates.**
+
+## Architecture retained from the existing repository
+
+| Layer | Function |
 |---|---|
-| **Next.js + React + TypeScript** | User-facing conversation and authenticated API surface |
-| **PostgreSQL + pgvector** | Operational truth, structured state, registry and vector context |
-| **Graphiti + Neo4j** | Temporal context and memory experiments |
-| **pg-boss** | Durable background jobs and execution coordination |
-| **HERMES** | Isolated persistent execution runtime with no direct internet/model secrets |
-| **Persistent Workers** | Hidden specialist identities with worker-scoped sessions, browser profiles, memory, files, routines and bounded handoffs |
-| **Event-driven Routines** | Cadence, authenticated webhook and connector-event triggers feeding a durable R0 event inbox |
-| **Muse-style Product UI** | One user-facing AGESOMA with persistent Chat, Goals, Ideas, Artifacts, Activity, Memory, Permissions and Side Chats |
-| **Model Gateway** | Per-tenant model inference boundary; real model credentials stay outside HERMES |
-| **Sentinel** | Independent policy and authorization boundary |
-| **Work Cells** | Isolated execution environments |
-| **Work Cell Control Gateway** | Single narrow control-plane ingress; the shared worker never joins tenant-private runtime/credential networks |
-| **Outcome verification** | Separates execution claims from evidence-backed completion |
-| **Usage Metering** | Tenant/worker/task cost ledger with pre-execution reservations and monthly hard ceilings |
+| Next.js / React / TypeScript | Client experience and authenticated API surface |
+| PostgreSQL + pgvector | Tenant-isolated business state and context |
+| Graphiti / Neo4j | Optional temporal memory experiments |
+| pg-boss | Durable job dispatch and recovery |
+| HERMES, persistent workers, Work Cells | Isolated execution infrastructure |
+| Sentinel | Independent authorization and policy boundary |
+| Model Gateway | Scoped model access and metering |
+| Outcome verification | Evidence-backed business outcomes |
+| Operations recovery | Pure freight recovery assessment; no external actions |
 
-HERMES, Sentinel and Work Cells are internal implementation concepts and must not appear in normal user-facing product copy.
+Internal infrastructure names are not customer-facing product features.
 
-## Current migration status
+## Personal-assistant compatibility
 
-AGESOMA originated as an AI operating system for small businesses. The repository contains useful execution, authorization, durable-task and verification primitives from that architecture.
+The previous migration toward an AGESOMA personal executive assistant is preserved as **historical code and a potential separate product surface**. It is **not the primary AGESOMA market positioning**. Do not erase the existing UI or worker safety mechanisms during this pivot.
 
-The product direction has changed to a personal executive assistant.
+The current app still includes personal-first interfaces and routing. Product/architecture positioning is updated first; B2B workflow wiring and a customer-ready UI are gated work, not completed claims. See [migration history](docs/PERSONAL_ASSISTANT_MIGRATION.md).
 
-The current migration therefore follows this rule:
+## Repository map
 
-- retain reusable infrastructure;
-- remove business-specific semantics from the product surface;
-- migrate routing, memory and data models incrementally;
-- do not present legacy `business.*` action names or company-oriented schema concepts to users.
+- [docs/PRODUCT_SCOPE.md](docs/PRODUCT_SCOPE.md) — canonical product direction
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — B2B operating and security design
+- [docs/OPERATIONS_THESIS.md](docs/OPERATIONS_THESIS.md) — ICP, economics, phased execution
+- [docs/OPERATIONS_RELEASE_GATE.md](docs/OPERATIONS_RELEASE_GATE.md) — verifiable go/no-go criteria
+- [packages/core/src/operations-recovery.ts](packages/core/src/operations-recovery.ts) — fail-closed recovery evaluation
+- [packages/core/test/operations-recovery.test.mjs](packages/core/test/operations-recovery.test.mjs) — recovery eligibility tests
 
-See [`docs/PERSONAL_ASSISTANT_MIGRATION.md`](docs/PERSONAL_ASSISTANT_MIGRATION.md).
+## Readiness
 
-## Repository tour
+**Pre-production.** The repository contains reusable routing, authorization, worker and memory primitives, but does **not** yet operate a client's finance or logistics department end to end. Release requires tenant isolation, evidence provenance, audited permissions, real document integrations, settlement verification, service contracts, live-pilot metrics and green CI.
 
-- [`apps/web`](apps/web) — AGESOMA conversation and onboarding.
-- [`apps/web/app/api/agesoma/route.ts`](apps/web/app/api/agesoma/route.ts) — conversational orchestration surface.
-- [`packages/core/src/request-router.ts`](packages/core/src/request-router.ts) — request and capability routing.
-- [`packages/core/src/agent-registry.ts`](packages/core/src/agent-registry.ts) — internal capability registry during migration.
-- [`packages/core/src/sentinel.ts`](packages/core/src/sentinel.ts) — authorization logic.
-- [`packages/core/src/outcomes.ts`](packages/core/src/outcomes.ts) — completion/outcome verification model.
-- [`services/worker`](services/worker) — durable coordination and execution adapter.
-- [`deploy/production`](deploy/production) — production-oriented execution and isolation configuration.
-- [`docs`](docs) — product, architecture, safety and release documentation.
+ProofTree verification: [independent, risk-adaptive evidence gate](docs/PROOFTREE.md). Domain recovery gating is staged; live verifier scheduling remains a release prerequisite.
 
-## Current implementation status
-
-The repository is **pre-production**. The conversation shell, routing, authorization, durable job dispatch, database state and execution adapters already exist, but the personal-assistant migration is incomplete.
-
-The remaining work is primarily:
-
-- personal-context schema and memory semantics;
-- personal capability routing instead of business domains;
-- calendar/email connector contracts;
-- user-controlled memory inspection and forgetting;
-- end-to-end execution verification;
-- connector OAuth/self-service account binding;
-- remaining P1 trust-boundary work such as prompt-injection classifiers and browser subagent hardening.
-
-## Product doctrine
-
-**One assistant outside. Many capabilities inside. User authority always.**
-
----
-
-**AGESOMA — Your life, handled.**
+**AGESOMA — Business outcomes, handled.**

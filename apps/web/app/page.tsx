@@ -85,7 +85,7 @@ async function loadInitialState(tenantId: string) {
 
 export default async function Home() {
   const authenticated = await resolveAuthenticatedWorkspace();
-  if (!authenticated) redirect("/sign-in");
+  if (!authenticated) redirect("/start");
 
   const state = await loadInitialState(authenticated.tenantId);
   const active = Number(state.summary.active_work);
