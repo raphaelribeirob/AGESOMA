@@ -2,6 +2,7 @@
 import Link from "next/link";
 import SupportInbox from "./support-inbox";
 import SupportEvals from "./support-evals";
+import SupportPortability from "./support-portability";
 import {FormEvent,useEffect,useState} from "react";
 type Knowledge={id:string;question:string;answer:string;enabled:boolean};
 type OwnerData={
@@ -116,5 +117,6 @@ export default function SupportConsole(){
   </section>:null}
   {data?.workspace&&data.canEdit?<SupportInbox/>:null}
   {data?.workspace&&data.canEdit?<SupportEvals knowledge={data.knowledge} onUpdate={()=>void load().catch(e=>setError(e.message))}/>:null}
+  {data?.workspace&&data.canEdit?<SupportPortability onUpdate={()=>void load().catch(e=>setError(e.message))}/>:null}
  </main>;
 }
