@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { sql, tenantSql } from "@agesoma/db";
 import { canPublishSupport } from "@agesoma/core";
 import SupportChat from "./support-chat";
+import {latestSupportRelease} from "../../../lib/support-release";
 export const dynamic="force-dynamic";
 type Directory={tenant_id:string;workspace_id:string};
 export default async function PublicSupportPage({params}:{params:Promise<{slug:string}>}){
@@ -18,5 +19,7 @@ export default async function PublicSupportPage({params}:{params:Promise<{slug:s
    "select count(*)::int as count from support_knowledge where tenant_id=$1 and workspace_id=$2 and enabled=true",[directory.tenant_id,directory.workspace_id])
  ]);
  if(!workspace||!canPublishSupport({paidStatus:entitlements[0]?.status??null,ownerEnabled:workspace.owner_enabled,faqCount:Number(faqCount?.count??0)}))notFound();
+ const release=await latestSupportRelease(directory.tenant_id,directory.workspace_id);
+ if(!release.ready)notFound();
  return <SupportChat slug={slug} name={workspace.display_name} greeting={workspace.greeting}/>;
 }
