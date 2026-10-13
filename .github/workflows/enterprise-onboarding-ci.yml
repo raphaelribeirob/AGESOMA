@@ -11,8 +11,13 @@ on:
       - 'packages/db/migrations/0024_selfserve_support.sql'
       - 'packages/db/migrations/0025_support_operations.sql'
       - 'packages/db/migrations/0026_support_evals.sql'
+      - 'packages/db/migrations/0027_support_skill_release_gate.sql'
       - 'tests/selfserve-support-db.test.mjs'
       - 'tests/support-operations-db.test.mjs'
+      - 'tests/support-skill-release-db.test.mjs'
+      - 'packages/core/src/support-release.ts'
+      - 'packages/core/test/support-release.test.mjs'
+      - 'apps/web/lib/support-release.ts'
       - 'tests/paddle-lifecycle-db.test.mjs'
       - 'packages/core/src/support-product.ts'
       - 'packages/core/src/support-session.ts'
@@ -73,6 +78,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0024_selfserve_support.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0025_support_operations.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0026_support_evals.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f packages/db/migrations/0027_support_skill_release_gate.sql
       - name: Test draft persistence, replay and RLS in real PostgreSQL
         run: npx tsx --test tests/enterprise-deployment-db.test.mjs
       - name: Test self-serve tenant and entitlement isolation in PostgreSQL
@@ -83,6 +89,8 @@ jobs:
         run: npx tsx --test tests/support-operations-db.test.mjs
       - name: Test signed visitor session
         run: npx tsx --test packages/core/test/support-session.test.mjs
+      - name: Test production QA skill release gate with PostgreSQL
+        run: npx tsx --test tests/support-skill-release-db.test.mjs packages/core/test/support-release.test.mjs
       - name: Test webhook lifecycle using actual PostgreSQL upsert
         run: npx tsx --test tests/paddle-lifecycle-db.test.mjs
       - name: Test end-to-end domain simulation
