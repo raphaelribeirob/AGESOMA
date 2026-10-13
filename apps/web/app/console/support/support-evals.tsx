@@ -2,7 +2,7 @@
 import {FormEvent,useEffect,useState} from "react";
 type Case={id:string;question:string;expected_status:"answered"|"needs_human";expected_knowledge_id:string|null};
 type Run={id:string;cases_count:number;passed_count:number;created_at:string};
-export default function SupportEvals({knowledge}:{knowledge:{id:string;question:string;enabled:boolean}[]}){
+export default function SupportEvals({knowledge,onUpdate}:{knowledge:{id:string;question:string;enabled:boolean}[];onUpdate?:()=>void}){
  const [cases,setCases]=useState<Case[]>([]),[runs,setRuns]=useState<Run[]>([]);
  const [release,setRelease]=useState<{ready:boolean;reason:string}|null>(null);
  const [question,setQuestion]=useState(""),[expected,setExpected]=useState<"answered"|"needs_human">("needs_human"),[source,setSource]=useState("");
@@ -19,7 +19,7 @@ export default function SupportEvals({knowledge}:{knowledge:{id:string;question:
    const r=await fetch("/api/support/evals",{method:"POST",headers:{"content-type":"application/json"},
     body:JSON.stringify({action:"add",question,expectedStatus:expected,knowledgeId:expected==="answered"?source:null})});
    const b=await r.json();if(!r.ok)throw Error(b.error??"Erro na avaliação");
-   setQuestion("");await load();setNotice("Caso adicionado.");
+   setQuestion("");await load();onUpdate?.();setNotice("Caso adicionado.");
   }catch(e){setError(e instanceof Error?e.message:"Erro.");}finally{setBusy(false);}
  }
  async function run(){
@@ -27,7 +27,7 @@ export default function SupportEvals({knowledge}:{knowledge:{id:string;question:
   try{
    const r=await fetch("/api/support/evals",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"run"})});
    const b=await r.json();if(!r.ok)throw Error(b.error??"Erro ao executar");
-   await load();setNotice("Resultado: "+b.passed+"/"+b.total+" casos aprovados.");
+   await load();onUpdate?.();setNotice("Resultado: "+b.passed+"/"+b.total+" casos aprovados.");
   }catch(e){setError(e instanceof Error?e.message:"Erro.");}finally{setBusy(false);}
  }
  return <section aria-label="Avaliações de qualidade" style={{padding:24,border:"1px solid #e2e8f0",borderRadius:14,background:"#fff",display:"grid",gap:13}}>
