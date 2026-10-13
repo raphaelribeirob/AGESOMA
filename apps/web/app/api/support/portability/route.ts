@@ -1,6 +1,5 @@
 import {NextResponse} from "next/server";
 import {z} from "zod";
-import {SUPPORT_SKILL_VERSION} from "@agesoma/core";
 import {tenantSql,transaction} from "@agesoma/db";
 import {resolveAuthenticatedWorkspace} from "../../../../lib/auth-workspace";
 
@@ -26,9 +25,7 @@ export async function GET(){
   [actor.tenantId,workspace.id]);
  return new NextResponse(JSON.stringify({
   format:"agesoma.support.knowledge.v1",
-  skill:SUPPORT_SKILL_VERSION,
-  entries,
-  notice:"A exportação contém apenas conhecimento aprovado. Não inclui clientes, tickets, mensagens, pagamentos ou chaves de API."
+  entries
  },null,2),{
   status:200,
   headers:{"content-type":"application/json; charset=utf-8",
