@@ -4,6 +4,7 @@ import { z } from "zod";
 import { isSupportEntitled } from "@agesoma/core";
 import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../../../../lib/auth-workspace";
+import {latestSupportRelease} from "../../../../lib/support-release";
 
 const create = z.object({ action:z.literal("create"), name:z.string().trim().min(2).max(100) });
 const add = z.object({ action:z.literal("add_knowledge"), question:z.string().trim().min(5).max(300), answer:z.string().trim().min(5).max(2000) });
@@ -27,12 +28,14 @@ export async function GET() {
   ]);
   const workspace=workspaces[0]??null;
   const entitlement=entitlements[0]??null;
+  const release=workspace?await latestSupportRelease(actor.tenantId,workspace.id):{ready:false,reason:"workspace_missing"};
   return NextResponse.json({
     workspace,
     knowledge,
     subscriptionStatus:entitlement?.status??"not_subscribed",
+    release,
     paid:isSupportEntitled(entitlement?.status),
-    live:Boolean(workspace?.owner_enabled && isSupportEntitled(entitlement?.status) && knowledge.some(k=>k.enabled)),
+    live:Boolean(workspace?.owner_enabled && isSupportEntitled(entitlement?.status) && knowledge.some(k=>k.enabled) && release.ready),
     events:{total:history.length,answered:history.filter(e=>e.status==="answered").length,needsHuman:history.filter(e=>e.status==="needs_human").length,window:"last_50_events"},
     canEdit:isOwner(actor.role),
     note:"Resultados limitados aos últimos 50 eventos; não são métricas financeiras nem SLA contratual."
