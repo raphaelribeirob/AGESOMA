@@ -11,7 +11,11 @@ export async function POST(req:Request){
   return NextResponse.json({error:"JSON obrigatório."},{status:415});
  if(Number(req.headers.get("content-length")??0)>2048)
   return NextResponse.json({error:"Mensagem muito longa."},{status:413});
- const parsed=schema.safeParse(await req.json().catch(()=>null));
+ const raw=await req.text();
+ if(raw.length>2048)return NextResponse.json({error:"Mensagem muito longa."},{status:413});
+ let json:unknown;
+ try{json=JSON.parse(raw);}catch{return NextResponse.json({error:"JSON inválido."},{status:400});}
+ const parsed=schema.safeParse(json);
  if(!parsed.success)return NextResponse.json({error:"Pergunta inválida."},{status:400});
  return NextResponse.json(demonstrateSupport(parsed.data.message),{
   headers:{"cache-control":"no-store","x-robots-tag":"noindex"}
