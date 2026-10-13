@@ -6,11 +6,13 @@ This document applies to all software-building agents working on this repository
 
 1. [Engenharia reversa](engenharia%20reversa.md): REA-01 through REA-18,
    user journeys, architecture and acceptance.
-2. [Wonderful comparison](docs/WONDERFUL_REVERSE_ENGINEERING.md):
+2. [Offer contract](docs/WONDERFUL_OFFER_APPLICATION.md):
+   honest promise, synthetic demo, provider pricing and agent-access boundary.
+3. [Wonderful comparison](docs/WONDERFUL_REVERSE_ENGINEERING.md):
    public benchmark, actual code evidence and unproven features.
-3. [Release gates](docs/SELFSERVE_RELEASE_GATE.md): prerequisites for selling
+4. [Release gates](docs/SELFSERVE_RELEASE_GATE.md): prerequisites for selling
    to real businesses, including provider-backed end-to-end validation.
-4. [Product scope](docs/PRODUCT_SCOPE.md): real current product boundary.
+5. [Product scope](docs/PRODUCT_SCOPE.md): real current product boundary.
 
 If documentation conflicts with observed code or verified provider behavior,
 correct it and record the evidence. Do not invent parity or readiness.
