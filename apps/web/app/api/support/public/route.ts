@@ -37,7 +37,9 @@ export async function POST(req:Request){
   return failure("Atendimento indisponível.",404);
  const release=await latestSupportRelease(tenantId,workspace.id);
  if(!release.ready)return failure("Atendimento não aprovado na avaliação de qualidade.",503);
+ const decisionStarted=performance.now();
  const result=answerSupportQuestion(message,knowledge);
+ const decisionLatencyMs=Math.max(0,Math.min(600000,Math.round(performance.now()-decisionStarted)));
  const token=result.status==="needs_human"?randomBytes(32).toString("hex"):null;
  const tokenHash=token?createHash("sha256").update(token).digest("hex"):null;
  try{
@@ -74,8 +76,8 @@ export async function POST(req:Request){
    if(!visitorUsage)throw new QuotaExceeded();
 
    const [stored]=(await client.query<{id:string}>(
-    "insert into support_messages(tenant_id,workspace_id,question,answer,status,knowledge_id,skill_version) values($1,$2,$3,$4,$5,$6,$7) returning id",
-    [tenantId,workspace.id,message,result.reply,result.status,result.knowledgeId,SUPPORT_SKILL_VERSION])).rows;
+    "insert into support_messages(tenant_id,workspace_id,question,answer,status,knowledge_id,skill_version,decision_latency_ms,decision_reason) values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id",
+    [tenantId,workspace.id,message,result.reply,result.status,result.knowledgeId,SUPPORT_SKILL_VERSION,decisionLatencyMs,result.reason])).rows;
    if(tokenHash){
     await client.query(
      "insert into support_tickets(tenant_id,workspace_id,message_id,lookup_hash) values($1,$2,$3,$4)",
