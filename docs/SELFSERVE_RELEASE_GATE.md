@@ -13,12 +13,17 @@ compiled UI nor mock billing events prove a production deployment.
   claim.
 - Random signed, HttpOnly, SameSite visitor sessions and atomic max-12/day per
   visitor, 40/hour per workspace and 200/day total quotas. The public session
-  endpoint permits new sessions, so rate limits **do not stop distributed abuse**.
+  endpoint reuses an existing valid signed identity. Clearing cookies or distributing
+  requests can still evade visitor quotas; rate limits **do not stop abuse**.
 - Versioned onboarding API/enterprise blueprint retained separately as a draft.
 - Paddle server-origin transaction intent and signed webhooks; subscription ID
   used for follow-up lifecycle changes even when Paddle omits custom_data.
   Canceled, paused, past-due and mismatched-plan subscriptions are not public.
 - An owner subscription portal link is generated on demand (not persisted).
+- Versioned support skill with mandatory passing answer + abstain cases;
+  content revision triggers invalidate earlier results and fail closed on publication.
+- Owner-only JSON import/export of approved FAQ knowledge. Imported knowledge
+  remains blocked from public use until the next passing QA regression.
 - Owner-defined labeled evaluations and historical regression run summaries.
 - PostgreSQL tenant-isolation, quota rollback, ticket resolution, and subscription
   lifecycle tests in CI; TypeScript compile and Next.js production build.
@@ -28,7 +33,7 @@ compiled UI nor mock billing events prove a production deployment.
 - [ ] Confirm the intended Vercel team/account; do not deploy into old R3 team or
       test project without explicit ownership validation.
 - [ ] Provision a dedicated AGESOMA Neon project/staging database and separately
-      provision production secrets; migrations 0021 through 0026 applied in order.
+      provision production secrets; migrations 0021 through 0027 applied in order.
 - [ ] Run two-company real Better Auth browser E2E with RLS, owner vs member,
       session expiration, email/password, ticket access and public routes.
 - [ ] Configure PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_SUPPORT_PRICE_ID,
@@ -39,7 +44,7 @@ compiled UI nor mock billing events prove a production deployment.
       scheduled cancellation, immediate cancellation, pause, restore with a new
       subscription, price change, customer portal link and webhook retries/out-
       of-order delivery. Validate production-price ID, currency, taxes and terms.
-- [ ] Verify the 0024–0026 migrations against the **production-like restricted
+- [ ] Verify the 0024–0027 migrations against the **production-like restricted
       DB role** and audited privileges; the staging CI uses admin Postgres.
 - [ ] Add production bot/WAF/DDOS mitigation, CSRF review, origin/proxy
       configuration, load testing, secrets rotation and request logging hygiene.
