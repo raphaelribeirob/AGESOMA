@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {z} from "zod";
-import {answerSupportQuestion} from "@agesoma/core";
+import {answerSupportQuestion,SUPPORT_SKILL_VERSION} from "@agesoma/core";
+import {latestSupportRelease} from "../../../../lib/support-release";
 import {tenantSql} from "@agesoma/db";
 import {resolveAuthenticatedWorkspace} from "../../../../lib/auth-workspace";
 
@@ -15,8 +16,8 @@ type TestCase={id:string;question:string;expected_status:"answered"|"needs_human
 type Knowledge={id:string;question:string;answer:string;enabled:boolean};
 
 async function workspace(tenantId:string){
- const [item]=await tenantSql<{id:string}>(tenantId,
- "select id from support_workspaces where tenant_id=$1 limit 1",[tenantId]);
+ const [item]=await tenantSql<{id:string;content_version:number|string}>(tenantId,
+ "select id,content_version from support_workspaces where tenant_id=$1 limit 1",[tenantId]);
  return item;
 }
 export async function GET(){
@@ -29,7 +30,9 @@ export async function GET(){
   tenantSql<{id:string;cases_count:number;passed_count:number;created_at:Date|string}>(actor.tenantId,
    "select id,cases_count,passed_count,created_at from support_eval_runs where tenant_id=$1 order by created_at desc limit 10",[actor.tenantId])
  ]);
- return NextResponse.json({cases,runs,note:"Avaliações manuais com gabarito. A aprovação do teste não comprova resolução empresarial."},{headers:{"cache-control":"no-store"}});
+ const ws=await workspace(actor.tenantId);
+ const release=ws?await latestSupportRelease(actor.tenantId,ws.id):{ready:false,reason:"workspace_missing"};
+ return NextResponse.json({cases,runs,release,note:"Avaliações manuais com gabarito. A aprovação do teste não comprova resolução empresarial."},{headers:{"cache-control":"no-store"}});
 }
 export async function POST(req:Request){
  const actor=await resolveAuthenticatedWorkspace();
@@ -68,8 +71,8 @@ export async function POST(req:Request){
  });
  const passedCount=details.filter(d=>d.passed).length;
  const [saved]=await tenantSql<{id:string}>(actor.tenantId,
-  "insert into support_eval_runs(tenant_id,workspace_id,cases_count,passed_count,details,run_by) values($1,$2,$3,$4,$5::jsonb,$6) returning id",
-  [actor.tenantId,ws.id,tests.length,passedCount,JSON.stringify(details),actor.actorId]);
+  "insert into support_eval_runs(tenant_id,workspace_id,cases_count,passed_count,details,run_by,content_version,skill_version) values($1,$2,$3,$4,$5::jsonb,$6,$7,$8) returning id",
+  [actor.tenantId,ws.id,tests.length,passedCount,JSON.stringify(details),actor.actorId,ws.content_version,SUPPORT_SKILL_VERSION]);
  return NextResponse.json({runId:saved.id,passed:passedCount,total:tests.length,details},
   {headers:{"cache-control":"no-store"}});
 }
