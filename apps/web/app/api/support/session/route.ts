@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {z} from "zod";
 import {canPublishSupport,mintSupportSession,supportSessionSecret,SUPPORT_COOKIE} from "@agesoma/core";
 import {sql,tenantSql} from "@agesoma/db";
+import {latestSupportRelease} from "../../../../lib/support-release";
 const bodySchema=z.object({slug:z.string().regex(/^s-[a-f0-9]{26}$/)});
 export async function POST(req:Request){
  if(req.headers.get("origin")!==new URL(req.url).origin)return NextResponse.json({error:"origin_invalid"},{status:403});
@@ -18,6 +19,8 @@ export async function POST(req:Request){
  ]);
  if(!ws||!canPublishSupport({paidStatus:subs[0]?.status??null,ownerEnabled:ws.owner_enabled,faqCount:Number(counter?.count??0)}))
    return NextResponse.json({error:"unavailable"},{status:404});
+ const release=await latestSupportRelease(directory.tenant_id,directory.workspace_id);
+ if(!release.ready)return NextResponse.json({error:"quality_gate_not_ready"},{status:503});
  const response=NextResponse.json({ready:true},{headers:{"cache-control":"no-store"}});
  response.cookies.set(SUPPORT_COOKIE,mintSupportSession(parsed.data.slug,secret),{
   httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"strict",
