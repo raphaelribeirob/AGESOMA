@@ -12,7 +12,23 @@ AGESOMA is being built to take responsibility for repeatable, measurable busines
 
 > The client delegates a bounded business process. AGESOMA coordinates its execution, obtains scoped authorization for consequential actions, verifies evidence and reports results. The client retains final authority where required.
 
-## The initial service: freight audit and financial recovery
+## Current self-service product: AGESOMA Atendimento
+
+The first self-service B2B SKU (sold with a consumer-simple onboarding and checkout)
+is **AGESOMA Atendimento**. Business owners configure approved FAQ knowledge, test
+their responses, subscribe through Paddle, share a hosted support URL and handle
+uncertain cases in a human inbox. New or changed knowledge must pass a versioned
+answer + abstain regression test before the public chat can become available.
+
+The product is **in draft, not deployed for customers**. CI validates fixtures
+and isolated PostgreSQL, not a real Paddle/Neon/Vercel end-to-end journey.
+It is not a general autonomous agent or Wonderful feature parity.
+
+- [Reverse-engineered Wonderful capability matrix](docs/WONDERFUL_REVERSE_ENGINEERING.md)
+- [Self-service release gates](docs/SELFSERVE_RELEASE_GATE.md)
+- [PR #38](https://github.com/raphaelribeirob/AGESOMA/pull/38)
+
+## Assisted enterprise pilot: freight audit and financial recovery
 
 The initial wedge is freight overcharge and contract-leakage audit for Brazilian companies with recurring logistics expenditure.
 
