@@ -39,7 +39,7 @@ test("support outcome verified by bearer token, no duplicate result, correct ten
   [tenantA,ticket.id]));
  assert.equal((await pool.query(feedbackQuery,[tokenHash,"resolved"])).rowCount,1);
  assert.equal((await pool.query(feedbackQuery,[tokenHash,"not_resolved"])).rowCount,0,"feedback is immutable");
- assert.equal((await pool.query(feedbackQuery,["a".repeat(64),"resolved"])).rowCount,0,"wrong token is rejected");
+ assert.equal((await pool.query(feedbackQuery,[createHash("sha256").update("an-unissued-ticket").digest("hex"),"resolved"])).rowCount,0,"unissued ticket token is rejected");
  const other=await inTenant(tenantB,c=>c.query("select id from support_customer_outcomes"));
  assert.equal(other.rows.length,0,"tenant B cannot see A outcomes");
  await assert.rejects(inTenant(tenantA,c=>c.query(
