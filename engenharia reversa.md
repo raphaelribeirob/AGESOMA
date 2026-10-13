@@ -1,7 +1,7 @@
 # AGESOMA — Engenharia Reversa
 ## Referência: Wonderful AI OS | Estratégia: B2B com experiência de compra B2C
 
-**Versão:** 1.0 — 12/10/2026  
+**Versão:** 1.1 — 13/10/2026  
 **Status:** especificação de produto e matriz de aceite; **não autoriza lançamento**.  
 **Branch auditada:** feat/selfserve-support-product-20261012 — PR #38  
 **Complementos:** [Matriz técnica](docs/WONDERFUL_REVERSE_ENGINEERING.md) · [Critérios de lançamento](docs/SELFSERVE_RELEASE_GATE.md)
@@ -230,3 +230,28 @@ Bloqueios de lançamento:
 **100% de paridade com Wonderful:** não está demonstrado e não deve ser anunciado. Requer catálogo e composição de skills, integrações reais, execução multiagente e resultados empresariais verificados em produção.
 
 **Fonte da verdade:** código e CI da PR #38, [matriz técnica](docs/WONDERFUL_REVERSE_ENGINEERING.md), [release gates](docs/SELFSERVE_RELEASE_GATE.md) e evidências de staging/produção ainda pendentes.
+
+---
+
+## 11. Aplicação da auditoria comercial Wonderful (13/10/2026)
+
+**Contrato de oferta:** [WONDERFUL_OFFER_APPLICATION.md](docs/WONDERFUL_OFFER_APPLICATION.md).
+
+- **REA-15:** a vitrine pública apresenta um único serviço e um preço
+  localizado somente quando o Paddle estiver configurado. Paddle.PricePreview
+  estima o total; o checkout confirma preço, moeda e tributos.
+- **REA-02:** a demonstração pública usa o motor verdadeiro de FAQs com
+  conhecimento de uma empresa fictícia; testa resposta fundamentada e
+  recusa segura. Não cria tickets nem executa ferramentas empresariais.
+- **REA-06:** tickets e confirmação humana existem em código/CI, mas não
+  representam ação em CRM/ERP nem trabalho autônomo.
+- **REA-11:** somente web chat hospedado compõe a oferta inicial.
+- **REA-13:** o catálogo público de capacidades não autentica agentes,
+  não concede consentimento ou escopos e não executa ações. O Agent Access
+  da Wonderful (12/10/2026) é uma referência futura, não funcionalidade
+  já lançada pelo AGESOMA.
+- **REA-18:** QA e métricas existem em código; faltam métricas de compra,
+  ativação, retenção, custos reais, alertas e feedback em produção.
+
+A demonstração e o código novo não alteram os gates: sem Neon/Vercel,
+Paddle Sandbox, privacidade/LGPD, segurança e navegador E2E, NÃO vender.
