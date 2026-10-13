@@ -4,7 +4,7 @@ import {z} from "zod";
 import {answerSupportQuestion,canPublishSupport,verifySupportSession,supportSessionSecret,SUPPORT_COOKIE} from "@agesoma/core";
 import {sql,tenantSql,transaction} from "@agesoma/db";
 import {latestSupportRelease} from "../../../../lib/support-release";
-import {SUPPORT_SKILL_VERSION} from "@agesoma/core";
+import {SUPPORT_SKILL_VERSION,supportReleaseAssessment,type ReleaseEvidence} from "@agesoma/core";
 
 const schema=z.object({slug:z.string().regex(/^s-[a-f0-9]{26}$/),message:z.string().trim().min(3).max(1000)});
 const failure=(error:string,status:number)=>NextResponse.json({error},{status});
@@ -12,6 +12,7 @@ type Directory={tenant_id:string;workspace_id:string};
 type Workspace={id:string;owner_enabled:boolean};
 type Knowledge={id:string;question:string;answer:string;enabled:boolean};
 class QuotaExceeded extends Error{}
+class ReleaseRevoked extends Error{}
 
 export async function POST(req:Request){
  if(req.headers.get("origin")!==new URL(req.url).origin)return failure("Origem não autorizada.",403);
@@ -41,6 +42,23 @@ export async function POST(req:Request){
  const tokenHash=token?createHash("sha256").update(token).digest("hex"):null;
  try{
   await transaction(async client=>{
+   // Re-check current release authorization while locking the workspace row.
+   // An owner knowledge edit must obtain an UPDATE lock and cannot race ahead
+   // of this accepted response after the QA evidence has been checked.
+   const [locked]=(await client.query<{content_version:string|number;owner_enabled:boolean}>(
+    "select content_version,owner_enabled from support_workspaces where id=$1 and tenant_id=$2 for share",
+    [workspace.id,tenantId])).rows;
+   if(!locked?.owner_enabled)throw new ReleaseRevoked();
+   const [active]=(await client.query<{status:string}>(
+    "select status from billing_entitlements where tenant_id=$1 and product_key='support' and status in ('active','trialing') order by latest_occurred_at desc limit 1 for share",
+    [tenantId])).rows;
+   if(!active)throw new ReleaseRevoked();
+   const [tested]=(await client.query<ReleaseEvidence>([
+    "select content_version,skill_version,cases_count,passed_count,details",
+    "from support_eval_runs where tenant_id=$1 and workspace_id=$2",
+    "order by created_at desc,id desc limit 1"
+   ].join(" "),[tenantId,workspace.id])).rows;
+   if(!supportReleaseAssessment(locked.content_version,tested??null).ready)throw new ReleaseRevoked();
    // Each exceeded quota rolls back all counter increments and message writes.
    const [daily]=(await client.query<{hits:number}>(
     "insert into support_daily_usage(workspace_id,usage_date,hits) values($1,(now() at time zone 'utc')::date,1) on conflict(workspace_id,usage_date) do update set hits=support_daily_usage.hits+1 where support_daily_usage.hits<200 returning hits",
@@ -66,6 +84,7 @@ export async function POST(req:Request){
   });
  }catch(error){
   if(error instanceof QuotaExceeded)return failure("Limite de atendimento temporariamente atingido. Tente novamente mais tarde.",429);
+  if(error instanceof ReleaseRevoked)return failure("Atendimento temporariamente desativado ou aguardando nova avaliação.",503);
   throw error;
  }
  return NextResponse.json({
