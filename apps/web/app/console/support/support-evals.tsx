@@ -4,12 +4,13 @@ type Case={id:string;question:string;expected_status:"answered"|"needs_human";ex
 type Run={id:string;cases_count:number;passed_count:number;created_at:string};
 export default function SupportEvals({knowledge}:{knowledge:{id:string;question:string;enabled:boolean}[]}){
  const [cases,setCases]=useState<Case[]>([]),[runs,setRuns]=useState<Run[]>([]);
+ const [release,setRelease]=useState<{ready:boolean;reason:string}|null>(null);
  const [question,setQuestion]=useState(""),[expected,setExpected]=useState<"answered"|"needs_human">("needs_human"),[source,setSource]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  async function load(){
   const r=await fetch("/api/support/evals",{cache:"no-store"});
   if(!r.ok)throw Error("Avaliações indisponíveis.");
-  const b=await r.json();setCases(b.cases??[]);setRuns(b.runs??[]);
+  const b=await r.json();setCases(b.cases??[]);setRuns(b.runs??[]);setRelease(b.release??null);
  }
  useEffect(()=>{void load().catch(e=>setError(e.message));},[]);
  async function add(e:FormEvent){
@@ -44,6 +45,7 @@ export default function SupportEvals({knowledge}:{knowledge:{id:string;question:
    </select>:null}
    <button type="submit" disabled={busy||cases.length>=100} style={{justifySelf:"start",padding:"12px 17px",background:"#111827",color:"#fff",border:0,borderRadius:8}}>Adicionar caso</button>
   </form>
+  <p style={{fontSize:13,margin:0}}>Status de publicação: <strong>{release?.ready?"Aprovado na QA":"Bloqueado até passar testes atuais"}</strong>. É necessário um caso respondido e um que exija humano, ambos aprovados. Alterar uma resposta invalida o teste anterior.</p>
   <p style={{fontSize:13,margin:0}}>Casos com gabarito: {cases.length}. {runs.length?("Última execução: "+runs[0].passed_count+"/"+runs[0].cases_count+" aprovados."):"Nenhuma execução registrada."}</p>
   <button type="button" onClick={()=>void run()} disabled={busy||cases.length===0} style={{justifySelf:"start",padding:"12px 17px",borderRadius:8,border:"1px solid #cbd5e1",background:"#fff"}}>Executar avaliações</button>
   {error?<p role="alert" style={{color:"#b91c1c"}}>{error}</p>:null}
