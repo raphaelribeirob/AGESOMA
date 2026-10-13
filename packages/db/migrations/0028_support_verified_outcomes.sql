@@ -29,3 +29,21 @@ create policy tenant_read on support_customer_outcomes for select to authenticat
 grant select on support_customer_outcomes to authenticated;
 -- No authenticated INSERT/UPDATE/DELETE permissions; only the trusted public
 -- endpoint may insert once, after verifying the bearer token and ticket state.
+
+
+-- RLS integration fix: the public support API uses a privileged runtime
+-- connection for narrowly scoped ticket creation, token lookup and feedback.
+-- Without these policies, FORCE RLS silently denies that workflow for a
+-- non-BYPASSRLS database user. Never grant this role to untrusted clients.
+do $$
+declare privileged_role text := current_user;
+begin
+ execute format('create policy internal_messages_insert on support_messages for insert to %I with check(true)',privileged_role);
+ execute format('create policy internal_tickets_read on support_tickets for select to %I using(true)',privileged_role);
+ execute format('create policy internal_tickets_insert on support_tickets for insert to %I with check(true)',privileged_role);
+ execute format('create policy internal_feedback_insert on support_customer_outcomes for insert to %I with check(true)',privileged_role);
+end $$;
+
+-- Production validation MUST use a dedicated non-BYPASSRLS app role. The
+-- migration owner role assumption must be reconciled with the DATABASE_URL
+-- login before applying this migration to real Neon staging.
