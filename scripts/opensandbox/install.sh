@@ -14,7 +14,7 @@ if [[ "$MODE" != "start" && "$MODE" != "check" ]]; then
   echo "Usage: $0 [check|start]" >&2
   exit 2
 fi
-for bin in docker uvx python3 curl; do
+for bin in docker uv uvx python3 curl; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "Missing prerequisite: $bin" >&2
     exit 1
@@ -59,7 +59,18 @@ import sys
 config = Path(sys.argv[1])
 storage = str(Path(sys.argv[2]).resolve())
 if config.exists():
-    print(f"Existing config preserved: {config}")
+    import tomllib
+    with config.open("rb") as file:
+        existing = tomllib.load(file)
+    if (
+        existing.get("server", {}).get("host") != "127.0.0.1"
+        or existing.get("server", {}).get("port") != 8080
+        or existing.get("docker", {}).get("publish_host") != "127.0.0.1"
+        or existing.get("runtime", {}).get("type") != "docker"
+        or existing.get("storage", {}).get("allowed_host_paths") != [storage]
+    ):
+        raise SystemExit("Existing config violates local pilot restrictions; move it aside for manual review")
+    print(f"Verified existing local-only config: {config}")
 else:
     contents = (
         '[server]\n'
