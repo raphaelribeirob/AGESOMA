@@ -58,3 +58,6 @@ Para atualização, compare versão do servidor, imagens execd/egress e SDK no r
 
 ## Verificação desta PR
 Scripts incluídos **não comprovam instalação remota**. O smoke real precisa ser executado no Linux com Docker; o sandbox não foi provisionado durante a edição do GitHub.
+
+## CI descartável
+A workflow [`.github/workflows/opensandbox-pilot.yml`](../.github/workflows/opensandbox-pilot.yml) define um teste estático e um teste com Docker em runner Ubuntu temporário. Não é instalação permanente nem prova de funcionamento no servidor de produção. Conferir resultados no painel Actions do GitHub.
