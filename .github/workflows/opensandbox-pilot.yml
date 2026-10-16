@@ -1,0 +1,55 @@
+name: OpenSandbox Linux pilot
+
+on:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sandbox-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Validate install scripts and generated TOML without Docker
+        run: node --test tests/opensandbox-install.test.mjs
+      - uses: astral-sh/setup-uv@v6
+      - name: Confirm Linux Docker prerequisites
+        run: bash scripts/opensandbox/install.sh check
+      - name: Start local-only server and test one disposable sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/opensandbox/install.sh start > "$RUNNER_TEMP/opensandbox-server.log" 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=0
+          for i in {1..180}; do
+            if curl --silent --fail http://127.0.0.1:8080/health >/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "OpenSandbox server exited before readiness"
+              tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            echo "OpenSandbox did not become healthy"
+            tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"
+            exit 1
+          fi
+          bash scripts/opensandbox/smoke.sh
