@@ -36,7 +36,7 @@ The product is B2B self-service with B2C-quality onboarding. Do not confuse Wond
 worker identity is persistent; running CPU is NOT required to be persistent.
 - `UNPROVISIONED` -> `STARTING` -> `READY` -> `BUSY` -> `IDLE` -> `HIBERNATED` -> `READY`.
 - `BLOCKED` and `FAILED` stop work and surface remediation.
-- Each worker leases a sandbox from a provider (evaluate Daytona or E2B) with isolation guarantees verified for the actual selected runtime. Persist scoped state via encrypted volumes/snapshots or external object storage; do not rely on an always-running machine.
+- Each worker leases a sandbox from a provider (pilot OpenSandbox self-hosted; evaluate Daytona or E2B for alternatives) with isolation guarantees verified for the actual selected runtime. Persist scoped state via encrypted volumes/snapshots or external object storage; do not rely on an always-running machine.
 - Worker-to-sandbox mapping is tenant-scoped and auditable, with strict admission control, quota, TTL, idle suspension, egress allowlists, data retention policies and kill switch.
 - Account-wide shared computer is NOT acceptable as a security boundary. Even though Grok Bot advertises named Bots with screens, its published FAQ describes a shared account computer, NOT one isolated computer per Bot. AGESOMA explicitly chooses per-worker isolation.
 
@@ -64,7 +64,7 @@ Existing base PR #38 and related draft PRs:
 - Draft #30 `Business Understanding Engine` and migration 0021: integrate via review/merge when ready; don't duplicate ontology or silently migrate production.
 - Draft #33 enterprise onboarding and draft #38 self-service Atendimento: converge into a single buyer onboarding, not separate setup journeys.
 - PostgreSQL/Neon for tenancy, tasks, provenance, grants, worker metadata, cost ledger and audit; durable queue for execution.
-- Daytona/E2B for per-worker computer leases; deployment on Vercel only for web/control surfaces, not permanent desktops.
+- OpenSandbox self-hosted is the chosen pilot runtime for per-worker sandboxes; Daytona/E2B remain alternatives. Linux bootstrap, smoke and security constraints: [OpenSandbox installation](OPENSANDBOX_INSTALL.md). Deployment on Vercel supports web/control surfaces only, not permanent desktops.
 - Secrets and credentials managed through a broker; don't expose directly in VM environment or browser transcript.
 
 ## 4. API and database contract (planned, not implemented)
@@ -114,3 +114,8 @@ Daytona's public rates (checked 2026-10-16): Linux vCPU $0.0504/hour; RAM $0.016
 - https://www.daytona.io/docs/en/sandboxes/
 - https://www.daytona.io/pricing
 - https://e2b.dev/
+
+
+## 8. OpenSandbox integration status (2026-10-16)
+
+OpenSandbox 1.1.1 local Linux install script, test sandbox lifecycle and self-host guide were added to this feature branch. Configuration binds management and mapped ports to loopback, has a generated non-versioned key, Docker bridge and host mount allowlist. GitHub Actions has a disposable Ubuntu smoke workflow. **No host is provisioned; no live agent or customer computer is connected; the rollout remains experimental.** See [installation guide](OPENSANDBOX_INSTALL.md).
