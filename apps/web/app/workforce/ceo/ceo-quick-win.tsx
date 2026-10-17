@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent } from "react";
 import {
-  SMB_SKILLS, analyzeCashCsv, analyzeLeadCsv, buildLocalBusinessPulse, parseLocalCsv,
+  SMB_SKILLS, analyzeCashCsv, analyzeLeadCsv, buildLocalBusinessPulse, scopeReadOnlyConnector, parseLocalCsv,
   skillForArea,
   type CashSnapshot, type LeadSnapshot, type SmbArea
 } from "@agesoma/core/src/smb-skills";
@@ -28,6 +28,9 @@ export default function CeoQuickWin(){
   const [result,setResult]=useState<Insight|null>(null);
   const [problem,setProblem]=useState("");
   const [busy,setBusy]=useState(false);
+  const [systemName,setSystemName]=useState("");
+  const [readGoal,setReadGoal]=useState("");
+  const [connectorPlan,setConnectorPlan]=useState<ReturnType<typeof scopeReadOnlyConnector>|null>(null);
   const [today] = useState(()=>new Date().toISOString().slice(0,10));
   const chosen=choices.find(c=>c.id===area)!;
   const skill=SMB_SKILLS.find(s=>s.id===skillForArea(area))!;
@@ -54,7 +57,7 @@ export default function CeoQuickWin(){
     }catch(e){setProblem(e instanceof Error?e.message:"Arquivo inválido.");}
   }
   function pick(next:SmbArea){
-    setArea(next);setRaw("");setFileLabel("");setResult(null);setProblem("");
+    setArea(next);setRaw("");setFileLabel("");setResult(null);setProblem("");setConnectorPlan(null);
   }
   return (
     <section className={styles.root} aria-labelledby="first-value-title">
@@ -134,7 +137,33 @@ export default function CeoQuickWin(){
           <p>{area==="operations"
             ?"O briefing estruturado do CEO está logo abaixo. Após confirmar os dados, o CEO poderá organizar processos e prioridades declaradas."
             :"Informe no mapa empresarial quais sistemas você já utiliza. Esta versão não cria uma conexão: autenticação, escopo mínimo e verificação do primeiro dado real ainda dependem de implementação."}</p>
-          <p className={styles.privacy}>Workflow <code>{skill.id}</code> — {skill.state==="planned"?"planejado":"parcial"}. Nenhuma ação externa foi realizada.</p>
+          {area==="technology"&&(
+            <div className={styles.connectorForm}>
+              <label className={styles.inputLabel} htmlFor="age-system-name">Qual sistema a PME já utiliza?</label>
+              <input id="age-system-name" className={styles.upload} maxLength={100}
+                value={systemName} onChange={e=>{setSystemName(e.target.value);setConnectorPlan(null);setProblem("");}}
+                placeholder="Ex.: ERP da empresa, CRM, planilha"/>
+              <label className={styles.inputLabel} htmlFor="age-read-goal">O que precisamos consultar?</label>
+              <textarea id="age-read-goal" className={styles.paste} rows={3} maxLength={300}
+                value={readGoal} onChange={e=>{setReadGoal(e.target.value);setConnectorPlan(null);setProblem("");}}
+                placeholder="Ex.: Ler pedidos ainda não entregues para o briefing do CEO"/>
+              <button type="button" className="ageButton ageButtonSecondary"
+                onClick={()=>{
+                  try{setConnectorPlan(scopeReadOnlyConnector(systemName,readGoal));setProblem("");}
+                  catch(err){setProblem(err instanceof Error?err.message:"Dados inválidos.");}
+                }}>Preparar plano de conexão</button>
+              {problem&&<p role="alert" className={styles.error}>{problem}</p>}
+              {connectorPlan&&(
+                <div className={styles.result} role="status">
+                  <strong>Plano de conexão · ainda não executado</strong>
+                  <p>Sistema: {connectorPlan.system}. Objetivo: {connectorPlan.readObjective}.</p>
+                  <ol>{connectorPlan.steps.map(step=><li key={step}>{step}</li>)}</ol>
+                  <p>Escopo: somente leitura. A autorização é obrigatória; nenhuma conexão foi realizada.</p>
+                </div>
+              )}
+            </div>
+          )}
+          <p className={styles.privacy}>Workflow <code>{skill.id}</code> — parcial. Nenhuma ação externa foi realizada.</p>
         </div>
       )}
       <div className={styles.next}>
