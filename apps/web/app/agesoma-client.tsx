@@ -355,14 +355,12 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
         : initial.statusText;
 
   return (
-    <main className="museShell">
+    <main className="museShell ageTheme">
       <header className="museTopbar">
         <button className="museIdentity" type="button" onClick={()=>setActivityOpen(true)} aria-label="Abrir status da AGESOMA">
-          <span className={pending?"museAvatar isWorking":listening?"museAvatar isListening":"museAvatar"} aria-hidden="true">
-            <i className="museAvatarLobe a"/><i className="museAvatarLobe b"/><i className="museAvatarGrain"/>
-          </span>
+          <span className="ageIdentityMark" aria-hidden="true">AG</span>
           <span className="museIdentityCopy">
-            <strong>AGESOMA</strong>
+            <strong className="ageWordmark"><img src="/agesoma-wordmark-age.svg" alt="AGESOMA" width={172} height={12}/></strong>
             <small>{status}</small>
           </span>
         </button>
@@ -375,7 +373,8 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
           ))}
         </nav>
 
-        <Link href="/console/support" className="museSettings">Agente de Atendimento</Link>
+        <Link href="/workforce" className="museSettings">Equipe executiva</Link>
+        <Link href="/console/support" className="museSettings">Atendimento</Link>
         <Link href="/operations/onboarding" className="museSettings">Implantar operação</Link>
         <Link href="/settings" className="museSettings">Memória & permissões</Link>
       </header>
@@ -534,7 +533,7 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
           <aside className="museDrawer" onClick={(event)=>event.stopPropagation()}>
             <header>
               <div className="museDrawerIdentity">
-                <span className="museAvatar"/>
+                <span className="ageIdentityMark" aria-hidden="true">AG</span>
                 <div><strong>AGESOMA</strong><small>{status}</small></div>
               </div>
               <button type="button" onClick={()=>setActivityOpen(false)}>×</button>
