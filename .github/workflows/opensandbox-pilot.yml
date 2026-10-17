@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - feat/agesoma-workforce-computers-20261016
+  pull_request:
+    paths:
+      - "scripts/opensandbox/**"
+      - ".github/workflows/opensandbox-pilot.yml"
+      - "tests/opensandbox-install.test.mjs"
   workflow_dispatch:
 
 permissions:
