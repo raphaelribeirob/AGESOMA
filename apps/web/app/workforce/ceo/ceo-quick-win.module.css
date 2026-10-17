@@ -45,3 +45,9 @@
 .pulse p { color: var(--age-text); font-size: 14px; line-height: 22px; margin: 0; }
 .pulse strong { color: var(--age-ink); font-weight: 500; }
 .pulse small { color: var(--age-muted); font-size: 12px; line-height: 20px; }
+
+.connectorForm { display: grid; gap: 12px; max-width: 820px; }
+.connectorForm .upload { width: 100%; font-size: 16px; }
+.connectorForm button { justify-self: start; }
+.connectorForm ol { padding-left: 24px; font-size: 14px; line-height: 23px; color: var(--age-text); }
+@media(max-width:599px){ .connectorForm button { justify-self: stretch; } }
