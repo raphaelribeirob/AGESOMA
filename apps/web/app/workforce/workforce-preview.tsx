@@ -79,9 +79,9 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
             <div>
               <div className={styles.eyebrow}>SUA EMPRESA, EM CONTEXTO</div>
               <h1>Uma equipe que entende seu negócio.</h1>
-              <p className={styles.intro}>Conecte o contexto da empresa antes de autorizar qualquer execução.</p>
+              <p className={styles.intro}>O CEO conhece a empresa primeiro. Depois, organiza o trabalho dos outros três agentes.</p>
             </div>
-            <a className={`${styles.demoButton} ageButton ageButtonPrimary`} href="/start#demonstracao">Ver demonstração</a>
+            <Link className={`${styles.demoButton} ageButton ageButtonPrimary`} href="/workforce/ceo">Começar pelo CEO</Link>
           </header>
 
           <section className={styles.companySection} aria-label="Compreensão da empresa">
@@ -94,7 +94,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
               <span>
                 <span className={styles.eyebrow}>ETAPA 01 · APRENDER ANTES DE AGIR</span>
                 <strong>Conhecimento da empresa</strong>
-                <small>Conexões, evidências e validação humana. Nenhuma fonte foi conectada nesta prévia.</small>
+                <small>Comece cadastrando o contexto com o CEO; integrações automáticas ainda não estão ativadas.</small>
               </span>
               <span aria-hidden="true">{companyOpen ? "−" : "+"}</span>
             </button>
@@ -131,6 +131,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
 
             {section === "missao" && (
               <div className={styles.detailContent}>
+                {selected.id === "executive" && <Link href="/workforce/ceo" className="ageButton ageButtonSecondary">Iniciar conhecimento da empresa</Link>}
                 <p className={styles.mission}>{selected.mission}</p>
                 <h3>Cargos deste agente</h3>
                 <div className={styles.chips}>{selected.positions.map((position) => <span key={position}>{position}</span>)}</div>
