@@ -1,10 +1,10 @@
+import type { ExecutiveTitle } from "@agesoma/core";
+
 /**
  * AGESOMA Workforce OS — four visible executive agents, seven officer
  * responsibilities. This is product metadata, not a permission grant,
  * instantiated worker, deployed computer or credential.
  */
-export type ExecutiveTitle = "CEO" | "COO" | "CFO" | "CMO" | "CRO" | "CTO" | "CPO";
-
 export type WorkforceProfile = {
   id: "executive" | "finance" | "growth" | "product";
   title: string;
@@ -89,6 +89,3 @@ export const WORKFORCE_PROFILES: readonly WorkforceProfile[] = [
   }
 ] as const;
 
-export const EXECUTIVE_TITLES: readonly ExecutiveTitle[] = [
-  "CEO", "CFO", "CMO", "CTO", "CPO", "COO", "CRO"
-] as const;
