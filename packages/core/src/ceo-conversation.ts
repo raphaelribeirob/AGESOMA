@@ -56,3 +56,41 @@ export function answerCeoBusinessQuestion(
     provenance
   ].join("\n");
 }
+
+export type ExecutiveContextProjection = {
+  source: "owner_manual_intake";
+  trust: "owner_confirmed_not_independently_verified";
+  grantsAuthorization: false;
+  fields: Readonly<Partial<ConfirmedCompanySummary>>;
+};
+
+const capabilityFields: Readonly<Record<string, readonly (keyof ConfirmedCompanySummary)[]>> = {
+  operations: ["companyName", "sector", "challenge", "objective"],
+  service: ["companyName", "sector", "offer", "customers"],
+  research: ["companyName", "sector", "objective"],
+  finance: ["companyName", "sector", "challenge", "objective"],
+  marketing: ["companyName", "sector", "offer", "customers", "objective"],
+  paid_media: ["companyName", "sector", "offer", "customers", "objective"],
+  sales: ["companyName", "sector", "offer", "customers", "objective"]
+};
+
+/** Least-privilege view for a legacy specialist, not a tool permission grant. */
+export function projectConfirmedCompanyForCapability(
+  company: ConfirmedCompanySummary,
+  capability: string
+): ExecutiveContextProjection | null {
+  const keys = Object.prototype.hasOwnProperty.call(capabilityFields, capability)
+    ? capabilityFields[capability] : undefined;
+  if (!keys) return null;
+  const allowed: Partial<ConfirmedCompanySummary> = {};
+  for (const field of keys) {
+    const value = company[field];
+    if (typeof value === "string") allowed[field] = value.slice(0, 1200);
+  }
+  return {
+    source: "owner_manual_intake",
+    trust: "owner_confirmed_not_independently_verified",
+    grantsAuthorization: false,
+    fields: allowed
+  };
+}
