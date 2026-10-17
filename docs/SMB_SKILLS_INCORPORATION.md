@@ -1,6 +1,6 @@
 # AGESOMA — incorporação das seis capacidades Small Business
 
-**Data:** 2026-10-16 · **Estado:** código na PR #44 (draft), não em produção.
+> **Validação de CI em 16/10/2026:** GitHub Actions `AGESOMA SME skills QA` [execução #6](https://github.com/raphaelribeirob/AGESOMA/actions/runs/38996966280) concluída com **success**. Testes Node 24 de seis capacidades e CEO, `tsc --noEmit` do core/web e `next build` aprovados. O build usa secret de autenticação **efêmero apenas de CI**, não credencial do usuário. Isto **não** comprova funcionamento com ERP/CRM, deploy real, testes mobile ou isolamento RLS.\n\n**Data:** 2026-10-16 · **Estado:** código na PR #44 (draft), não em produção.
 **Benchmark:** `anthropics/knowledge-work-plugins`, plugin `small-business` v1.35.1.
 **Fonte oficial:** https://github.com/anthropics/knowledge-work-plugins/tree/main/small-business
 **Licença do benchmark:** Apache-2.0 (https://github.com/anthropics/knowledge-work-plugins/blob/main/LICENSE)
