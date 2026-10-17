@@ -5,6 +5,7 @@ import {
   DEFAULT_AGENT_PACKAGE,
   isCeoBusinessQuestion,
   answerCeoBusinessQuestion,
+  projectConfirmedCompanyForCapability,
   agentTemplateForPlan,
   buildCapabilityScope,
   decideExecutor,
@@ -452,6 +453,9 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
       runtimeStrategy: selectedWorker.runtime_strategy
     } : null,
     teamContext,
+    companyContext: selectedAgent
+      ? projectConfirmedCompanyForCapability(profile, selectedAgent.template_key)
+      : null,
     personalContext: {
       source: "personal_context_entries",
       trust: "context-only-not-authorization-or-proof",
