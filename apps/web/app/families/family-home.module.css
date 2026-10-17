@@ -13,7 +13,35 @@
   min-height:100svh; width:100%;
   -webkit-font-smoothing:antialiased;
 }
-.instant { --family-bg:#ffffff; --family-surface:#f5f3f1; --family-ink:#000000; --family-copy:#44403b; --family-muted:#68635c; --family-border:#ebe8e4; }
+/*
+ * Instant tokens are derived from INSTDESIGN.MD v3.5.0 §2.2/§2.4.
+ * The catalog is not the InstantSpeak mobile app: product-specific DESIGN.md
+ * overrides brand exceptions. No Instant token leaks into .dots or .ageTheme.
+ */
+.instant {
+  --instant-neutral-canvas:#FCFBF8;
+  --instant-neutral-surface:#FFFFFF;
+  --instant-neutral-surface-subtle:#F2EFEA;
+  --instant-neutral-text:#171717;
+  --instant-neutral-secondary:#4E4B47;
+  --instant-neutral-muted:#625E59;
+  --instant-neutral-border:#C7C2BB;
+  --instant-neutral-focus:#2459BA;
+  --instant-feedback-success:#196C3E;
+  --instant-feedback-warning:#936000;
+  --instant-feedback-error:#B42318;
+  --instant-speak-accent:#2459BA;
+  --instant-study-accent:#3A32C8;
+  --instant-bible-accent:#1F6B52;
+  --family-bg:var(--instant-neutral-canvas);
+  --family-surface:var(--instant-neutral-surface);
+  --family-ink:var(--instant-neutral-text);
+  --family-copy:var(--instant-neutral-secondary);
+  --family-muted:var(--instant-neutral-muted);
+  --family-border:var(--instant-neutral-border);
+  --family-action:var(--instant-neutral-text);
+  --family-action-text:var(--instant-neutral-surface);
+}
 .dots { --family-bg:#fbf7f2; --family-surface:#ffffff; --family-ink:#292724; --family-copy:#514c46; --family-muted:#706a65; --family-border:#e6ddd5; --family-action:#0061ef; --family-action-text:#ffffff; }
 .container { max-width:1200px; margin:0 auto; padding:0 32px; }
 .nav { min-height:88px; display:flex; align-items:center; justify-content:space-between; gap:28px; border-bottom:1px solid var(--family-border); }
@@ -49,6 +77,13 @@
 .footer { border-top:1px solid var(--family-border); padding:26px 0 44px; display:flex; gap:24px; align-items:center; justify-content:space-between; color:var(--family-muted); font-size:12px; line-height:1.5; }
 .footer a { color:var(--family-ink); font-size:13px; font-weight:500; text-decoration:none; }
 .page :is(a,button):focus-visible { outline:3px solid var(--family-ink); outline-offset:4px; }
+.instant :is(a,button):focus-visible { outline-color:var(--instant-neutral-focus); }
+.instant .product[data-product-id="instantspeak"] { --product-accent:var(--instant-speak-accent); }
+.instant .product[data-product-id="instantstudy"] { --product-accent:var(--instant-study-accent); }
+.instant .product[data-product-id="instantbible"] { --product-accent:var(--instant-bible-accent); }
+.instant .product .repoLink:hover { border-color:var(--product-accent,var(--instant-neutral-focus)); }
+/* Navigation, focus and reading order follow DOM; layouts use logical-safe
+   center alignment and wrapping, with no fake voice-orb animation. */
 @media(max-width:850px) {
   .sectionHead { display:block; }
   .sectionHead p { max-width:650px; margin-top:14px; }
