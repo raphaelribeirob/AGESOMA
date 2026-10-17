@@ -1,0 +1,69 @@
+/* AGE Showroom v1.1 — /start (signed-out product acquisition).
+   Global old hero and panels are intentionally not reused. */
+.page { width: 100%; max-width: none; margin: 0; padding: 0 0 96px; min-height: 100svh; background: var(--age-surface); }
+.shell { width: min(1200px, calc(100% - 64px)); max-width: 100%; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; min-height: 92px; gap: 32px; border-bottom: 1px solid var(--age-border); }
+.brandLink { display: inline-flex; align-items: center; min-height: 48px; min-width: 170px; }
+.brandLink img { width: 172px; height: auto; display: block; }
+.navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 32px; font-size: 14px; }
+.navigation a { color: var(--age-text); text-decoration: none; display: inline-flex; align-items: center; min-height: 48px; font-weight: 500; }
+.navigation a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.hero { min-height: 86svh; display: flex; flex-direction: column; justify-content: center; padding: 80px 0 96px; gap: 0; }
+.kicker { color: var(--age-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; line-height: 16px; margin: 0; text-transform: uppercase; }
+.hero h1 { font: 500 clamp(36px,4vw,56px)/1.16 var(--age-font-display); letter-spacing: 0; color: var(--age-ink); margin: 24px 0 16px; max-width: 940px; }
+.lead { font-size: 16px; line-height: 24px; color: var(--age-text); max-width: 78ch; margin: 0; }
+.heroActions { display: flex; align-items: center; gap: 16px; margin-top: 32px; flex-wrap: wrap; }
+.disclaimer { color: var(--age-muted); font-size: 12px; line-height: 20px; margin-top: 24px; max-width: 76ch; }
+.productPreview { background: var(--age-surface-subtle); border-radius: var(--age-radius-card); padding: 32px; margin-top: 64px; }
+.productPreviewLabel { color: var(--age-muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; }
+.productFlow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 16px; margin-top: 24px; }
+.productFlow span { color: var(--age-ink); background: var(--age-surface); padding: 28px 24px; border-radius: var(--age-radius-control); text-align: center; font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.productFlow span[aria-hidden] { background: none; padding: 0; color: var(--age-muted); }
+.productPreview p { margin: 16px 0 0; font-size: 12px; line-height: 20px; color: var(--age-muted); }
+.demoSection { scroll-margin-top: 24px; }
+.steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin: 64px 0; }
+.step { min-width: 0; border-top: 1px solid var(--age-border); padding: 24px 0 0; }
+.step > span { font-size: 12px; line-height: 16px; color: var(--age-muted); font-family: var(--age-font-mono); }
+.step h2 { font-size: 20px; line-height: 28px; margin: 16px 0 8px; font-weight: 500; }
+.step p { font-size: 14px; line-height: 24px; margin: 0; color: var(--age-text); }
+.productVision { border-top: 1px solid var(--age-border); border-bottom: 1px solid var(--age-border); padding: 64px 0; margin: 40px 0 64px; }
+.productVision h2 { font-size: clamp(28px,3vw,40px); line-height: 1.2; margin: 16px 0; font-weight: 500; }
+.productVision > p:not(.kicker) { color: var(--age-text); font-size: 16px; line-height: 24px; max-width: 72ch; }
+.executiveGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-top: 24px; }
+.executiveGrid > span { border: 1px solid var(--age-border); border-radius: var(--age-radius-card); padding: 24px 16px; font-size: 16px; font-weight: 500; color: var(--age-ink); }
+.executiveGrid small { display: block; font-size: 12px; font-weight: 400; margin-top: 8px; color: var(--age-muted); }
+.plan { display: grid; gap: 20px; border: 1px solid var(--age-border); padding: 40px; border-radius: var(--age-radius-card); scroll-margin-top: 24px; max-width: 860px; }
+.plan h2 { font-size: 28px; line-height: 36px; margin: 0; font-weight: 500; }
+.plan p { font-size: 14px; line-height: 24px; color: var(--age-text); margin: 0; }
+.plan small { font-size: 12px; line-height: 20px; color: var(--age-muted); }
+.plan a { justify-self: start; }
+@media (max-width: 1023px) {
+  .shell { width: min(100% - 48px, 940px); }
+  .hero { min-height: unset; padding: 72px 0; }
+  .executiveGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 599px) {
+  .shell { width: calc(100% - 32px); }
+  .header { min-height: 80px; gap: 12px; flex-wrap: wrap; padding: 12px 0; }
+  .brandLink img { width: 150px; }
+  .navigation { gap: 16px; }
+  .navigation a { font-size: 13px; }
+  .hero { padding: 64px 0; }
+  .hero h1 { font-size: 36px; line-height: 42px; }
+  .heroActions { display: grid; gap: 12px; }
+  .heroActions a { width: 100%; }
+  .productPreview { padding: 24px 16px; margin-top: 40px; }
+  .productFlow { display: flex; flex-direction: column; gap: 8px; }
+  .productFlow span { width: 100%; padding: 16px; }
+  .productFlow span[aria-hidden] { padding: 0; transform: rotate(90deg); width: 32px; }
+  .steps { grid-template-columns: 1fr; gap: 24px; margin: 48px 0; }
+  .productVision { padding: 48px 0; margin: 40px 0 48px; }
+  .executiveGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .executiveGrid > span { padding: 16px 12px; }
+  .plan { padding: 24px 16px; }
+  .plan a { justify-self: stretch; }
+}
+@media (max-width: 359px) {
+  .navigation { gap: 12px; }
+  .executiveGrid { grid-template-columns: 1fr; }
+}
