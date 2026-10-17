@@ -23,3 +23,4 @@ export * from "./support-release";
 export * from "./support-offer";
 export * from "./agent-access-discovery";
 export * from "./product-families";
+export * from "./platform-adapter-policy";
