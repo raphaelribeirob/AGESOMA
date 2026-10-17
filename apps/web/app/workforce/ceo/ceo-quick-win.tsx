@@ -90,7 +90,7 @@ export default function CeoQuickWin(){
           <label className={styles.inputLabel} htmlFor="age-local-paste">Ou cole o conteúdo CSV</label>
           <textarea id="age-local-paste" className={styles.paste} value={raw} onChange={e=>{setRaw(e.target.value);setResult(null);setProblem("");}}
             rows={5} maxLength={200_000} placeholder={area==="finance"?"data;tipo;valor;descricao":"nome;empresa;status;ultimo_contato"}/>
-          <button type="button" className="ageButton ageButtonPrimary" disabled={busy||!raw.trim()} onClick={examine}>Analisar dados locais</button>
+          <button type="button" className="ageButton ageButtonSecondary" disabled={busy||!raw.trim()} onClick={examine}>Analisar dados locais</button>
           {problem&&<p className={styles.error} role="alert">{problem}</p>}
           {result?.skill==="cash-flow-snapshot"&&(
             <div className={styles.result} role="status" aria-live="polite">
