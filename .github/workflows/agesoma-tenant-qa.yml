@@ -30,7 +30,7 @@ jobs:
     env:
       CI: "1"
       DATABASE_URL: postgres://agesoma_qa:qa_only_not_prod@127.0.0.1:5432/agesoma_qa
-      AGESOMA_DB_SCHEMA: public
+      AGESOMA_DB_SCHEMA: agesoma_p0
       BETTER_AUTH_URL: http://127.0.0.1:3100
       AGESOMA_QA_BASE_URL: http://127.0.0.1:3100
       AGESOMA_QA_FULL_DB: "1"
@@ -79,6 +79,11 @@ jobs:
             echo "Applying $f to disposable DB only"
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
           done
+      - name: Check separate core and auth schema namespaces
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select table_schema,table_name from information_schema.tables where table_name in ('auth_organization_tenants','tenants','tenant_memberships') order by table_schema,table_name;"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select 1 from agesoma_p0.auth_organization_tenants limit 1;"
       - name: Migrate Better Auth schema in disposable DB
         run: npx auth@1.7.4 migrate --config ./apps/web/lib/auth.ts --yes
       - name: Build Next web without production secrets
