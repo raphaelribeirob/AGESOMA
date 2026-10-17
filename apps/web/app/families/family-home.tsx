@@ -25,7 +25,7 @@ export default function FamilyHome({ family }: { family: ProductFamilyId }) {
     <main className={`${styles.page} ${family === "instant" ? styles.instant : styles.dots}`} data-platform-family={family}>
       <div className={styles.container}>
         <nav className={styles.nav} aria-label="Famílias da plataforma">
-          <Link href="/instant" className={styles.wordmark} aria-label="Instant, início">Instant<span className={styles.mark}>.</span></Link>
+          <Link href={family === "instant" ? "/instant" : "/dots"} className={styles.wordmark} aria-label={`${info.displayName}, início`}>{info.displayName}<span className={styles.mark}>.</span></Link>
           <div className={styles.navLinks}>
             <Link href="/instant" aria-current={family === "instant" ? "page" : undefined}>Instant</Link>
             <Link href="/dots" aria-current={family === "dots" ? "page" : undefined}>Dots</Link>
