@@ -53,3 +53,9 @@
 @media(max-width:599px){ .connectorForm button { justify-self: stretch; } }
 
 .helper { font-size: 12px; line-height: 20px; color: var(--age-muted); margin: 0; }
+
+/* Midnight: compact cards, quietly elevated inputs, one functional accent. */
+.root,.choice,.chosen,.result,.lead { border-width: .5px; border-color: var(--age-border-subtle); }
+.chosen { border-color: var(--age-accent); background: var(--age-panel); }
+.result,.pulse { background: var(--age-panel); }
+.upload,.paste { background: var(--age-surface-subtle); border-radius: var(--age-radius-control); }
