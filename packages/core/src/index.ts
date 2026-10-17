@@ -22,3 +22,4 @@ export * from "./support-session";
 export * from "./support-release";
 export * from "./support-offer";
 export * from "./agent-access-discovery";
+export * from "./product-families";
