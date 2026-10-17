@@ -1,6 +1,6 @@
 # AGESOMA Workforce OS — medição, créditos e política de cobrança
 
-Status: **proposta econômica + estimador de custo implementado; cobrança de agentes NÃO ligada**.
+> **Atualização 2026-10-16 — Proposta PME em reais:** a tabela em USD abaixo está **substituída** para o mercado brasileiro pela [proposta WORKFORCE_SMB_PRICING.md](WORKFORCE_SMB_PRICING.md), com R$49/R$129/R$249 e franquias de R$8/R$30/R$75. O motor técnico de custo USD continua para medir API e computador, mas o cliente brasileiro deve ver BRL. Nenhuma cobrança está ativa.\n\nStatus: **proposta econômica + estimador de custo implementado; cobrança de agentes NÃO ligada**.
 Data: 2026-10-16.
 Objetivo: quatro agentes executivos (CEO+COO, CFO, CMO+CRO e CTO+CPO) com UMA franquia compartilhada por empresa, não quatro assinaturas.
 
