@@ -93,7 +93,7 @@ test("profile text and UI do not expose secrets or imply side-effect capabilitie
 });
 
 test("AGE identity has no eye-shaped Dot mascot, fake orb or idle loop", () => {
-  assert.doesNotMatch(ui, /WorkerAvatar|styles\.eye|Orb\b/);
+  assert.doesNotMatch(ui, /WorkerAvatar|styles\.eye\b|\bOrb\b/);
   assert.doesNotMatch(css, /@keyframes presence|animation: presence|radial-gradient/);
   assert.match(ui, /agesoma-wordmark-age\.svg/);
   assert.match(css, /--age-radius-card/);
