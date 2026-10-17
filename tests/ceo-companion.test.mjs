@@ -64,8 +64,8 @@ test("CEO UX only renders after confirmation and does not auto-dispatch", () => 
   for(const name of names) assert.match(css, new RegExp("\\."+name+"(?=[\\s:.,{>])"),name);
 });
 
-test("CEO links to existing chat but labels the absence of automatic context sync",()=>{
+test("CEO links to existing chat and accurately describes confirmed context sync",()=>{
   const cockpit = source("apps/web/app/workforce/ceo/ceo-companion.tsx");
   assert.match(cockpit, /href="\/" className="ageButton ageButtonSecondary"/);
-  assert.match(cockpit, /não recebe automaticamente este briefing/);
+  assert.match(cockpit, /consulta as informações confirmadas/);
 });
