@@ -304,16 +304,16 @@ async function answerQuestion(tenantId: string, message: string) {
       const lines = memory.facts.map((fact) =>
         `• ${fact.key}: ${fact.value} (referência: ${fact.source}; observado em ${fact.observedAt})`);
       if (lines.length) {
-        enrichment = "\\n\\nOutros fatos revisados pelo responsável (não auditados externamente):\\n"
-          + lines.join("\\n");
+        enrichment = "\n\nOutros fatos revisados pelo responsável (não auditados externamente):\n"
+          + lines.join("\n");
       }
       if (memory.conflictingFacts > 0) {
-        enrichment += "\\nExistem informações contraditórias não resolvidas; não as usei.";
+        enrichment += "\nExistem informações contraditórias não resolvidas; não as usei.";
       }
-      if (memory.truncated) enrichment += "\\nO contexto disponível foi resumido; consulte as fontes para detalhes.";
+      if (memory.truncated) enrichment += "\nO contexto disponível foi resumido; consulte as fontes para detalhes.";
     } catch {
       // Optional knowledge engine may not be migrated yet. Never invent facts.
-      enrichment = "\\n\\nFontes adicionais de conhecimento indisponíveis nesta sessão.";
+      enrichment = "\n\nFontes adicionais de conhecimento indisponíveis nesta sessão.";
     }
     return { reply: overview + enrichment, approval };
   }
