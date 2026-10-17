@@ -43,6 +43,9 @@ export async function loadCeoApprovedFacts(tenantId: string): Promise<CeoFactSna
     order by observed_at desc
     limit 101
   `, [tenantId]);
+  // An incomplete sample could hide contradictions outside the first page.
+  // Fail closed rather than promote partial graph knowledge as reliable.
+  if (rows.length > 100) return { facts: [], conflictingFacts: 0, truncated: true };
   const toIso = (value: Date | string | null) =>
     value ? new Date(value).toISOString() : null;
   const records: BusinessFactRecord[] = rows.slice(0,100).map((row) => ({
