@@ -45,7 +45,7 @@ export default function FamilyHome({ family }: { family: ProductFamilyId }) {
           </div>
           <div className={styles.productList}>
             {products.map((product, index) => (
-              <article className={styles.product} key={product.id}>
+              <article className={styles.product} key={product.id} data-product-id={product.id}>
                 <div className={styles.productIndex}>{String(index + 1).padStart(2,"0")} / {String(products.length).padStart(2,"0")}</div>
                 <div className={styles.productInfo}>
                   <h3>{product.title}</h3>
