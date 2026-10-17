@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@fontsource-variable/manrope/wght.css";
 import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/jetbrains-mono/wght.css";
 import "@fontsource-variable/space-grotesk/wght.css";
 import "@fontsource-variable/geist/wght.css";
 import "@fontsource-variable/geist-mono/wght.css";
@@ -13,6 +14,7 @@ import "./agesoma-conversation.css";
 import "./settings.css";
 import "./age-tokens.css";
 import "./age-product-bridge.css";
+import "./linear-midnight.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
