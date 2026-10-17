@@ -10,15 +10,16 @@ from opensandbox.config import ConnectionConfig
 
 BROWSER_SCRIPT = """
 from playwright.sync_api import sync_playwright
+from urllib.parse import quote
 import os
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
     page = browser.new_page()
     html = '<title>AGESOMA QA</title><h1 id="status">ready</h1><button id="go">Run</button><script>document.querySelector("#go").onclick = function() { document.querySelector("#status").textContent = "clicked"; }</script>'
-    page.goto("data:text/html," + html)
+    page.goto("data:text/html," + quote(html, safe=""))
     assert page.title() == 'AGESOMA QA', page.title()
     page.locator('#go').click()
-    assert page.locator('#status').inner_text() == 'clicked'
+    assert page.locator('#status').inner_text() == 'clicked', page.locator('#status').inner_text()
     screenshot = '/tmp/agesoma-browser-smoke.png'
     page.screenshot(path=screenshot)
     assert os.path.getsize(screenshot) > 1000
