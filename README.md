@@ -4,6 +4,8 @@
 
 # AGESOMA
 
+> **Design Instant instalado:** [`INSTDESIGN.MD`](INSTDESIGN.MD) v3.5.0 integral. A vitrine `/instant` consome tokens semânticos Instant; Dots mantém o próprio design, e o console antigo segue `AGEDESIGN.md`. Especificação ≠ motion/voz nativos executando em produção.
+
 > **Nova direção da plataforma · 17/10/2026 (PR #44, em desenvolvimento):** esta base evolui para atender à **família Instant primeiro** (InstantSpeak, InstantStudy, InstantBible) e **Dots depois** (iniciando por DotSpeak). O repositório AGESOMA continua abrigando a operação B2B legada e componentes técnicos compartilháveis, sem fundir marcas, logins, pagamentos ou bancos. A página pública proposta é `/instant` e o catálogo futuro é `/dots`. **Os apps externos ainda não estão integrados operacionalmente a esta plataforma.** Ver [PLATFORMDESIGN.md](PLATFORMDESIGN.md) e [arquitetura de famílias](docs/PLATFORM_INSTANT_DOTS.md).
 
 [![AGESOMA CI](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml/badge.svg)](https://github.com/raphaelribeirob/AGESOMA/actions/workflows/ci.yml)
