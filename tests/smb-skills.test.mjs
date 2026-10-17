@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   SMB_SKILLS, skillForArea, routeSmbOwnerRequest, parseLocalCsv,
-  analyzeCashCsv, analyzeLeadCsv
+  analyzeCashCsv, analyzeLeadCsv, buildLocalBusinessPulse, scopeReadOnlyConnector
 } from "../packages/core/src/smb-skills.ts";
 
 const root=path.resolve(import.meta.dirname,"..");
@@ -106,4 +106,39 @@ test("first value is visible before the eight-field survey and never transmits C
   const classes=[...new Set([...ui.matchAll(/styles\.([\w]+)/g)].map(m=>m[1]))];
   assert.ok(classes.length>15);
   for(const name of classes)assert.match(css,new RegExp("\\."+name+"(?=[\\s:.,{>])"),name);
+});
+
+test("CEO one-source pulse never invents revenue forecast or an audited cash balance",()=>{
+  const data=parseLocalCsv("data;tipo;valor\n2026-10-01;saida;900\n2026-10-02;entrada;100");
+  const pulse=buildLocalBusinessPulse(analyzeCashCsv(data));
+  assert.equal(pulse.status,"partial");
+  assert.equal(pulse.source,"local_csv");
+  assert.match(pulse.headline,/saídas registradas superam/);
+  assert.match(pulse.limits,/não conciliação financeira/);
+  const leads=parseLocalCsv("nome;status\nA;novo\nB;novo");
+  const leadPulse=buildLocalBusinessPulse(analyzeLeadCsv(leads,"2026-10-16"));
+  assert.match(leadPulse.headline,/não fornece sinais suficientes/);
+  assert.match(leadPulse.limits,/Nenhuma mensagem foi enviada/);
+});
+
+test("CTO connector only prepares read-only authorized plan without taking credentials",()=>{
+  const plan=scopeReadOnlyConnector("Bling","Ler pedidos pagos e não entregues diariamente");
+  assert.equal(plan.state,"proposal_only");
+  assert.equal(plan.desiredPermission,"read_only");
+  assert.equal(plan.approvalRequired,true);
+  assert.equal(plan.steps.length,4);
+  for(const phrase of [
+    ["ERP","Me envie sua senha: abc"],
+    ["https://erp.exemplo.com","Ler pedidos"],
+    ["ERP","Colocar token secret aqui"]
+  ])assert.throws(()=>scopeReadOnlyConnector(...phrase));
+  assert.throws(()=>scopeReadOnlyConnector("","Ler vendas"));
+});
+
+test("CEO frontend presents partial pulse and no-connection CTO proposal",()=>{
+  const ui=source("apps/web/app/workforce/ceo/ceo-quick-win.tsx");
+  assert.match(ui,/buildLocalBusinessPulse\(result\)/);
+  assert.match(ui,/scopeReadOnlyConnector\(systemName,readGoal\)/);
+  assert.match(ui,/Nenhuma ação externa foi realizada/);
+  assert.match(ui,/nenhuma conexão foi realizada/i);
 });
