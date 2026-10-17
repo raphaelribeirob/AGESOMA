@@ -14,7 +14,8 @@ import os
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
     page = browser.new_page()
-    page.goto('data:text/html,<title>AGESOMA QA</title><h1 id="status">ready</h1><button id="go" onclick="document.getElementById(\'status\').textContent=\'clicked\'">Run</button>')
+    html = '<title>AGESOMA QA</title><h1 id="status">ready</h1><button id="go">Run</button><script>document.querySelector("#go").onclick = function() { document.querySelector("#status").textContent = "clicked"; }</script>'
+    page.goto("data:text/html," + html)
     assert page.title() == 'AGESOMA QA', page.title()
     page.locator('#go').click()
     assert page.locator('#status').inner_text() == 'clicked'
