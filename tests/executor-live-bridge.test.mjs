@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID, createHmac, timingSafeEqual } from "node:crypto";
 import { test } from "node:test";
 import { verifyExecutorAttestation } from "../apps/web/lib/executive-executor-readiness.ts";
+import { runExecutorDiagnosticWithTransport, ExecutorDiagnosticError } from "../apps/web/lib/executive-executor-diagnostic.ts";
 
 const origin = process.env.AGESOMA_QA_EXECUTOR_ORIGIN ?? "http://127.0.0.1:8091";
 const secret = process.env.AGESOMA_EXECUTOR_ATTEST_SECRET;
@@ -90,4 +91,49 @@ test("executor refuses forged signature, unapproved action, invalid company IDs 
   }
   const invalidAttest=await post("/v1/attest",{protocol:"agesoma-executor-v1",nonce:"broken"});
   assert.equal(invalidAttest.status,400);
+});
+
+test("AGESOMA web diagnostic bridge verifies real sandbox receipt, session and offline scope",async()=>{
+  const nonce=randomBytes(24).toString("hex");
+  const attested=await post("/v1/attest",{protocol:"agesoma-executor-v1",nonce});
+  assert.equal(attested.status,200);
+  const check=verifyExecutorAttestation(attested.json,nonce,secret,Date.now());
+  assert.equal(check.ready,true);
+  if(!check.ready)throw new Error("four-sandbox attestation failed");
+  const tenantId=randomUUID();
+  const report=await runExecutorDiagnosticWithTransport({
+    tenantId,executive:"growth",expectedSessionId:check.sessionIds.growth,secret
+  },async body=>{
+    const res=await post("/v1/execute",body);
+    assert.equal(res.status,200,JSON.stringify(res.json));
+    return res.json;
+  });
+  assert.equal(report.tenantId,tenantId);
+  assert.equal(report.executive,"growth");
+  assert.equal(report.sessionId,check.sessionIds.growth);
+  assert.equal(report.verified,true);
+  assert.equal(report.scope,"offline_test_page_only");
+  assert.match(report.screenshotSha256,/^[a-f0-9]{64}$/);
+});
+
+test("AGESOMA client rejects tampered execution evidence and another session",async()=>{
+  const tenantId=randomUUID();
+  const ctx={tenantId,executive:"product",expectedSessionId:"session_known_not_pilot_1234",secret};
+  const invalid={
+    protocol:"agesoma-executor-v1",tenantId,taskId:randomUUID(),executive:"product",
+    action:"qa.browser",sessionId:ctx.expectedSessionId,status:"completed",
+    proof:{status:"success",browser:"chromium",dom:"executed",
+      image_sha256:"0".repeat(64),image_bytes:6000,external_actions:0},
+    finishedAt:new Date().toISOString()
+  };
+  for (const forged of [
+    {...invalid,signature:"0".repeat(64)},
+    {...invalid,signature:mac(invalid)},
+    {...invalid,sessionId:"session_other_123456789"}
+  ]){
+    await assert.rejects(
+      runExecutorDiagnosticWithTransport(ctx,async()=>forged),
+      e=>e instanceof ExecutorDiagnosticError && e.kind==="invalid_receipt"
+    );
+  }
 });
