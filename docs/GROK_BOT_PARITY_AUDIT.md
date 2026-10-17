@@ -2,6 +2,16 @@
 
 **Escopo:** AGESOMA PR #44 (`feat/agesoma-workforce-computers-20261016`) e documentação oficial Grok Bot consultada em 17/10/2026. **Resultado honesto: não existe paridade funcional de 100%.** Não foi usado o código, marca ou interface proprietária do Grok Bot.
 
+## Atualização — teste real de computador (17/10/2026)
+
+A capacidade básica do **motor OpenSandbox** foi comprovada em GitHub Actions Linux descartável:
+- [39003477252](https://github.com/raphaelribeirob/AGESOMA/actions/runs/39003477252): dois sandboxes Linux provisionados, comandos shell executados, arquivo escrito/lido em chamadas diferentes, arquivo de A não observado no B, cleanup concluído.
+- [39003745151](https://github.com/raphaelribeirob/AGESOMA/actions/runs/39003745151): Chromium **dentro do sandbox** abriu página HTML offline, executou JavaScript após clique, produziu PNG e foi destruído após o teste.
+- [Detalhes, matriz e bloqueios](EXECUTOR_LIVE_SMOKE_2026_10_17.md).
+
+**Não houve ativação de computadores dos quatro executivos no produto.** O projeto de homologação Vercel não tinha `AGESOMA_EXECUTOR_URL` nem `AGESOMA_EXECUTOR_ATTEST_SECRET` e continha zero Named Sandboxes. Sem serviço executor permanente, assinatura de sessão, dispatcher integrado, navegador associado à identidade/empresa, streaming e estado persistente, permanece **sem paridade Grok Bot**.
+
+
 ## Fontes primárias Grok Bot
 - https://docs.x.ai/grok-bot/overview
 - https://docs.x.ai/grok-bot/faq
