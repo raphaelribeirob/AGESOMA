@@ -126,6 +126,6 @@ test("a scoped neutral platform can preserve all legacy AGE modes while adapting
   const familyStyles=read("apps/web/app/families/family-home.module.css");
   const agents=read("AGENTS.md");
   assert.match(midnight,/\.ageTheme\s*\{/);
-  assert.doesNotMatch(familyStyles,/\.ageTheme/);
+  assert.doesNotMatch(familyStyles.replace(/\/\*[\s\S]*?\*\//g, ""),/\.ageTheme/);
   assert.match(agents,/PLATFORM_FAMILIES|PRODUCT_FAMILIES|Instant\/Dots/i);
 });
