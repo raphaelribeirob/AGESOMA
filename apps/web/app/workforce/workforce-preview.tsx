@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import styles from "./workforce-preview.module.css";
 import { WORKFORCE_PROFILES } from "./workforce-profiles";
 
@@ -13,15 +13,11 @@ const BUSINESS_SOURCES = [
   ["Dados financeiros", "Receitas, custos e indicadores"]
 ] as const;
 
-function WorkerAvatar({ tone, size = "regular" }: { tone: string; size?: "regular" | "large" }) {
+/** AGE/AgentCard uses a geometric monogram; not the Dots mascot or a voice orb. */
+function AgentMark({ initials, large = false }: { initials: string; large?: boolean }) {
   return (
-    <span
-      className={size === "large" ? styles.avatarLarge : styles.avatar}
-      style={{ "--worker-tone": tone } as CSSProperties}
-      aria-hidden="true"
-    >
-      <span className={styles.eye} />
-      <span className={styles.eye} />
+    <span className={large ? styles.avatarLarge : styles.avatar} aria-hidden="true">
+      <span>{initials}</span>
     </span>
   );
 }
@@ -33,22 +29,19 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
   const selected = WORKFORCE_PROFILES.find((worker) => worker.id === workerId) ?? WORKFORCE_PROFILES[0];
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ageTheme`}>
       <div className={styles.globalNotice} role="status">
         Prévia de produto — 4 agentes para 7 cargos executivos. Nenhum computador ou integração está ativo nesta tela.
       </div>
       <div className={styles.workspace}>
         <aside className={styles.sidebar} aria-label="Equipe do AGESOMA">
           <div className={styles.brand}>
-            <div className={styles.brandGlyph} aria-hidden="true">A</div>
-            <div>
-              <strong>AGESOMA</strong>
-              <span>Workforce OS</span>
-            </div>
+            <img src="/agesoma-wordmark-age.svg" alt="AGESOMA" className={styles.wordmark} width={197} height={13} />
+            <span className={styles.brandSubtitle}>WORKFORCE OS</span>
           </div>
 
           <div className={styles.workspaceBadge}>
-            <span className={styles.workspaceSymbol} aria-hidden="true">⌂</span>
+            <span className={styles.workspaceSymbol} aria-hidden="true">□</span>
             <div>
               <strong>{workspaceName}</strong>
               <span>Área empresarial</span>
@@ -65,12 +58,12 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
                 className={worker.id === selected.id ? styles.workerSelected : styles.workerButton}
                 aria-pressed={worker.id === selected.id}
               >
-                <WorkerAvatar tone={worker.tone} />
+                <AgentMark initials={worker.initials} />
                 <span className={styles.workerInfo}>
                   <strong>{worker.title}</strong>
                   <small>{worker.role}</small>
                 </span>
-                <span className={styles.plannedDot} role="img" aria-label="Computador ainda não provisionado" />
+                <span className={styles.plannedDot} role="img" aria-label="Computador não provisionado" />
               </button>
             ))}
           </nav>
@@ -86,8 +79,9 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
             <div>
               <div className={styles.eyebrow}>SUA EMPRESA, EM CONTEXTO</div>
               <h1>Uma equipe que entende seu negócio.</h1>
+              <p className={styles.intro}>Conecte o contexto da empresa antes de autorizar qualquer execução.</p>
             </div>
-            <span className={styles.previewTag}>Conceito funcional de navegação</span>
+            <a className={`${styles.demoButton} ageButton ageButtonPrimary`} href="/start#demonstracao">Ver demonstração</a>
           </header>
 
           <section className={styles.companySection} aria-label="Compreensão da empresa">
@@ -108,7 +102,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
               <div className={styles.sourceGrid}>
                 {BUSINESS_SOURCES.map(([label, description]) => (
                   <div key={label} className={styles.sourceCard}>
-                    <span className={styles.sourceIcon} aria-hidden="true">○</span>
+                    <span className={styles.sourceIcon} aria-hidden="true">□</span>
                     <span>
                       <strong>{label}</strong>
                       <small>{description}</small>
@@ -122,7 +116,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
 
           <section className={styles.agentPanel} aria-label="Agente selecionado">
             <div className={styles.agentIntro}>
-              <WorkerAvatar tone={selected.tone} size="large" />
+              <AgentMark initials={selected.initials} large />
               <div className={styles.agentTitle}>
                 <span className={styles.eyebrow}>AGENTE · {selected.role.toUpperCase()}</span>
                 <h2>{selected.title}</h2>
@@ -143,7 +137,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
                 <h3 style={{ marginTop: 24 }}>Trabalho que poderá executar</h3>
                 <div className={styles.chips}>{selected.tasks.map((item) => <span key={item}>{item}</span>)}</div>
                 <div className={styles.emptyActivity}>
-                  <span className={styles.emptyIcon} aria-hidden="true">↗</span>
+                  <span className={styles.emptyIcon} aria-hidden="true">—</span>
                   <strong>Nenhuma atividade registrada</strong>
                   <p>A primeira tarefa aparecerá aqui depois que o acesso aos sistemas e a execução forem implementados.</p>
                 </div>
@@ -154,12 +148,12 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
               <div className={styles.detailContent}>
                 <div className={styles.desktop} role="img" aria-label="Ilustração de computador planejado para este agente; ainda não existe sessão ativa">
                   <div className={styles.desktopToolbar}>
-                    <div className={styles.desktopDots}><i /><i /><i /></div>
+                    <div className={styles.desktopDots} aria-hidden="true"><i /><i /><i /></div>
                     <span>agesoma://computer/{selected.id}</span>
-                    <span className={styles.desktopLock}>PRÉVIA</span>
+                    <span className={styles.desktopLock}>NÃO ATIVO</span>
                   </div>
                   <div className={styles.desktopCenter}>
-                    <div className={styles.monitorSymbol} aria-hidden="true">▣</div>
+                    <div className={styles.monitorSymbol} aria-hidden="true">□</div>
                     <strong>Computador não provisionado</strong>
                     <p>Futuramente: sessão isolada por agente, visão ao vivo, pausa e tomada de controle mediante autorização.</p>
                   </div>
@@ -193,7 +187,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
             <div><strong>0</strong><span>Computadores provisionados</span></div>
           </div>
           <div className={styles.activityBox}>
-            <div className={styles.placeholderIcon} aria-hidden="true">◷</div>
+            <div className={styles.placeholderIcon} aria-hidden="true">—</div>
             <strong>Sem trabalho iniciado</strong>
             <p>Ordens de trabalho, aprovações, passos auditados e resultados verificados aparecerão nesta coluna.</p>
           </div>
