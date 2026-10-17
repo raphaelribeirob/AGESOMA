@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   DEFAULT_AGENT_PACKAGE,
+  isCeoBusinessQuestion,
+  answerCeoBusinessQuestion,
   agentTemplateForPlan,
   buildCapabilityScope,
   decideExecutor,
@@ -17,6 +19,7 @@ import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
 import { approvalCard } from "../../../lib/approval-card";
 import { appendConversationMessage, resolveConversationThread } from "../../../lib/conversation";
 import { ensurePersistentWorker } from "../../../lib/persistent-worker";
+import { loadConfirmedCompanyProfile } from "../../../lib/ceo-context";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
@@ -280,13 +283,18 @@ function asksAboutConnections(message: string) {
 }
 
 async function answerQuestion(tenantId: string, message: string) {
-  const [state, facts, approval, personalContext, connections] = await Promise.all([
+  const [state, facts, approval, personalContext, connections, companyProfile] = await Promise.all([
     snapshot(tenantId),
     searchBrain(tenantId, message),
     firstApproval(tenantId),
     activePersonalContext(tenantId),
-    activeConnections(tenantId)
+    activeConnections(tenantId),
+    loadConfirmedCompanyProfile(tenantId)
   ]);
+
+  if (isCeoBusinessQuestion(message)) {
+    return { reply: answerCeoBusinessQuestion(message, companyProfile), approval };
+  }
 
   if (asksAboutAgents(message)) {
     return {
@@ -338,6 +346,15 @@ async function answerQuestion(tenantId: string, message: string) {
 }
 
 async function createWork(tenantId: string, actorId: string, role: string, message: string, threadId?:string|null) {
+  // CEO-first setup is mandatory for NEW work, never for handling existing approvals.
+  // This deliberately does not provision a sandbox, spend tokens, or grant permissions.
+  const profile = await loadConfirmedCompanyProfile(tenantId);
+  if (!profile) {
+    return {
+      reply: "Antes de executar tarefas, preciso conhecer sua empresa. Abra /workforce/ceo, cadastre o negócio e confirme o contexto com o responsável. Nenhuma tarefa foi criada.",
+      approval: await firstApproval(tenantId)
+    };
+  }
   let plan;
   try {
     plan = routeBusinessRequest(message);
@@ -627,7 +644,7 @@ export async function POST(req: Request) {
     content:parsed.data.message
   });
 
-  const result = looksLikeQuestion(parsed.data.message) && !isPaidMediaRequest(parsed.data.message)
+  const result = (looksLikeQuestion(parsed.data.message) || isCeoBusinessQuestion(parsed.data.message)) && !isPaidMediaRequest(parsed.data.message)
     ? await answerQuestion(authenticated.tenantId, parsed.data.message)
     : await createWork(
         authenticated.tenantId,
