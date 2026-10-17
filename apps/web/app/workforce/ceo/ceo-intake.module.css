@@ -52,3 +52,10 @@
 @media (prefers-reduced-motion: reduce) {
   .page *, .page *::before, .page *::after { animation: none; transition: none; }
 }
+
+.brief { margin-top: 24px; padding: 20px 16px; background: var(--age-surface); border: 1px solid var(--age-border); border-radius: var(--age-radius-card); overflow-wrap: anywhere; }
+.brief h3 { color: var(--age-ink); font-size: 16px; line-height: 24px; font-weight: 500; }
+.brief dl { display: grid; gap: 8px; margin: 20px 0 0; }
+.brief dt { color: var(--age-muted); font-size: 12px; line-height: 16px; font-weight: 500; }
+.brief dd { margin: 0 0 16px; font-size: 14px; line-height: 22px; white-space: pre-wrap; color: var(--age-text); }
+.brief p { color: var(--age-muted); font-size: 12px; line-height: 20px; }
