@@ -75,6 +75,14 @@ export async function GET() {
   const workspace = await resolveAuthenticatedWorkspace();
   if (!workspace) return err("Sessão inválida.", 401);
   const [row] = await ownRow(workspace.tenantId);
+  if (!canEdit(workspace.role)) {
+    const attrs = parseAttributes(row?.attributes);
+    // A colleague can view confirmed company context, not the owner's unreviewed draft.
+    if (!attrs || attrs.review?.status !== "owner_confirmed"
+        || attrs.review.fingerprint !== attrs.fingerprint) {
+      return responseFor(undefined, false);
+    }
+  }
   return responseFor(row, canEdit(workspace.role));
 }
 
