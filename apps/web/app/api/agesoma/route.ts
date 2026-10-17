@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   DEFAULT_AGENT_PACKAGE,
+  executiveOwnerForCapability,
   isCeoBusinessQuestion,
   answerCeoBusinessQuestion,
   routeSmbOwnerRequest,
@@ -428,6 +429,13 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   }
   // No database status or namespace is proof that a real cloud computer exists.
   // The trusted executor must attest to four distinct live agent sessions.
+  const executiveOwner = selectedAgent ? executiveOwnerForCapability(selectedAgent.template_key) : null;
+  if (selectedAgent && !executiveOwner) {
+    return {
+      reply: "Não existe um agente executivo responsável por esta especialidade. Nenhuma tarefa foi criada até definirmos atribuição segura.",
+      approval: await firstApproval(tenantId)
+    };
+  }
   const executorReadiness = selectedAgent
     ? await probeExecutiveExecutor(process.env.AGESOMA_EXECUTOR_URL, process.env.AGESOMA_EXECUTOR_ATTEST_SECRET)
     : null;
@@ -488,6 +496,11 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     operation: plan.operation,
     coordination: decision,
     digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
+    executiveWorker: executiveOwner && executorReadiness?.ready ? {
+      id: executiveOwner,
+      attestedSessionId: executorReadiness.sessionIds[executiveOwner],
+      provenance: "signed_runtime_attestation_only_not_execution_proof"
+    } : null,
     persistentWorker: selectedWorker ? {
       id: selectedWorker.id,
       key: selectedWorker.worker_key,
