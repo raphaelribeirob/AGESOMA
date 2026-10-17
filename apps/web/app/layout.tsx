@@ -17,8 +17,8 @@ import "./age-product-bridge.css";
 import "./linear-midnight.css";
 
 export const metadata: Metadata = {
-  title: "AGESOMA",
-  description: "Agentes operacionais que sua empresa configura e contrata online."
+  title: "Instant — plataforma de produtos",
+  description: "Produtos Instant e futura família Dots, com serviços reutilizáveis e identidades independentes."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
