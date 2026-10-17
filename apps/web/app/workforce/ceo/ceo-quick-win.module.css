@@ -39,3 +39,9 @@
 @media(max-width:1023px) { .choices { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:599px) { .root { padding: 20px 16px; } .heading h2 { font-size: 24px; line-height: 32px; } .choices,.leadList { grid-template-columns: minmax(0,1fr); } .choice,.chosen { min-height: 64px; } .result dl { grid-template-columns: 1fr; } .workArea > button { justify-self: stretch; } .result { padding: 16px; } }
 @media(prefers-reduced-motion: reduce) { .root *, .root *::before, .root *::after { animation: none; transition: none; scroll-behavior: auto; } }
+
+.pulse { padding: 24px; border-left: 3px solid var(--age-accent); background: var(--age-surface-subtle); display: grid; gap: 10px; }
+.pulse h4 { font: 500 18px/24px var(--age-font-display); color: var(--age-ink); margin: 0; }
+.pulse p { color: var(--age-text); font-size: 14px; line-height: 22px; margin: 0; }
+.pulse strong { color: var(--age-ink); font-weight: 500; }
+.pulse small { color: var(--age-muted); font-size: 12px; line-height: 20px; }
