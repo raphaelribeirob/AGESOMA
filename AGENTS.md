@@ -4,7 +4,7 @@ This document applies to all software-building agents working on this repository
 
 ## Product contract to read first
 
-**PLATFORM_FAMILIES / PRODUCT_FAMILIES (2026-10-17):** This repository is the opt-in shared platform for **Instant first**, then **Dots**. See [architecture and migration contract](docs/PLATFORM_INSTANT_DOTS.md). InstantSpeak, InstantStudy, InstantBible and DotSpeak remain independent repos with their own `DESIGN.md`, identity, entitlements and release processes. The AGESOMA `AGE` dark/Linear-inspired styling is **legacy-console only**; never apply it to Instant or Dots mobile apps by default. Do not move data or billing scopes across apps without server-verified entitlement and consent.
+**PLATFORM_FAMILIES / PRODUCT_FAMILIES (2026-10-17):** Read [PLATFORMDESIGN.md](PLATFORMDESIGN.md) first.  This repository is the opt-in shared platform for **Instant first**, then **Dots**. See [architecture and migration contract](docs/PLATFORM_INSTANT_DOTS.md). InstantSpeak, InstantStudy, InstantBible and DotSpeak remain independent repos with their own `DESIGN.md`, identity, entitlements and release processes. The AGESOMA `AGE` dark/Linear-inspired styling is **legacy-console only**; never apply it to Instant or Dots mobile apps by default. Do not move data or billing scopes across apps without server-verified entitlement and consent.
 
 
 0. [AGEDESIGN v1.2](AGEDESIGN.md): only for the legacy AGESOMA console and AGE surfaces, **not the Instant/Dots family designs**. Midnight Precision is an internal console style; do not copy third-party assets. Use four executive agents CEO+COO, CFO, CMO+CRO and CTO+CPO on the Workforce surface; keep legacy specialist capabilities internal until migration.
