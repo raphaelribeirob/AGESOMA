@@ -156,11 +156,15 @@ async def execute(request):
         try:
             import base64
             script=base64.b64encode(OFFLINE_BROWSER.encode()).decode()
-            cmd='python3 -c "import base64;exec(base64.b64decode(\''+script+'\'))"'
+            cmd=f"python3 -c 'import base64;exec(base64.b64decode(\"{script}\"))'"
             result=await service.sandboxes[body["executive"]].commands.run(cmd)
             output="".join(x.text for x in result.logs.stdout)
             lines=[x.split("AGESOMA_DIAGNOSTIC=",1)[1] for x in output.splitlines() if "AGESOMA_DIAGNOSTIC=" in x]
-            if len(lines)!=1: raise RuntimeError("browser receipt missing")
+            if len(lines)!=1:
+                if os.environ.get("AGESOMA_QA_VERBOSE_ERRORS")=="1":
+                    stderr="".join(x.text for x in result.logs.stderr)
+                    print("QA_BROWSER_STDERR: "+stderr[:950].replace("\\n"," "),flush=True)
+                raise RuntimeError("browser receipt missing")
             detail=json.loads(lines[0])
             if detail.get("status")!="success" or detail.get("dom")!="executed":
                 raise RuntimeError("browser failed")
