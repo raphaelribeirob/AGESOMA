@@ -393,3 +393,15 @@
   .workerButton, .workerSelected, .tab, .tabSelected { transition: none; }
   .roster { scroll-snap-type: none; scroll-behavior: auto; }
 }
+
+/* Midnight: low-noise agent workspace, no bogus glow or active-desktop state. */
+.sidebar,.activity { background: var(--age-surface); }
+.companySection,.agentPanel,.desktop,.trust,.sourceCard,.accessList div {
+  border-width: .5px; border-color: var(--age-border-subtle); box-shadow: none;
+}
+.companySection,.agentPanel { background: var(--age-surface-subtle); }
+.companyHeader,.tab,.tabSelected,.desktopToolbar { background: var(--age-surface-subtle); }
+.sourceCard,.emptyActivity,.activityBox,.desktop { background: var(--age-panel); }
+.workerSelected { border-color: var(--age-accent); background: var(--age-panel); }
+.shell,.main { letter-spacing: -.010em; }
+.topbar h1 { letter-spacing: -.022em; font-weight: 510; }
