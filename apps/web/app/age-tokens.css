@@ -17,8 +17,8 @@
   --age-success: #146c43;
   --age-warning: #995a00;
   --age-danger: #b42318;
-  --age-font-display: "Manrope", "Inter", "Geist Variable", system-ui, sans-serif;
-  --age-font-ui: "Inter", "Geist Variable", system-ui, sans-serif;
+  --age-font-display: "Manrope Variable", "Manrope", "Inter Variable", "Inter", "Geist Variable", system-ui, sans-serif;
+  --age-font-ui: "Inter Variable", "Inter", "Geist Variable", system-ui, sans-serif;
   --age-font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --age-space-1: 4px;
   --age-space-2: 8px;
