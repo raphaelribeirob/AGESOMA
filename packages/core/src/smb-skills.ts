@@ -29,8 +29,8 @@ export const SMB_SKILLS: readonly SmbSkill[] = [
     userPromise: "Soma entradas/saídas históricas de CSV; sem saldo bancário ou previsão." },
   { id: "lead-triage", owner: "growth", state: "active_local_only", externalSideEffects: false,
     userPromise: "Organiza leads fornecidos em CSV sem envio nem atualização de CRM." },
-  { id: "build-connector", owner: "product", state: "planned", externalSideEffects: false,
-    userPromise: "Explica fontes e autorizações necessárias; não conecta sistemas." }
+  { id: "build-connector", owner: "product", state: "partial", externalSideEffects: false,
+    userPromise: "Prepara escopo de leitura e aprovação; não conecta sistemas." }
 ] as const;
 
 export function skillForArea(area: SmbArea): SmbSkillId {
@@ -236,5 +236,35 @@ export function buildLocalBusinessPulse(snapshot: CashSnapshot | LeadSnapshot): 
       : "O arquivo não fornece sinais suficientes para priorizar contatos automaticamente.",
     nextStep:"Verificar status e datas dos contatos e autorizar uma consulta ao CRM antes de qualquer abordagem.",
     limits:"Nenhuma mensagem foi enviada; os dados podem estar incompletos ou desatualizados."
+  };
+}
+
+export type ProposedConnectorScope = {
+  state:"proposal_only";
+  system:string;
+  readObjective:string;
+  desiredPermission:"read_only";
+  approvalRequired:true;
+  steps:readonly string[];
+};
+/** Local planning only; no network, OAuth, credentials, or remote discovery. */
+export function scopeReadOnlyConnector(system:string,readObjective:string):ProposedConnectorScope {
+  const trimmedSystem=system.trim(),trimmedObjective=readObjective.trim();
+  if(trimmedSystem.length<2||trimmedSystem.length>100 || trimmedObjective.length<10||trimmedObjective.length>300)
+    throw new Error("Informe o nome do sistema e um objetivo específico de leitura.");
+  if(/https?:\/\/|@|\b(password|senha|token|secret|api[_ -]?key)\b/i.test(trimmedSystem+" "+trimmedObjective))
+    throw new Error("Não inclua links, credenciais, senhas ou tokens.");
+  return {
+    state:"proposal_only",
+    system:trimmedSystem,
+    readObjective:trimmedObjective,
+    desiredPermission:"read_only",
+    approvalRequired:true,
+    steps:[
+      "Verificar se existe um conector oficial ou exportação CSV do sistema escolhido.",
+      "Definir escopo mínimo de leitura e revisão das informações da PME.",
+      "Solicitar autorização explícita do proprietário antes de qualquer OAuth ou acesso.",
+      "Testar a primeira leitura e pedir confirmação da origem e correção dos dados."
+    ]
   };
 }
