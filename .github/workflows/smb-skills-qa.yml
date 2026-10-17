@@ -7,6 +7,14 @@ on:
     paths:
       - "packages/core/src/smb-skills.ts"
       - "packages/core/src/index.ts"
+      - "packages/core/src/product-families.ts"
+      - "packages/core/src/platform-adapter-policy.ts"
+      - "apps/web/app/instant/**"
+      - "apps/web/app/dots/**"
+      - "apps/web/app/families/**"
+      - "apps/web/app/page.tsx"
+      - "tests/product-families.test.mjs"
+      - "docs/PLATFORM_INSTANT_DOTS.md"
       - "apps/web/app/workforce/ceo/**"
       - "apps/web/app/workforce/workforce-preview.module.css"
       - "apps/web/app/start/**"
@@ -26,6 +34,14 @@ on:
     paths:
       - "packages/core/src/smb-skills.ts"
       - "packages/core/src/index.ts"
+      - "packages/core/src/product-families.ts"
+      - "packages/core/src/platform-adapter-policy.ts"
+      - "apps/web/app/instant/**"
+      - "apps/web/app/dots/**"
+      - "apps/web/app/families/**"
+      - "apps/web/app/page.tsx"
+      - "tests/product-families.test.mjs"
+      - "docs/PLATFORM_INSTANT_DOTS.md"
       - "apps/web/app/workforce/ceo/**"
       - "apps/web/app/workforce/workforce-preview.module.css"
       - "apps/web/app/start/**"
@@ -57,7 +73,7 @@ jobs:
         with:
           node-version: "24"
       - name: Execute local-first, zero-token tests
-        run: node --test tests/smb-skills.test.mjs tests/midnight-style.test.mjs tests/agedesign-acceptance.test.mjs tests/workforce-ui.test.mjs
+        run: node --test tests/smb-skills.test.mjs tests/midnight-style.test.mjs tests/agedesign-acceptance.test.mjs tests/workforce-ui.test.mjs tests/product-families.test.mjs
       - name: Verify CEO-first integration tests
         run: node --test tests/ceo-first-setup.test.mjs tests/ceo-companion.test.mjs
 
