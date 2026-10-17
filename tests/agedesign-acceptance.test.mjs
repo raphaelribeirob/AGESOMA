@@ -108,7 +108,7 @@ test("there are no legacy Dot-eyes, looping agent avatars or fabricated voice ac
   assert.match(app, /recognition\.onstart=\(\)=>setListening\(true\)/);
   assert.doesNotMatch(app, /setListening\(true\);\s*recognition\.start/);
   assert.match(workforce, /Computador não provisionado/);
-  assert.match(workforce, /Nenhum computador ou integração está ativo/);
+  assert.match(workforce, /Nenhum computador executivo verificado/);
   assert.match(tokens, /prefers-reduced-motion: reduce/);
   assert.match(bridge, /prefers-reduced-motion: reduce/);
   assert.match(midnight, /prefers-reduced-motion: reduce/);
