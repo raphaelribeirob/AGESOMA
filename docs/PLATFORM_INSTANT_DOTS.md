@@ -1,5 +1,7 @@
 # Plataforma compartilhada — Instant primeiro, Dots depois
 
+> **Design atualizado (17/10/2026):** a cópia integral [`INSTDESIGN.MD v3.5.0`](../INSTDESIGN.MD) é a fonte normativa de design compartilhada para a família Instant. A paleta do catálogo `/instant` foi ligada aos tokens do §2.2/§2.4. O design Dots, o `AGEDESIGN.md` do console AGE e as marcas individuais não mudam; assets de motion, Rive e testes nativos permanecem pendentes.
+
 **Decisão de arquitetura:** 17/10/2026  
 **Estado:** manifesto e páginas de catálogo implementados na PR #44; **nenhuma migração de aplicativo, login, billing, banco, branding mobile ou execução operacional concluída**.
 
