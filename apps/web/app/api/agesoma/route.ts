@@ -21,6 +21,7 @@ import { approvalCard } from "../../../lib/approval-card";
 import { appendConversationMessage, resolveConversationThread } from "../../../lib/conversation";
 import { ensurePersistentWorker } from "../../../lib/persistent-worker";
 import { loadConfirmedCompanyProfile } from "../../../lib/ceo-context";
+import { loadCeoApprovedFacts } from "../../../lib/ceo-approved-facts";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
@@ -294,7 +295,27 @@ async function answerQuestion(tenantId: string, message: string) {
   ]);
 
   if (isCeoBusinessQuestion(message)) {
-    return { reply: answerCeoBusinessQuestion(message, companyProfile), approval };
+    const overview = answerCeoBusinessQuestion(message, companyProfile);
+    // A reviewed company intake is mandatory before knowledge-enrichment.
+    if (!companyProfile) return { reply: overview, approval };
+    let enrichment = "";
+    try {
+      const memory = await loadCeoApprovedFacts(tenantId);
+      const lines = memory.facts.map((fact) =>
+        `• ${fact.key}: ${fact.value} (referência: ${fact.source}; observado em ${fact.observedAt})`);
+      if (lines.length) {
+        enrichment = "\\n\\nOutros fatos revisados pelo responsável (não auditados externamente):\\n"
+          + lines.join("\\n");
+      }
+      if (memory.conflictingFacts > 0) {
+        enrichment += "\\nExistem informações contraditórias não resolvidas; não as usei.";
+      }
+      if (memory.truncated) enrichment += "\\nO contexto disponível foi resumido; consulte as fontes para detalhes.";
+    } catch {
+      // Optional knowledge engine may not be migrated yet. Never invent facts.
+      enrichment = "\\n\\nFontes adicionais de conhecimento indisponíveis nesta sessão.";
+    }
+    return { reply: overview + enrichment, approval };
   }
 
   if (asksAboutAgents(message)) {
