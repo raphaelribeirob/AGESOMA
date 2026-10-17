@@ -59,7 +59,7 @@ test("every CSS module class used by the actual workforce component exists", () 
 test("the UI describes a preview, not running agents or provisioned computers", () => {
   assert.match(ui, /Prévia de produto/);
   assert.match(ui, /4 agentes para 7 cargos/);
-  assert.match(ui, /Nenhum computador ou integração está ativo/);
+  assert.match(ui, /Nenhum computador executivo verificado/);
   assert.match(ui, /Computador não provisionado/);
   assert.doesNotMatch(ui, />ISOLADO</);
   assert.match(ui, /aria-pressed=\{worker.id === selected.id\}/);
