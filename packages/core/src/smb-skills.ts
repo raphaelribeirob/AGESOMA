@@ -84,6 +84,7 @@ export function parseLocalCsv(input: string): TabularData {
   if (quoted) throw new Error("Aspas não fechadas.");
   row.push(cell.trim());
   if (row.some(Boolean)) rows.push(row);
+  if (rows.length > 1001) throw new Error("Limite de 1.000 linhas por análise.");
   if (rows.length < 2) throw new Error("Inclua cabeçalho e ao menos uma linha.");
   const headers = rows.shift()!.map((h) => h.toLowerCase().normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, "_"));
