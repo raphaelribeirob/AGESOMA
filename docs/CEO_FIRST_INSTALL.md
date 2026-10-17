@@ -1,6 +1,6 @@
 # AGESOMA — instalação CEO First / equipe pronta para PMEs
 
-Data: 2026-10-16
+> **Atualização:** o CEO agora apresenta uma primeira análise local de CSV (caixa/leads) **antes** do formulário de oito campos. A execução de novas tarefas e memória confirmada continuam exigindo revisão do proprietário. Ver [SMB_SKILLS_INCORPORATION.md](SMB_SKILLS_INCORPORATION.md).\n\nData: 2026-10-16
 Status: **código do primeiro fluxo integrado na PR #44; NÃO implantado em produção**.
 
 ## Produto definido
