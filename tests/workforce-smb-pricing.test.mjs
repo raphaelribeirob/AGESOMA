@@ -27,7 +27,7 @@ test("cost USD $0.05 converts to R$0.275 with illustrative FX and 10% buffer -> 
   assert.equal(r.customerCreditsCentsBrl, 76n);
 });
 
-test("R$0.03 price for a tiny US$0.0027-only text call is computed in BRL without early USD-cent rounding", () => {
+test("R$0.05 price for a tiny US$0.0027-only text call is computed in BRL without early USD-cent rounding", () => {
   const r = quoteBrlWorkCredits(2700n,5500000,6000,1000);
   assert.equal(r.providerCostMicroBrl, 14850n);
   assert.equal(r.customerCreditsCentsBrl, 5n);
