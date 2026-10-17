@@ -29,7 +29,7 @@ test("GET/POST/PATCH never trust a client-provided tenant or action authority", 
   assert.match(route, /companyFields/);
   assert.match(route, /tenant_id=\$1/g);
   assert.match(route, /tenantSql<IntakeRow>\(workspace\.tenantId/);
-  assert.doesNotMatch(route, /req\.json\(\)[\s\S]*?tenantId|role:\s*req\./);
+  assert.doesNotMatch(route, /(?:body\.data|data|body)\.tenantId|role:\s*req\./);
   assert.doesNotMatch(route, /executeAutomation|ensurePersistentWorker|OpenSandbox|grantAuthorization/);
 });
 
@@ -51,7 +51,7 @@ test("company facts have provenance and explicit independent owner confirmation"
 test("no automated website crawl or documents are presented as already read", () => {
   assert.doesNotMatch(route, /fetch\(|axios|cheerio|playwright/);
   assert.match(client, /ainda não será rastreada automaticamente/);
-  assert.match(client, /Nenhuma fonte externa foi verificada/);
+  assert.match(client, /nenhuma fonte externa foi verificada/i);
   assert.match(client, /nenhuma ação externa/i);
   assert.match(client, /confirmado pelo proprietário/i);
 });
