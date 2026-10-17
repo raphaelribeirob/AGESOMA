@@ -8,6 +8,7 @@ const ui = readFileSync(path.join(dir, "workforce-preview.tsx"), "utf8");
 const css = readFileSync(path.join(dir, "workforce-preview.module.css"), "utf8");
 const profiles = readFileSync(path.join(dir, "workforce-profiles.ts"), "utf8");
 const ageTokens = readFileSync(path.resolve(dir, "../age-tokens.css"), "utf8");
+const midnight = readFileSync(path.resolve(dir, "../linear-midnight.css"), "utf8");
 
 function luminance(color) {
   const hex = color.replace(/^#/, "");
@@ -24,13 +25,16 @@ function contrast(a, b) {
   return (high + 0.05) / (low + 0.05);
 }
 
-function resolveColor(value) {
+function resolveColor(value, seen = new Set()) {
   if (value.startsWith("#")) return value;
-  const name = value.match(/^var\((--age-[\w-]+)\)$/)?.[1];
-  assert.ok(name, `Unsupported color ${value}`);
-  const match = ageTokens.match(new RegExp(name + "\\s*:\\s*(#[0-9a-f]{6})\\s*;", "i"));
-  assert.ok(match, `Missing AGE token ${name}`);
-  return match[1];
+  const name = value.match(/^var\((--(?:age|color)-[\w-]+)\)$/)?.[1];
+  assert.ok(name, "Unsupported color " + value);
+  assert.ok(!seen.has(name), "Circular alias " + name);
+  seen.add(name);
+  const matcher = new RegExp(name + "\\s*:\\s*(#[0-9a-f]{6}|var\\(--[a-z-]+\\))\\s*;", "i");
+  const match = midnight.match(matcher) ?? ageTokens.match(matcher);
+  assert.ok(match, "Missing Midnight or AGE token " + name);
+  return resolveColor(match[1], seen);
 }
 
 function cssColorFor(selector) {
@@ -63,14 +67,14 @@ test("the UI describes a preview, not running agents or provisioned computers", 
   assert.match(ui, /role="img" aria-label="Computador não provisionado"/);
 });
 
-test("secondary small text meets WCAG AA contrast on white and near-white surfaces", () => {
+test("secondary text meets WCAG AA contrast on all Midnight surfaces", () => {
   for (const selector of [
     ".eyebrow", ".workerInfo small", ".sourceCard small", ".sourceCard em",
     ".companyHeader small", ".statusText", ".emptyActivity p", ".activityBox p",
     ".trust p", ".caution", ".desktopCenter p"
   ]) {
     const color = cssColorFor(selector);
-    for (const surface of ["#ffffff", "#eeeeee"]) {
+    for (const surface of ["#08090a", "#0f1011", "#161718"]) {
       assert.ok(contrast(color, surface) >= 4.5,
         `${selector} color ${color} contrasts ${contrast(color, surface).toFixed(2)}:1 vs ${surface}`);
     }
@@ -96,6 +100,7 @@ test("AGE identity has no eye-shaped Dot mascot, fake orb or idle loop", () => {
   assert.doesNotMatch(ui, /WorkerAvatar|styles\.eye\b|\bOrb\b/);
   assert.doesNotMatch(css, /@keyframes presence|animation: presence|radial-gradient/);
   assert.match(ui, /agesoma-wordmark-age\.svg/);
+  assert.match(midnight, /brightness\(0\) invert\(1\)/);
   assert.match(css, /--age-radius-card/);
   assert.match(css, /--age-accent/);
   assert.match(css, /\.demoButton/);
