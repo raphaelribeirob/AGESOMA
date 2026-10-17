@@ -37,6 +37,10 @@ alter table goals add constraint goals_progress_check check (progress >= 0 and p
 alter table goals drop constraint if exists goals_source_check;
 alter table goals add constraint goals_source_check check (source in ('user','assistant','connected_service'));
 
+-- Fresh databases created from 0001_init do not yet have goals.updated_at.
+-- Add it idempotently before creating the index; later migrations may reuse it.
+alter table goals add column if not exists updated_at timestamptz not null default now();
+
 create index if not exists goals_tenant_status_priority_idx
   on goals (tenant_id,status,priority,updated_at desc);
 
