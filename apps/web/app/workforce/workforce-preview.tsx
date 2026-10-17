@@ -22,7 +22,7 @@ function AgentMark({ initials, large = false }: { initials: string; large?: bool
   );
 }
 
-export default function WorkforcePreview({ workspaceName }: { workspaceName: string }) {
+export default function WorkforcePreview({ workspaceName, runtimeStatus }: { workspaceName: string; runtimeStatus: "attested" | "unavailable" }) {
   const [workerId, setWorkerId] = useState(WORKFORCE_PROFILES[0].id);
   const [section, setSection] = useState<Section>("missao");
   const [companyOpen, setCompanyOpen] = useState(true);
@@ -31,7 +31,9 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
   return (
     <div className={`${styles.shell} ageTheme`}>
       <div className={styles.globalNotice} role="status">
-        Prévia de produto — 4 agentes para 7 cargos executivos. Nenhum computador ou integração está ativo nesta tela.
+        Prévia de produto — 4 agentes para 7 cargos executivos. {runtimeStatus === "attested"
+          ? "Infraestrutura remota atestada; integração das tarefas, autorização e sessões executivas ainda exige testes reais."
+          : "Nenhum computador executivo verificado. Esta tela não executa tarefas."}
       </div>
       <div className={styles.workspace}>
         <aside className={styles.sidebar} aria-label="Equipe do AGESOMA">
@@ -120,7 +122,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
               <div className={styles.agentTitle}>
                 <span className={styles.eyebrow}>AGENTE · {selected.role.toUpperCase()}</span>
                 <h2>{selected.title}</h2>
-                <span className={styles.statusText}><span className={styles.plannedDot} /> Planejado · sem tarefas em execução</span>
+                <span className={styles.statusText}><span className={styles.plannedDot} /> {runtimeStatus === "attested" ? "Executor verificado · execução ainda não comprovada" : "Planejado · sem execução verificada"}</span>
               </div>
             </div>
             <div className={styles.tabs} role="group" aria-label="Detalhes do agente">
@@ -151,7 +153,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
                   <div className={styles.desktopToolbar}>
                     <div className={styles.desktopDots} aria-hidden="true"><i /><i /><i /></div>
                     <span>agesoma://computer/{selected.id}</span>
-                    <span className={styles.desktopLock}>NÃO ATIVO</span>
+                    <span className={styles.desktopLock}>{runtimeStatus === "attested" ? "SEM SESSÃO EXIBÍVEL" : "NÃO ATIVO"}</span>
                   </div>
                   <div className={styles.desktopCenter}>
                     <div className={styles.monitorSymbol} aria-hidden="true">□</div>
