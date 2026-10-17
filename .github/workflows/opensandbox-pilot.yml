@@ -20,6 +20,8 @@ jobs:
           node-version: "24"
       - name: Validate install scripts and generated TOML without Docker
         run: node --test tests/opensandbox-install.test.mjs
+      - name: Validate four agent governance and role mapping
+        run: node --test tests/workforce-roles.test.mjs
       - uses: astral-sh/setup-uv@v6
       - name: Confirm Linux Docker prerequisites
         run: bash scripts/opensandbox/install.sh check
