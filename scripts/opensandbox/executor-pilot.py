@@ -36,9 +36,9 @@ with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
     try:
         page = browser.new_page()
-        html = '<title>AGESOMA Diagnóstico</title><h1 id="status">waiting</h1><button id="go">Executar</button><script>document.querySelector("#go").onclick = function(){document.querySelector("#status").textContent = "executed";}</script>'
+        html = '<meta charset="utf-8"><title>AGESOMA QA</title><h1 id="status">waiting</h1><button id="go">Executar</button><script>document.querySelector("#go").onclick = function(){document.querySelector("#status").textContent = "executed";}</script>'
         page.goto("data:text/html," + quote(html, safe=""))
-        assert page.title() == "AGESOMA Diagnóstico"
+        assert page.title() == "AGESOMA QA"
         page.locator("#go").click()
         assert page.locator("#status").inner_text() == "executed"
         image = "/tmp/agesoma-diagnostic.png"
