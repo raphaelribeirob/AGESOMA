@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "./ceo-intake.module.css";
+import CeoCompanion from "./ceo-companion";
 
 type IntakeFields = {
   companyName: string;
@@ -210,6 +211,7 @@ export default function CeoIntake({ workspaceName }: { workspaceName: string }) 
             <p className={styles.warning}>Sem documentos verificados ou integrações ativas, as respostas não devem ser tratadas como auditoria da empresa. Nenhuma ação externa é iniciada.</p>
           </aside>
         </div>
+        {confirmed && <CeoCompanion profile={fields} />}
       </div>
     </main>
   );
