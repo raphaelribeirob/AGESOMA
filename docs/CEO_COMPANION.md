@@ -29,10 +29,10 @@ Primeira experiência: o proprietário apresenta a empresa, o CEO reúne fatos c
 
 Arquivos: `apps/web/app/workforce/ceo/{ceo-intake.tsx,ceo-brief.ts,ceo-companion.tsx,ceo-companion.module.css}`; testes em `tests/ceo-companion.test.mjs`.
 
-### P1 — Conversa com memória do negócio (NÃO implementado)
-- Criar endpoint de leitura autenticada do briefing confirmado, renderizando visão da empresa com permissão de acesso, marcação de fonte, validade e conflito.
-- Injetar no *gateway do CEO*, nunca indiscriminadamente no prompt de todos os trabalhadores, um resumo minificado e revisado pelo dono; prompt injection em documentos não pode elevar privilégios.
-- O chat pergunta antes de inferir: "Qual indicador você usa?", "Que sistema podemos ler?", "Qual é o objetivo desta semana?".
+### P1 — Conversa com memória do negócio (PARCIALMENTE implementado)
+- **Implementado em código:** leitura autenticada do perfil confirmado em `apps/web/lib/ceo-context.ts` com conferência de hash/revisão; respostas empresariais no chat `/api/agesoma` via `ceo-conversation.ts`, com origem declarada. O `business_facts` revisado é consultado com proveniência e conflitos suprimidos por `ceo-approved-facts.ts`.
+- **Implementado em código:** projetar um contexto mínimo por capacidade legada em `projectConfirmedCompanyForCapability` e anexar às novas ordens de trabalho com `grantsAuthorization:false`. **Pendente:** gateway de modelo seguro com RAG e isolamento real de permissões; prompt injection em documentos não pode elevar privilégios.
+- **Parcial:** a interface CEO apresenta três perguntas de esclarecimento. O chat responde de forma determinística perguntas sobre o perfil, mas ainda não conversa livremente com modelo generativo.
 - Respostas devem diferenciar declarações do proprietário, observações das integrações e hipóteses do modelo; não confundir com relatório financeiro auditado.
 - Dar opção de corrigir/revogar dados da empresa; controle de retenção, exclusão e logs deve ser efetivo.
 
