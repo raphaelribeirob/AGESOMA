@@ -6,6 +6,7 @@ This document applies to all software-building agents working on this repository
 
 0. [AGEDESIGN v1.1](AGEDESIGN.md): canonical AGE tokens, typography, UX, responsive layouts and truth-bound ElevenLabs-inspired AGE Motion. Use four executive agents CEO+COO, CFO, CMO+CRO and CTO+CPO on the Workforce surface; keep legacy specialist capabilities internal until migration.
 0b. [CEO-first installation](docs/CEO_FIRST_INSTALL.md): mandatory owner-confirmed business context before NEW work, provenances, scoped context by specialist and accurate draft vs deployed status.
+0c. [SMB skills native incorporation](docs/SMB_SKILLS_INCORPORATION.md): six Anthropic-referenced workflows, first local CSV AHA, honest statuses, user data never auto-uploaded, no external connector grants.
 1. [Engenharia reversa](engenharia%20reversa.md): REA-01 through REA-18,
    user journeys, architecture and acceptance.
 2. [Offer contract](docs/WONDERFUL_OFFER_APPLICATION.md):
@@ -70,7 +71,7 @@ remaining blockers. Update both engineering reverse documents and any release
 checklist conditions when product behavior changes.
 
 Execute:
-- node --test tests/workforce-roles.test.mjs tests/workforce-ui.test.mjs tests/agedesign-acceptance.test.mjs tests/ceo-companion.test.mjs tests/ceo-first-setup.test.mjs
+- node --test tests/workforce-roles.test.mjs tests/workforce-ui.test.mjs tests/agedesign-acceptance.test.mjs tests/ceo-companion.test.mjs tests/ceo-first-setup.test.mjs tests/smb-skills.test.mjs
 - npm run typecheck
 - npm test
 - npm run build --workspace @agesoma/web
