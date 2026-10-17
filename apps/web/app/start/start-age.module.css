@@ -76,5 +76,5 @@
 .productFlow span[aria-hidden] { border: none; background: transparent; }
 .step,.productVision { border-color: var(--age-border-subtle); }
 .executiveGrid > span { background: var(--age-surface-subtle); border-width: .5px; border-color: var(--age-border-subtle); }
-.plan a.ageButtonPrimary { background: var(--color-paper); color: var(--color-void); border-color: var(--color-paper); border-radius: var(--age-radius-pill); }
+.plan a:global(.ageButtonPrimary) { background: var(--color-paper); color: var(--color-void); border-color: var(--color-paper); border-radius: var(--age-radius-pill); }
 @media(max-width:599px) { .hero h1 { font-size: 38px; line-height: 1.08; } }
