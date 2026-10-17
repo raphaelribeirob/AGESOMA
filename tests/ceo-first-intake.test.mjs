@@ -70,3 +70,9 @@ test("AGE frontend exposes accessible fields and safe confirmation UI", () => {
   assert.ok(classes.length>=10);
   for (const name of classes) assert.match(css,new RegExp("\\."+name+"(?=[\\s:.,{>])"),"Missing CSS "+name);
 });
+
+test("unreviewed drafts stay private to owner/admin until explicit confirmation", () => {
+  assert.match(route, /A colleague can view confirmed company context/);
+  assert.match(route, /return responseFor\(undefined, false\)/);
+  assert.match(route, /attrs\.review\?\.status !== "owner_confirmed"/);
+});
