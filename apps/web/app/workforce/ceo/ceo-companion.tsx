@@ -57,7 +57,7 @@ export default function CeoCompanion({ profile }: { profile: OwnerProfile }) {
           <h3>Preciso esclarecer três pontos</h3>
           <ol>{briefing.followUpQuestions.map((question) => <li key={question}>{question}</li>)}</ol>
           <Link href="/" className="ageButton ageButtonSecondary">Abrir conversa no AGESOMA</Link>
-          <p className={styles.small}>O chat geral ainda não recebe automaticamente este briefing. A integração de memória empresarial será uma próxima etapa.</p>
+          <p className={styles.small}>O chat agora consulta as informações confirmadas para responder perguntas sobre sua empresa. Ainda não pesquisa o site nem conecta ERP ou CRM automaticamente.</p>
         </div>
       </div>
       <div className={styles.footer}>
