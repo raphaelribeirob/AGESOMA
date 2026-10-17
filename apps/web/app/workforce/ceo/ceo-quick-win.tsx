@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent } from "react";
 import {
-  SMB_SKILLS, analyzeCashCsv, analyzeLeadCsv, parseLocalCsv,
+  SMB_SKILLS, analyzeCashCsv, analyzeLeadCsv, buildLocalBusinessPulse, parseLocalCsv,
   skillForArea,
   type CashSnapshot, type LeadSnapshot, type SmbArea
 } from "@agesoma/core/src/smb-skills";
@@ -117,6 +117,14 @@ export default function CeoQuickWin(){
               </div>
               <p>{result.note}</p>
             </div>
+          )}
+          {result && (
+            <section className={styles.pulse} aria-label="Resumo executivo parcial">
+              <h4>CEO · Primeiro panorama da empresa</h4>
+              <p>{buildLocalBusinessPulse(result).headline}</p>
+              <p><strong>Próximo passo:</strong> {buildLocalBusinessPulse(result).nextStep}</p>
+              <small>{buildLocalBusinessPulse(result).limits} Fonte: apenas o CSV local fornecido.</small>
+            </section>
           )}
           <p className={styles.privacy}>Fonte: CSV informado por você. O arquivo é processado somente neste navegador; não é armazenado na memória empresarial. Nenhuma conta bancária, CRM, mensagem ou sistema foi acessado. Confira os resultados antes de decidir.</p>
         </div>
