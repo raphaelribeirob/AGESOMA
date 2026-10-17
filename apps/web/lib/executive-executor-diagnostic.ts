@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { validateExecutorEndpoint, type ExecutiveKey } from "./executive-executor-readiness";
+import { validateExecutorEndpoint, type ExecutiveKey } from "./executive-executor-readiness.ts";
 
 export type BrowserDiagnosticResult = Readonly<{
   taskId: string;
