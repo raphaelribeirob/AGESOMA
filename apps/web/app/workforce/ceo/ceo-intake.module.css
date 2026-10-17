@@ -59,3 +59,9 @@
 .brief dt { color: var(--age-muted); font-size: 12px; line-height: 16px; font-weight: 500; }
 .brief dd { margin: 0 0 16px; font-size: 14px; line-height: 22px; white-space: pre-wrap; color: var(--age-text); }
 .brief p { color: var(--age-muted); font-size: 12px; line-height: 20px; }
+
+/* Midnight instrument: panels distinguish through surface levels and hairlines. */
+.formCard,.review,.brief { border-width: .5px; border-color: var(--age-border-subtle); }
+.review { background: var(--age-panel); }
+.field :is(input,textarea) { border-radius: 6px; background: var(--age-surface-subtle); }
+.heading h1 { letter-spacing: -.022em; }
