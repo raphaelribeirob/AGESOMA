@@ -1,0 +1,67 @@
+.page { background: var(--age-surface); min-height: 100svh; color: var(--age-text); }
+.shell { width: min(1200px, calc(100% - 48px)); margin: 0 auto; padding-bottom: 88px; }
+.nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; min-height: 88px; border-bottom: 1px solid var(--age-border); color: var(--age-muted); font-size: 13px; }
+.nav a { color: var(--age-text); min-height: 48px; display: inline-flex; align-items: center; text-decoration: underline; text-underline-offset: 4px; }
+.heading { padding: 56px 0 40px; max-width: 830px; }
+.kicker { font-size: 12px; line-height: 16px; letter-spacing: .04em; font-weight: 500; color: var(--age-muted); }
+.heading h1 { font-size: clamp(32px,3.6vw,48px); line-height: 1.18; font-weight: 500; margin: 16px 0; }
+.heading > p { font-size: 16px; line-height: 24px; max-width: 75ch; }
+.stepBadge { border: 1px solid var(--age-border); border-radius: var(--age-radius-control); background: var(--age-surface-subtle); color: var(--age-text); padding: 8px 12px; font-size: 13px; margin-top: 24px; display: inline-block; }
+.layout { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(280px,.85fr); align-items: start; gap: 24px; }
+.formCard, .review { border: 1px solid var(--age-border); border-radius: var(--age-radius-card); padding: 32px; background: var(--age-surface); min-width: 0; }
+.formCard form { display: grid; gap: 20px; }
+.formCard h2, .review h2 { font-size: 24px; line-height: 32px; font-weight: 500; margin: 0 0 4px; }
+.formCard form > p, .review > p { font-size: 14px; line-height: 24px; color: var(--age-text); margin: 0; }
+.field { display: grid; gap: 8px; }
+.field label { font-size: 14px; line-height: 20px; color: var(--age-ink); font-weight: 500; }
+.field input, .field textarea {
+  border: 1px solid var(--age-border);
+  border-radius: var(--age-radius-control);
+  background: var(--age-surface);
+  color: var(--age-ink);
+  font: 400 16px/24px var(--age-font-ui);
+  min-height: 48px;
+  padding: 12px 16px;
+  width: 100%; min-width: 0; resize: vertical;
+}
+.field :is(input,textarea):disabled { background: var(--age-surface-subtle); color: var(--age-muted); }
+.field small { color: var(--age-muted); font-size: 12px; line-height: 16px; }
+.formCard button { justify-self: start; }
+.error { margin: 16px 0 0; color: var(--age-danger) !important; font-size: 14px; }
+.message { margin: 16px 0 0; color: var(--age-success) !important; font-size: 14px; }
+.review { background: var(--age-surface-subtle); position: sticky; top: 24px; }
+.review h3 { font-size: 18px; line-height: 24px; margin: 0; font-weight: 500; }
+.consent { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 22px; margin: 24px 0; color: var(--age-text); }
+.consent input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--age-accent); margin-top: 2px; }
+.review button { width: 100%; }
+.divider { border-top: 1px solid var(--age-border); margin: 32px 0; }
+.review ol { display: grid; gap: 12px; padding-inline-start: 20px; font-size: 14px; line-height: 22px; color: var(--age-text); }
+.warning { margin-top: 32px !important; padding: 16px; border-inline-start: 3px solid var(--age-warning); background: var(--age-surface); font-size: 13px !important; }
+@media (max-width: 1023px) {
+  .layout { grid-template-columns: minmax(0,1fr); }
+  .review { position: static; order: -1; }
+}
+@media (max-width: 599px) {
+  .shell { width: calc(100% - 32px); }
+  .nav { min-height: 72px; }
+  .heading { padding: 40px 0 32px; }
+  .heading h1 { font-size: 32px; line-height: 40px; }
+  .formCard, .review { padding: 24px 16px; }
+  .formCard button { justify-self: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page *, .page *::before, .page *::after { animation: none; transition: none; }
+}
+
+.brief { margin-top: 24px; padding: 20px 16px; background: var(--age-surface); border: 1px solid var(--age-border); border-radius: var(--age-radius-card); overflow-wrap: anywhere; }
+.brief h3 { color: var(--age-ink); font-size: 16px; line-height: 24px; font-weight: 500; }
+.brief dl { display: grid; gap: 8px; margin: 20px 0 0; }
+.brief dt { color: var(--age-muted); font-size: 12px; line-height: 16px; font-weight: 500; }
+.brief dd { margin: 0 0 16px; font-size: 14px; line-height: 22px; white-space: pre-wrap; color: var(--age-text); }
+.brief p { color: var(--age-muted); font-size: 12px; line-height: 20px; }
+
+/* Midnight instrument: panels distinguish through surface levels and hairlines. */
+.formCard,.review,.brief { border-width: .5px; border-color: var(--age-border-subtle); }
+.review { background: var(--age-panel); }
+.field :is(input,textarea) { border-radius: 6px; background: var(--age-surface-subtle); }
+.heading h1 { letter-spacing: -.022em; }

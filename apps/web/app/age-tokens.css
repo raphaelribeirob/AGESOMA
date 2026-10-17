@@ -1,0 +1,115 @@
+/* AGE design tokens — AGEDESIGN.md 1.1, 2026-10-16.
+   The original AGESOMA global visuals predate AGE. These tokens are scoped
+   to ageTheme so existing authenticated product flows are not silently changed. */
+:root {
+  color-scheme: light;
+  --age-accent: #385ce5;
+  --age-on-accent: #ffffff;
+  --age-black: #000000;
+  --age-ink: #171a20;
+  --age-text: #393c41;
+  --age-muted: #5c5e62;
+  --age-placeholder: #5c5e62;
+  --age-border: #cccccc;
+  --age-surface: #ffffff;
+  --age-surface-subtle: #eeeeee;
+  --age-surface-warm: #e5e3df;
+  --age-success: #146c43;
+  --age-warning: #995a00;
+  --age-danger: #b42318;
+  --age-font-display: "Manrope Variable", "Manrope", "Inter Variable", "Inter", "Geist Variable", system-ui, sans-serif;
+  --age-font-ui: "Inter Variable", "Inter", "Geist Variable", system-ui, sans-serif;
+  --age-font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --age-space-1: 4px;
+  --age-space-2: 8px;
+  --age-space-3: 12px;
+  --age-space-4: 16px;
+  --age-space-5: 20px;
+  --age-space-6: 24px;
+  --age-space-8: 32px;
+  --age-space-10: 40px;
+  --age-space-12: 48px;
+  --age-space-16: 64px;
+  --age-radius-control: 4px;
+  --age-radius-card: 8px;
+  --age-control-height: 48px;
+  --age-motion-instant: 90ms;
+  --age-motion-fast: 140ms;
+  --age-motion-base: 220ms;
+  --age-motion-panel: 280ms;
+  --age-motion-slow: 440ms;
+  --age-motion-audio-smoothing: 120ms;
+  --age-orb-blue-1: #385ce5;
+  --age-orb-blue-2: #a5b9e8;
+  --age-orb-size-hero: min(280px, 60vw);
+  --age-orb-size-panel: 112px;
+  --age-orb-size-compact: 48px;
+  --age-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+.ageTheme {
+  background: var(--age-surface);
+  color: var(--age-text);
+  font-family: var(--age-font-ui);
+  letter-spacing: 0;
+  line-height: 1.5;
+  isolation: isolate;
+}
+.ageTheme h1, .ageTheme h2, .ageTheme h3 {
+  color: var(--age-ink);
+  font-family: var(--age-font-display);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.ageTheme p { color: var(--age-text); }
+.ageTheme button, .ageTheme input, .ageTheme textarea {
+  font: inherit;
+}
+.ageTheme button, .ageTheme a {
+  -webkit-tap-highlight-color: transparent;
+}
+.ageTheme :is(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--age-accent);
+  outline-offset: 3px;
+}
+.ageButton {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--age-control-height);
+  padding: 10px 24px;
+  gap: 8px;
+  border: 1px solid var(--age-ink);
+  border-radius: var(--age-radius-control);
+  background: transparent;
+  color: var(--age-ink);
+  font: 500 14px/20px var(--age-font-ui);
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color var(--age-motion-fast) var(--age-ease),
+    color var(--age-motion-fast) var(--age-ease),
+    border-color var(--age-motion-fast) var(--age-ease);
+}
+.ageButtonPrimary { background: var(--age-accent); color: var(--age-on-accent); border-color: var(--age-accent); }
+.ageButtonSecondary { background: var(--age-surface); }
+.ageButtonTertiary { background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: 4px; }
+.ageButton:disabled { cursor: not-allowed; opacity: .55; }
+.ageField {
+  min-height: var(--age-control-height);
+  border: 1px solid var(--age-border);
+  background: var(--age-surface);
+  border-radius: var(--age-radius-control);
+  color: var(--age-ink);
+  padding: 12px 16px;
+  font: 400 16px/24px var(--age-font-ui);
+  min-width: 0;
+}
+.ageField::placeholder { color: var(--age-placeholder); }
+@media (prefers-reduced-motion: reduce) {
+  .ageTheme *, .ageTheme *::before, .ageTheme *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}

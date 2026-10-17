@@ -1,0 +1,100 @@
+name: AGESOMA full CEO tenant QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+    paths:
+      - "apps/web/**"
+      - "packages/db/**"
+      - "tests/e2e/agesoma-auth.spec.mjs"
+      - "playwright.config.mjs"
+      - ".github/workflows/agesoma-tenant-qa.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/db/**"
+      - "tests/e2e/agesoma-auth.spec.mjs"
+      - "playwright.config.mjs"
+      - ".github/workflows/agesoma-tenant-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  two-tenant-e2e:
+    name: Real signup, CEO onboarding and tenant isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: "1"
+      DATABASE_URL: postgres://agesoma_qa:qa_only_not_prod@127.0.0.1:5432/agesoma_qa
+      AGESOMA_DB_SCHEMA: agesoma_p0
+      BETTER_AUTH_URL: http://127.0.0.1:3100
+      AGESOMA_QA_BASE_URL: http://127.0.0.1:3100
+      AGESOMA_QA_FULL_DB: "1"
+      AGESOMA_EXECUTOR_URL: ""
+      AGESOMA_EXECUTOR_ATTEST_SECRET: ""
+      PADDLE_ENV: sandbox
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: agesoma_qa
+          POSTGRES_USER: agesoma_qa
+          POSTGRES_PASSWORD: qa_only_not_prod
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agesoma_qa -d agesoma_qa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Generate session secret for this disposable test run
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 48)" >> "$GITHUB_ENV"
+      - name: Install web dependencies and Chromium browser
+        run: |
+          npm install --package-lock=false --no-audit --no-fund
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.55.1
+          npx playwright install --with-deps chromium
+      - name: Create real AGESOMA schema and tenant role in disposable DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'CREATE ROLE authenticated NOLOGIN;'
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'GRANT authenticated TO agesoma_qa;'
+          mapfile -t migrations < <(find packages/db/migrations -maxdepth 1 -type f -name '*.sql' | sort)
+          if [ "${#migrations[@]}" -lt 1 ]; then
+            echo 'No AGESOMA migrations found'; exit 1
+          fi
+          for f in "${migrations[@]}"; do
+            echo "Applying $f to disposable DB only"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Check separate core and auth schema namespaces
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select table_schema,table_name from information_schema.tables where table_name in ('auth_organization_tenants','tenants','tenant_memberships') order by table_schema,table_name;"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select 1 from agesoma_p0.auth_organization_tenants limit 1;"
+      - name: Migrate Better Auth schema in disposable DB
+        run: npx auth@1.7.4 migrate --config ./apps/web/lib/auth.ts --yes
+      - name: Build Next web without production secrets
+        run: npm run build --workspace @agesoma/web
+      - name: Verify two real companies are isolated during CEO onboarding
+        run: npx playwright test tests/e2e/agesoma-auth.spec.mjs --config playwright.config.mjs --project chromium-desktop
+      - name: Save sanitized test evidence and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agesoma-tenant-qa-${{ github.run_number }}
+          path: qa-artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,0 +1,135 @@
+/* AGEDESIGN 1.1 compatibility bridge for existing authenticated AGESOMA shell.
+   Existing conversation / approvals functionality is retained; presentation only. */
+body:has(.ageTheme)::before { display: none; }
+body:has(.ageTheme) { background: var(--age-surface); }
+.museShell.ageTheme {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+  background: var(--age-surface); color: var(--age-text);
+  font-family: var(--age-font-ui);
+}
+.museShell.ageTheme h1, .museShell.ageTheme h2, .museShell.ageTheme h3 {
+  font-family: var(--age-font-display);
+  color: var(--age-ink);
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.museShell.ageTheme p { color: var(--age-text); }
+.museShell .ageIdentityMark {
+  width: 44px; height: 44px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border: 1px solid var(--age-ink);
+  border-radius: var(--age-radius-control);
+  background: var(--age-ink); color: #fff;
+  font: 500 13px/20px var(--age-font-mono);
+  box-shadow: none; animation: none;
+}
+.museShell .ageWordmark { display: block; width: 172px; line-height: 0; font-size: 0; }
+.museShell .ageWordmark img { display: block; width: 172px; height: auto; }
+.museShell .museTopbar {
+  background: var(--age-surface); border-bottom: 1px solid var(--age-border);
+  backdrop-filter: none; padding: 12px 24px; min-height: 84px; position: sticky;
+  display: flex; flex-wrap: wrap; gap: 16px 24px; justify-content: space-between; align-items: center;
+}
+.museShell .museIdentity { min-height: 48px; flex-shrink: 1; }
+.museShell .museIdentityCopy small { color: var(--age-muted); font-size: 12px; line-height: 16px; white-space: normal; }
+.museShell .museNav {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 0;
+  background: var(--age-surface); border-radius: 0; flex: 1 1 auto; justify-content: center;
+}
+.museShell .museNav button {
+  font: 500 14px/20px var(--age-font-ui); color: var(--age-text);
+  border-radius: var(--age-radius-control); border: 1px solid transparent;
+  padding: 12px 16px; min-height: 48px;
+}
+.museShell .museNav button.active { color: var(--age-ink); border-bottom: 2px solid var(--age-accent); background: var(--age-surface-subtle); box-shadow: none; }
+.museShell .museSettings {
+  justify-self: unset; min-height: 48px; display: inline-flex; align-items: center;
+  padding: 10px 8px; color: var(--age-text); font-size: 13px;
+  text-decoration: underline; text-underline-offset: 3px; border: 0;
+}
+.museShell .museSettings:hover { color: var(--age-ink); }
+.museShell .museWorkspace { grid-template-columns: 240px minmax(0,1fr); background: var(--age-surface); }
+.museShell .museThreadRail {
+  padding: 24px 16px;
+  border-inline-end: 1px solid var(--age-border);
+  background: var(--age-surface-subtle);
+}
+.museShell .museRailHeader { font-size: 12px; color: var(--age-muted); letter-spacing: .04em; }
+.museShell .museRailHeader button {
+  min-width: 48px; min-height: 48px; border-radius: var(--age-radius-control);
+  border: 1px solid var(--age-border); color: var(--age-ink); background: var(--age-surface);
+}
+.museShell .museThread { min-height: 56px; padding: 12px; border-radius: var(--age-radius-control); margin: 4px 0; }
+.museShell .museThread:hover { background: var(--age-surface); }
+.museShell .museThread.active { background: var(--age-surface); outline: 1px solid var(--age-accent); }
+.museShell .museThread span { font-size: 14px; font-weight: 500; color: var(--age-ink); }
+.museShell .museThread small { font-size: 12px; color: var(--age-muted); }
+.museShell .museMain, .museShell .museChatView { background: var(--age-surface); }
+.museShell .museConversation { gap: 16px; }
+.museShell .museMiniAvatar {
+  width: 26px; height: 26px;
+  display: grid; place-items: center; flex-shrink: 0;
+  border-radius: var(--age-radius-control); border: 1px solid var(--age-border);
+  background: var(--age-surface); box-shadow: none; filter: none;
+}
+.museShell .museMiniAvatar::before {
+  position: static; content: "A"; color: var(--age-ink);
+  background: none; border-radius: 0; opacity: 1;
+  font: 500 14px/1 var(--age-font-mono);
+}
+.museShell .museMiniAvatar::after { display: none; }
+.museShell .museBubble {
+  border-radius: var(--age-radius-card);
+  padding: 16px; font-size: 14px; line-height: 24px; letter-spacing: 0;
+}
+.museShell .museBubbleRow.assistant .museBubble { background: var(--age-surface-subtle); border-radius: var(--age-radius-card); }
+.museShell .museBubbleRow.user .museBubble { background: var(--age-ink); color: #fff; border-radius: var(--age-radius-card); }
+.museShell .museThinking i { background: var(--age-muted); }
+.museShell .museComposer {
+  background: var(--age-surface);
+  border: 1px solid var(--age-border);
+  border-radius: var(--age-radius-card);
+  box-shadow: none;
+  backdrop-filter: none;
+  min-height: 64px;
+}
+.museShell .museComposer input { min-height: 48px; font-size: 16px; border-radius: var(--age-radius-control); }
+.museShell .museVoice, .museShell .museSend {
+  min-width: 48px; min-height: 48px; border-radius: var(--age-radius-control);
+}
+.museShell .museVoice { background: var(--age-surface-subtle); color: var(--age-text); border: 1px solid var(--age-border); }
+.museShell .museVoice.active { border-color: var(--age-accent); background: var(--age-surface); color: var(--age-accent); box-shadow: none; }
+.museShell .museSend, .museShell .museDecisionActions .primary { background: var(--age-accent); color: var(--age-on-accent); border: 1px solid var(--age-accent); }
+.museShell .museDecisionCard, .museShell .museIdea, .museShell .museGoal, .museShell .museArtifactItem {
+  border-radius: var(--age-radius-card);
+  border-color: var(--age-border);
+  box-shadow: none;
+}
+.museShell .museDecisionCard { background: var(--age-surface); padding: 24px; }
+.museShell .museDecisionActions button { min-height: 48px; border-radius: var(--age-radius-control); padding: 12px 20px; }
+.museShell .museDecisionActions .secondary { background: var(--age-surface); color: var(--age-ink); border: 1px solid var(--age-ink); }
+.museShell .museDrawer { background: var(--age-surface); border-left: 1px solid var(--age-border); }
+.museShell :is(.museIdea button, .museGoalMore, .museInlineComposer button, .museArtifactChat, .museDrawerSettings) {
+  min-height: 48px; border-radius: var(--age-radius-control);
+}
+.museShell .museEmpty { color: var(--age-muted); }
+.museShell :is(button, a, input):focus-visible { outline: 3px solid var(--age-accent); outline-offset: 3px; }
+@media (max-width: 1023px) {
+  .museShell .museTopbar { justify-content: start; }
+  .museShell .museNav { order: 5; justify-content: start; flex-basis: 100%; overflow-x: auto; }
+  .museShell .museSettings { font-size: 12px; }
+}
+@media (max-width: 639px) {
+  .museShell .museTopbar { padding: 12px 16px; gap: 8px 12px; }
+  .museShell .ageIdentityMark { width: 36px; height: 36px; }
+  .museShell .ageWordmark, .museShell .ageWordmark img { width: 132px; }
+  .museShell .museWorkspace { display: block; }
+  .museShell .museThreadRail { border-inline-end: none; border-bottom: 1px solid var(--age-border); }
+  .museShell .museConversation { width: calc(100% - 32px); padding-bottom: 144px; }
+  .museShell .museComposer { width: calc(100% - 24px); }
+  .museShell .museSettings { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .museShell .museThinking i { animation: none; }
+  .museShell * { scroll-behavior: auto; }
+}

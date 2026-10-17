@@ -1,0 +1,109 @@
+.page {
+  --family-bg:#ffffff;
+  --family-surface:#f5f3f1;
+  --family-ink:#000000;
+  --family-copy:#44403b;
+  --family-muted:#68635c;
+  --family-border:#ebe8e4;
+  --family-action:#000000;
+  --family-action-text:#ffffff;
+  color-scheme:light;
+  background:var(--family-bg); color:var(--family-ink);
+  font-family:"Inter Variable","Inter",system-ui,sans-serif;
+  min-height:100svh; width:100%;
+  -webkit-font-smoothing:antialiased;
+}
+/*
+ * Instant tokens are derived from INSTDESIGN.MD v3.5.0 §2.2/§2.4.
+ * The catalog is not the InstantSpeak mobile app: product-specific DESIGN.md
+ * overrides brand exceptions. No Instant token leaks into .dots or .ageTheme.
+ */
+.instant {
+  --instant-neutral-canvas:#FCFBF8;
+  --instant-neutral-surface:#FFFFFF;
+  --instant-neutral-surface-subtle:#F2EFEA;
+  --instant-neutral-text:#171717;
+  --instant-neutral-secondary:#4E4B47;
+  --instant-neutral-muted:#625E59;
+  --instant-neutral-border:#C7C2BB;
+  --instant-neutral-focus:#2459BA;
+  --instant-feedback-success:#196C3E;
+  --instant-feedback-warning:#936000;
+  --instant-feedback-error:#B42318;
+  --instant-speak-accent:#2459BA;
+  --instant-study-accent:#3A32C8;
+  --instant-bible-accent:#1F6B52;
+  --family-bg:var(--instant-neutral-canvas);
+  --family-surface:var(--instant-neutral-surface);
+  --family-ink:var(--instant-neutral-text);
+  --family-copy:var(--instant-neutral-secondary);
+  --family-muted:var(--instant-neutral-muted);
+  --family-border:var(--instant-neutral-border);
+  --family-action:var(--instant-neutral-text);
+  --family-action-text:var(--instant-neutral-surface);
+}
+.dots { --family-bg:#fbf7f2; --family-surface:#ffffff; --family-ink:#292724; --family-copy:#514c46; --family-muted:#706a65; --family-border:#e6ddd5; --family-action:#0061ef; --family-action-text:#ffffff; }
+.container { max-width:1200px; margin:0 auto; padding:0 32px; }
+.nav { min-height:88px; display:flex; align-items:center; justify-content:space-between; gap:28px; border-bottom:1px solid var(--family-border); }
+.wordmark { font-size:22px; font-weight:600; text-decoration:none; letter-spacing:-.035em; color:var(--family-ink); }
+.mark { color:var(--family-ink); }
+.navLinks { display:flex; flex-wrap:wrap; gap:8px 28px; align-items:center; }
+.navLinks a { font-size:14px; font-weight:500; color:var(--family-copy); text-decoration:none; min-height:48px; display:inline-flex; align-items:center; border-bottom:2px solid transparent; }
+.navLinks a:hover,.navLinks a[aria-current="page"] { color:var(--family-ink); border-bottom-color:var(--family-ink); }
+.hero { padding:clamp(88px,13vw,164px) 0 104px; max-width:940px; }
+.eyebrow { font-size:12px; letter-spacing:.13em; font-weight:600; color:var(--family-muted); text-transform:uppercase; }
+.hero h1 { font-size:clamp(48px,7.2vw,92px); line-height:1.045; letter-spacing:-.052em; font-weight:400; margin:24px 0; max-width:950px; }
+.lead { font-size:clamp(17px,2.4vw,23px); line-height:1.55; font-weight:400; color:var(--family-copy); max-width:720px; margin:0; }
+.tag { display:inline-flex; gap:8px; align-items:center; margin-top:32px; padding:9px 14px; font-size:12px; border-radius:9999px; background:var(--family-surface); color:var(--family-copy); }
+.tagDot { display:block; width:7px; height:7px; background:var(--family-muted); border-radius:100%; }
+.products { padding:0 0 112px; }
+.sectionHead { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:0 0 24px; border-bottom:1px solid var(--family-border); }
+.sectionHead h2,.architecture h2 { font-weight:450; letter-spacing:-.035em; font-size:clamp(28px,3.5vw,42px); line-height:1.2; margin:0; color:var(--family-ink); }
+.sectionHead p { max-width:350px; font-size:13px; line-height:1.5; color:var(--family-muted); margin:0; }
+.productList { display: grid; grid-template-columns: minmax(0,1fr); }
+.product { border-bottom:1px solid var(--family-border); padding:32px 0; display:grid; grid-template-columns:92px minmax(0,1fr) auto; gap:24px; align-items:center; }
+.productIndex { font:400 12px/1.4 "Geist Mono Variable",ui-monospace,monospace; color:var(--family-muted); align-self:start; }
+.productInfo h3 { font-size:clamp(22px,2.5vw,32px); line-height:1.2; letter-spacing:-.035em; font-weight:500; margin:0 0 8px; color:var(--family-ink); }
+.productInfo p { margin:0 0 12px; max-width:600px; font-size:15px; line-height:1.6; color:var(--family-copy); }
+.status { font-size:12px; color:var(--family-muted); }
+.repoLink { display:inline-flex; gap:10px; align-items:center; text-decoration:none; font-size:13px; font-weight:500; color:var(--family-ink); border:1px solid var(--family-border); border-radius:9999px; padding:12px 18px; min-height:48px; white-space:nowrap; }
+.repoLink:hover { background:var(--family-surface); }
+.architecture { background:var(--family-surface); padding:52px; border-radius:20px; margin:8px 0 96px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; }
+.architecture h2 { margin-top:16px; max-width:450px; }
+.principles { display:grid; gap:20px; }
+.principles p { margin:0; font-size:15px; line-height:1.7; color:var(--family-copy); }
+.principles strong { color:var(--family-ink); }
+.principles code { font:400 12px/1.5 ui-monospace,monospace; }
+.footer { border-top:1px solid var(--family-border); padding:26px 0 44px; display:flex; gap:24px; align-items:center; justify-content:space-between; color:var(--family-muted); font-size:12px; line-height:1.5; }
+.footer a { color:var(--family-ink); font-size:13px; font-weight:500; text-decoration:none; }
+.page :is(a,button):focus-visible { outline:3px solid var(--family-ink); outline-offset:4px; }
+.instant :is(a,button):focus-visible { outline-color:var(--instant-neutral-focus); }
+.instant .product[data-product-id="instantspeak"] { --product-accent:var(--instant-speak-accent); }
+.instant .product[data-product-id="instantstudy"] { --product-accent:var(--instant-study-accent); }
+.instant .product[data-product-id="instantbible"] { --product-accent:var(--instant-bible-accent); }
+.instant .product .repoLink:hover { border-color:var(--product-accent,var(--instant-neutral-focus)); }
+/* Navigation, focus and reading order follow DOM; layouts use logical-safe
+   center alignment and wrapping, with no fake voice-orb animation. */
+@media(max-width:850px) {
+  .sectionHead { display:block; }
+  .sectionHead p { max-width:650px; margin-top:14px; }
+  .architecture { grid-template-columns:1fr; padding:32px; }
+  .product { grid-template-columns:56px minmax(0,1fr); }
+  .repoLink { grid-column:2; width:max-content; }
+}
+@media(max-width:599px) {
+ .container { padding:0 20px; }
+ .nav { align-items:flex-start; flex-wrap:wrap; padding:20px 0 12px; gap:8px; }
+ .navLinks { width:100%; gap:12px 22px; }
+ .navLinks a { min-height:44px; font-size:12px; }
+ .hero { padding:84px 0 64px; }
+ .hero h1 { font-size:48px; }
+ .products { padding-bottom:72px; }
+ .product { gap:12px; padding:25px 0; grid-template-columns:42px minmax(0,1fr); }
+ .productInfo p { font-size:14px; }
+ .architecture { margin-bottom:64px; border-radius:16px; padding:24px; gap:22px; }
+ .footer { align-items:flex-start; flex-direction:column; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .page *, .page *::before, .page *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+}

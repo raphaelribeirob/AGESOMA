@@ -4,6 +4,17 @@ This document applies to all software-building agents working on this repository
 
 ## Product contract to read first
 
+**GROK BOT FUNCTIONAL PARITY GATE:** See [GROK_BOT_PARITY_AUDIT.md](docs/GROK_BOT_PARITY_AUDIT.md). Do not report persistent workers, queued tasks, UI mock computers or workflow templates as running cloud computers or completed work. New autonomous work requires a signed, fresh four-session executor attestation plus the usual task-scoped approvals; missing runner means fail closed. Node/Next tests passing != OpenSandbox running. Do not claim 100% product parity until live E2E verification of browser/terminal, background execution, safe handoff, secrets, per-tenant isolation, action approval and evidence-backed outputs. Preserve Instant/Dots family boundaries.\n\n
+
+**INSTDESIGN.MD v3.5.0 (canônico):** [fonte única da família Instant](INSTDESIGN.MD), importada integralmente da última versão verificada, com dez paletas do orbe, motion voz/aprendizagem/precisão, Global-First, RTL, iOS/Android/Web e QA incorporado. Respeitar os `DESIGN.md` individuais (incluindo a abertura InstantSpeak de 2.650 ms). NUNCA aplicar Instant a Dots nem afirmar que especificação Markdown equivale a assets, homologação ou app compilado.
+
+
+**PLATFORM_FAMILIES / PRODUCT_FAMILIES (2026-10-17):** Read [PLATFORMDESIGN.md](PLATFORMDESIGN.md) first.  This repository is the opt-in shared platform for **Instant first**, then **Dots**. See [architecture and migration contract](docs/PLATFORM_INSTANT_DOTS.md). InstantSpeak, InstantStudy, InstantBible and DotSpeak remain independent repos with their own `DESIGN.md`, identity, entitlements and release processes. The AGESOMA `AGE` dark/Linear-inspired styling is **legacy-console only**; never apply it to Instant or Dots mobile apps by default. Do not move data or billing scopes across apps without server-verified entitlement and consent.
+
+
+0. [AGEDESIGN v1.2](AGEDESIGN.md): only for the legacy AGESOMA console and AGE surfaces, **not the Instant/Dots family designs**. Midnight Precision is an internal console style; do not copy third-party assets. Use four executive agents CEO+COO, CFO, CMO+CRO and CTO+CPO on the Workforce surface; keep legacy specialist capabilities internal until migration.
+0b. [CEO-first installation](docs/CEO_FIRST_INSTALL.md): mandatory owner-confirmed business context before NEW work, provenances, scoped context by specialist and accurate draft vs deployed status.
+0c. [SMB skills native incorporation](docs/SMB_SKILLS_INCORPORATION.md): six Anthropic-referenced workflows, first local CSV AHA, honest statuses, user data never auto-uploaded, no external connector grants.
 1. [Engenharia reversa](engenharia%20reversa.md): REA-01 through REA-18,
    user journeys, architecture and acceptance.
 2. [Offer contract](docs/WONDERFUL_OFFER_APPLICATION.md):
@@ -28,7 +39,7 @@ Freight recovery is a separate assisted pilot and not a finished self-serve SKU.
 
 ## Four engineering workstreams
 
-- Product and acceptance: identify relevant REA IDs, exact customer promise,
+- Product and acceptance: identify relevant REA IDs, AGE design contract, exact customer promise,
   negative scenarios and required sources for verification.
 - Architecture and implementation: bounded tenant-aware design, schemas,
   integrations, idempotency, proper authorization and rollback.
@@ -68,6 +79,7 @@ remaining blockers. Update both engineering reverse documents and any release
 checklist conditions when product behavior changes.
 
 Execute:
+- node --test tests/workforce-roles.test.mjs tests/workforce-ui.test.mjs tests/agedesign-acceptance.test.mjs tests/ceo-companion.test.mjs tests/ceo-first-setup.test.mjs tests/smb-skills.test.mjs
 - npm run typecheck
 - npm test
 - npm run build --workspace @agesoma/web

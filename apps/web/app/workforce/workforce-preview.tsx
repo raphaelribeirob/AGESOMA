@@ -1,0 +1,249 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import styles from "./workforce-preview.module.css";
+import { WORKFORCE_PROFILES } from "./workforce-profiles";
+
+type Section = "missao" | "computador" | "acessos";
+const BUSINESS_SOURCES = [
+  ["Site da empresa", "Oferta e posicionamento"],
+  ["Conhecimento interno", "Políticas e processos"],
+  ["CRM e atendimento", "Clientes e relacionamento"],
+  ["Dados financeiros", "Receitas, custos e indicadores"]
+] as const;
+
+/** AGE/AgentCard uses a geometric monogram; not the Dots mascot or a voice orb. */
+function AgentMark({ initials, large = false }: { initials: string; large?: boolean }) {
+  return (
+    <span className={large ? styles.avatarLarge : styles.avatar} aria-hidden="true">
+      <span>{initials}</span>
+    </span>
+  );
+}
+
+export default function WorkforcePreview({ workspaceName, runtimeStatus, diagnosticsEnabled = false }: {
+  workspaceName: string;
+  runtimeStatus: "attested" | "unavailable";
+  diagnosticsEnabled?: boolean;
+}) {
+  const [workerId, setWorkerId] = useState(WORKFORCE_PROFILES[0].id);
+  const [section, setSection] = useState<Section>("missao");
+  const [companyOpen, setCompanyOpen] = useState(true);
+  const [diagnosticRunning,setDiagnosticRunning] = useState(false);
+  const [diagnosticResult,setDiagnosticResult] = useState("");
+  async function runDiagnostic(executive: string) {
+    setDiagnosticRunning(true);
+    setDiagnosticResult("");
+    try {
+      const response=await fetch("/api/workforce/executor/diagnostic",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({action:"qa.browser",executive})
+      });
+      const data=await response.json();
+      if (!response.ok || !data.ok || !data.report?.verified) {
+        setDiagnosticResult("Diagnóstico não comprovado: "+String(data.error??"executor indisponível"));
+      } else {
+        setDiagnosticResult("Chromium de teste verificado para "+executive+
+          ". Prova SHA-256: "+data.report.screenshotSha256+
+          ". Nenhum sistema da empresa foi acessado.");
+      }
+    } catch {
+      setDiagnosticResult("Diagnóstico não comprovado: falha de conexão.");
+    } finally {
+      setDiagnosticRunning(false);
+    }
+  }
+  const selected = WORKFORCE_PROFILES.find((worker) => worker.id === workerId) ?? WORKFORCE_PROFILES[0];
+
+  return (
+    <div className={`${styles.shell} ageTheme`}>
+      <div className={styles.globalNotice} role="status">
+        Prévia de produto — 4 agentes para 7 cargos executivos. {runtimeStatus === "attested"
+          ? "Infraestrutura remota atestada; integração das tarefas, autorização e sessões executivas ainda exige testes reais."
+          : "Nenhum computador executivo verificado. Esta tela não executa tarefas."}
+      </div>
+      <div className={styles.workspace}>
+        <aside className={styles.sidebar} aria-label="Equipe do AGESOMA">
+          <div className={styles.brand}>
+            <img src="/agesoma-wordmark-age.svg" alt="AGESOMA" className={styles.wordmark} width={197} height={13} />
+            <span className={styles.brandSubtitle}>WORKFORCE OS</span>
+          </div>
+
+          <div className={styles.workspaceBadge}>
+            <span className={styles.workspaceSymbol} aria-hidden="true">□</span>
+            <div>
+              <strong>{workspaceName}</strong>
+              <span>Área empresarial</span>
+            </div>
+          </div>
+
+          <div className={styles.sidebarLabel}>SUA EQUIPE</div>
+          <nav className={styles.roster} aria-label="Selecionar agente">
+            {WORKFORCE_PROFILES.map((worker) => (
+              <button
+                type="button"
+                key={worker.id}
+                onClick={() => { setWorkerId(worker.id); setSection("missao"); }}
+                className={worker.id === selected.id ? styles.workerSelected : styles.workerButton}
+                aria-pressed={worker.id === selected.id}
+              >
+                <AgentMark initials={worker.initials} />
+                <span className={styles.workerInfo}>
+                  <strong>{worker.title}</strong>
+                  <small>{worker.role}</small>
+                </span>
+                <span className={styles.plannedDot} role="img" aria-label="Computador não provisionado" />
+              </button>
+            ))}
+          </nav>
+
+          <div className={styles.sidebarFoot}>
+            <div className={styles.footNote}>Identidade de agente persistente. Computador isolado e sob demanda, a implementar.</div>
+            <Link href="/" className={styles.backLink}>← Voltar ao AGESOMA</Link>
+          </div>
+        </aside>
+
+        <main className={styles.main}>
+          <header className={styles.topbar}>
+            <div>
+              <div className={styles.eyebrow}>SUA EMPRESA, EM CONTEXTO</div>
+              <h1>Uma equipe que entende seu negócio.</h1>
+              <p className={styles.intro}>O CEO conhece a empresa primeiro. Depois, organiza o trabalho dos outros três agentes.</p>
+            </div>
+            <Link className={`${styles.demoButton} ageButton ageButtonPrimary`} href="/workforce/ceo">Começar pelo CEO</Link>
+          </header>
+
+          <section className={styles.companySection} aria-label="Compreensão da empresa">
+            <button
+              type="button"
+              className={styles.companyHeader}
+              aria-expanded={companyOpen}
+              onClick={() => setCompanyOpen((value) => !value)}
+            >
+              <span>
+                <span className={styles.eyebrow}>ETAPA 01 · APRENDER ANTES DE AGIR</span>
+                <strong>Conhecimento da empresa</strong>
+                <small>Comece cadastrando o contexto com o CEO; integrações automáticas ainda não estão ativadas.</small>
+              </span>
+              <span aria-hidden="true">{companyOpen ? "−" : "+"}</span>
+            </button>
+            {companyOpen && (
+              <div className={styles.sourceGrid}>
+                {BUSINESS_SOURCES.map(([label, description]) => (
+                  <div key={label} className={styles.sourceCard}>
+                    <span className={styles.sourceIcon} aria-hidden="true">□</span>
+                    <span>
+                      <strong>{label}</strong>
+                      <small>{description}</small>
+                      <em>Não conectado</em>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className={styles.agentPanel} aria-label="Agente selecionado">
+            <div className={styles.agentIntro}>
+              <AgentMark initials={selected.initials} large />
+              <div className={styles.agentTitle}>
+                <span className={styles.eyebrow}>AGENTE · {selected.role.toUpperCase()}</span>
+                <h2>{selected.title}</h2>
+                <span className={styles.statusText}><span className={styles.plannedDot} /> {runtimeStatus === "attested" ? "Executor verificado · execução ainda não comprovada" : "Planejado · sem execução verificada"}</span>
+              </div>
+            </div>
+            <div className={styles.tabs} role="group" aria-label="Detalhes do agente">
+              <button type="button" aria-pressed={section === "missao"} className={section === "missao" ? styles.tabSelected : styles.tab} onClick={() => setSection("missao")}>Missão</button>
+              <button type="button" aria-pressed={section === "computador"} className={section === "computador" ? styles.tabSelected : styles.tab} onClick={() => setSection("computador")}>Computador</button>
+              <button type="button" aria-pressed={section === "acessos"} className={section === "acessos" ? styles.tabSelected : styles.tab} onClick={() => setSection("acessos")}>Acessos</button>
+            </div>
+
+            {section === "missao" && (
+              <div className={styles.detailContent}>
+                {selected.id === "executive" && <Link href="/workforce/ceo" className="ageButton ageButtonSecondary">Iniciar conhecimento da empresa</Link>}
+                <p className={styles.mission}>{selected.mission}</p>
+                <h3>Cargos deste agente</h3>
+                <div className={styles.chips}>{selected.positions.map((position) => <span key={position}>{position}</span>)}</div>
+                <h3 style={{ marginTop: 24 }}>Trabalho que poderá executar</h3>
+                <div className={styles.chips}>{selected.tasks.map((item) => <span key={item}>{item}</span>)}</div>
+                <div className={styles.emptyActivity}>
+                  <span className={styles.emptyIcon} aria-hidden="true">—</span>
+                  <strong>Nenhuma atividade registrada</strong>
+                  <p>A primeira tarefa aparecerá aqui depois que o acesso aos sistemas e a execução forem implementados.</p>
+                </div>
+              </div>
+            )}
+
+            {section === "computador" && (
+              <div className={styles.detailContent}>
+                <div className={styles.desktop} role="img" aria-label="Ilustração de computador planejado para este agente; ainda não existe sessão ativa">
+                  <div className={styles.desktopToolbar}>
+                    <div className={styles.desktopDots} aria-hidden="true"><i /><i /><i /></div>
+                    <span>agesoma://computer/{selected.id}</span>
+                    <span className={styles.desktopLock}>{runtimeStatus === "attested" ? "SEM SESSÃO EXIBÍVEL" : "NÃO ATIVO"}</span>
+                  </div>
+                  <div className={styles.desktopCenter}>
+                    <div className={styles.monitorSymbol} aria-hidden="true">□</div>
+                    <strong>{runtimeStatus==="attested" ? "Executor remoto atestado; nenhuma tela transmitida" : "Computador não provisionado"}</strong>
+                    <p>Futuramente: sessão isolada por agente, visão ao vivo, pausa e tomada de controle mediante autorização.</p>
+                  </div>
+                </div>
+                <p className={styles.caution}>Isolamento, armazenamento, rede, sessões e orçamento precisam ser validados no backend antes de habilitar este painel.</p>
+                {diagnosticsEnabled && runtimeStatus==="attested" && (
+                  <div>
+                    <button
+                      type="button"
+                      className="ageButton ageButtonSecondary"
+                      disabled={diagnosticRunning}
+                      onClick={()=>runDiagnostic(selected.id)}
+                    >
+                      {diagnosticRunning ? "Testando navegador…" : "Executar diagnóstico offline do computador"}
+                    </button>
+                    <p className={styles.caution} role="status" aria-live="polite">
+                      {diagnosticResult || "Usa somente uma página fictícia, sem dados de clientes nem ações externas."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {section === "acessos" && (
+              <div className={styles.detailContent}>
+                <h3>Fontes previstas para esta função</h3>
+                <div className={styles.accessList}>
+                  {selected.sources.map((source) => (
+                    <div key={source}><span>{source}</span><small>Sem autorização concedida</small></div>
+                  ))}
+                </div>
+                <h3 style={{ marginTop: 22 }}>Limites de atuação</h3>
+                <div className={styles.accessList}>{selected.boundaries.map((boundary) => (
+                  <div key={boundary}><span>{boundary}</span></div>
+                ))}</div>
+                <p className={styles.caution}>Acessos não são herdados automaticamente. Cada agente precisará de autorização individual, escopo mínimo, revogação e auditoria.</p>
+              </div>
+            )}
+          </section>
+        </main>
+
+        <aside className={styles.activity} aria-label="Painel de execução">
+          <div className={styles.sideHeading}><strong>Centro de execução</strong><span>AGORA</span></div>
+          <div className={styles.metricGroup}>
+            <div><strong>0</strong><span>Em execução nesta prévia</span></div>
+            <div><strong>0</strong><span>Computadores provisionados</span></div>
+          </div>
+          <div className={styles.activityBox}>
+            <div className={styles.placeholderIcon} aria-hidden="true">—</div>
+            <strong>Sem trabalho iniciado</strong>
+            <p>Ordens de trabalho, aprovações, passos auditados e resultados verificados aparecerão nesta coluna.</p>
+          </div>
+          <div className={styles.trust}>
+            <strong>Controle do proprietário</strong>
+            <p>Pagamentos, publicações, exclusões e mudanças sensíveis devem exigir limites explícitos e aprovação adequada.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

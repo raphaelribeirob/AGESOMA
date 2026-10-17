@@ -1,0 +1,57 @@
+name: OpenSandbox Chromium computer proof
+on:
+  pull_request:
+    paths:
+      - "scripts/opensandbox/smoke-browser.py"
+      - ".github/workflows/opensandbox-browser-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-sandbox:
+    name: Real browser in disposable Linux sandbox
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify Python test syntax and Docker setup
+        run: |
+          python3 -m py_compile scripts/opensandbox/smoke-browser.py
+          bash scripts/opensandbox/install.sh check
+      - name: Start local-only OpenSandbox and run Chromium inside it
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/opensandbox/install.sh start > "$RUNNER_TEMP/opensandbox-server.log" 2>&1 &
+          pid=$!
+          cleanup() {
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=0
+          for i in {1..180}; do
+            if curl --silent --fail http://127.0.0.1:8080/health >/dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "OpenSandbox server exited early"
+              tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            echo "No real OpenSandbox process responded within 180s"
+            tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"
+            exit 1
+          fi
+          source "$HOME/.config/agesoma/opensandbox.env"
+          export OPEN_SANDBOX_DOMAIN=127.0.0.1:8080
+          uv run --no-project --with opensandbox==1.1.1 python scripts/opensandbox/smoke-browser.py

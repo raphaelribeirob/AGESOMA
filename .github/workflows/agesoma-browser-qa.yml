@@ -1,0 +1,84 @@
+name: AGESOMA isolated browser QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+    paths:
+      - "apps/web/**"
+      - "packages/core/**"
+      - "tests/e2e/**"
+      - "playwright.config.mjs"
+      - ".github/workflows/agesoma-browser-qa.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/core/**"
+      - "tests/e2e/**"
+      - "playwright.config.mjs"
+      - ".github/workflows/agesoma-browser-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    name: Chromium desktop/Android and WebKit iPhone
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      CI: "1"
+      DATABASE_URL: postgres://agesoma_qa:qa_only_not_prod@127.0.0.1:5432/agesoma_qa
+      AGESOMA_EXECUTOR_URL: ""
+      AGESOMA_EXECUTOR_ATTEST_SECRET: ""
+      PADDLE_ENV: "sandbox"
+      PADDLE_SUPPORT_PRICE_ID: ""
+      NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: ""
+      AGESOMA_QA_BASE_URL: http://127.0.0.1:3100
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: agesoma_qa
+          POSTGRES_PASSWORD: qa_only_not_prod
+          POSTGRES_DB: agesoma_qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agesoma_qa -d agesoma_qa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Generate CI-only ephemeral auth secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "BETTER_AUTH_SECRET=$(openssl rand -hex 48)" >> "$GITHUB_ENV"
+      - name: Install packages without external account access
+        run: |
+          npm install --package-lock=false --no-audit --no-fund
+          npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.55.1
+      - name: Install Chromium and WebKit for actual browser tests
+        run: npx playwright install --with-deps chromium webkit
+      - name: Create isolated Better Auth schema
+        run: npx auth@1.7.4 migrate --config ./apps/web/lib/auth.ts --yes
+      - name: Build production-like web locally against disposable Postgres
+        run: npm run build --workspace @agesoma/web
+      - name: Execute real browser interaction and security tests
+        run: npx playwright test --config playwright.config.mjs
+      - name: Collect screenshots and HTML artifacts without customer data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agesoma-browser-qa-${{ github.run_number }}
+          path: qa-artifacts/
+          retention-days: 7
+          if-no-files-found: ignore

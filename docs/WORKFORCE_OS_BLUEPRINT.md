@@ -1,0 +1,135 @@
+# AGESOMA Workforce OS — Product and Technical RFC
+Status: PROPOSAL / NOT DEPLOYED — 2026-10-16
+Base: draft PR #38 (self-service B2B Atendimento); no production changes, no migrations, no provisioned computers.
+
+## 1. Product contract
+An owner connects the company, AGESOMA builds a **source-attributed, permission-bounded business model**, proposes work, and specialists execute only authorized actions. One conversational control surface; a visible roster of persistent workers; a distinct, isolated computer per worker; and outcome evidence for every completion claim.
+
+**User promise:** “Conecte sua empresa. AGESOMA aprende o contexto, recomenda tarefas e executa o que você autorizar.”
+**Not a promise:** full autonomy, unrestricted system access, magic knowledge of the business, or 24/7 computers included at a fixed low subscription.
+
+The product is B2B self-service with B2C-quality onboarding. Do not confuse Wonderful.ai with the unrelated wonderfulagent.ai website.
+
+### Canonical customer loop
+1. Authenticate organization owner and tenant; select workspace.
+2. Connect the first trusted information sources with minimal read-only scopes (website, company docs, knowledge base and optionally CRM/helpdesk).
+3. Ingest incrementally. Store facts with source, observed_at, source_updated_at, confidence, expiry/staleness, tenant and visibility scope. Contradictions remain unresolved and are presented for owner review.
+4. Produce an understandable **Business Brief**: offer, audience, products/services, channels, process, top pain points, metrics with explicit "unknown" labels. Validate important business assumptions with the owner.
+5. Rank 3 possible tasks by value, reversibility, evidence, cost and permission requirements.
+6. Owner delegates one bounded task (first slice: owner-approved support FAQ + human escalation, from PR #38).
+7. CEO+COO routes the work to its accountable agent (CEO+COO, CFO, CMO+CRO, CTO+CPO); that agent leases its own isolated compute only when needed. Connectors/API are preferred; computer use is a fallback.
+8. Every consequential external action passes Sentinel. Human approves high-impact actions; grants are scoped, short-lived, revocable and audited.
+9. Capture artifacts + independent outcome verification (ProofTree where appropriate). Report achieved vs attempted vs blocked; never claim success from a language-model response.
+10. Learn procedures as versioned Skills and Routines, only after consent and observed successful execution.
+
+## 2. Roster and governance — exactly FOUR customer-facing agents
+
+Seven executive accountabilities are covered by **four persistent agents**. Responsibilities below are consolidated roles, not seven separate sandboxes, subscriptions or employees.
+
+| Agent (one identity and isolated computer) | Executive titles | Accountabilities |
+| --- | --- | --- |
+| **CEO + COO** (`executive`) | Chief Executive Officer + Chief Operating Officer | Strategy, prioritization, coordination, operations, customer-service supervision and execution accountability |
+| **CFO** (`finance`) | Chief Financial Officer | Finance, cash flow, budgeting, margin and profitability; no autonomous money transfers |
+| **CMO + CRO** (`growth`) | Chief Marketing Officer + Chief Revenue Officer | Brand, marketing, acquisition, sales pipeline, commercial conversion, retention and revenue |
+| **CTO + CPO** (`product`) | Chief Technology Officer + Chief Product Officer | Engineering, security, product strategy, UX, roadmap, testing and approved releases |
+
+The coordinator is the **CEO+COO agent** rather than a fifth agent. Support/Atendimento is an internal bounded **capability under CEO+COO** and sales is an internal bounded **capability under CMO+CRO**, preserving the existing #38 support business logic instead of deleting it. Domain-specific worker skills, tools and ephemeral subtasks may exist invisibly; they must not be portrayed as extra executive identities or share another agent's credentials. Internal specialists are still routed according to actual permissions.
+
+### Delegation boundaries
+- CEO+COO decides operational priority but cannot self-approve consequence-heavy work or override owner approval.
+- CFO makes financial analyses and challenges assumptions independently; it does **not** allow payments by default or bypass Sentinel.
+- CMO+CRO can analyze marketing and sales, draft campaigns and outreach; external publishing, spend and bulk outbound require specific grants.
+- CTO+CPO can plan/prepare code and product changes; production releases, access grants and deletion need owner approval and independent checks.
+- Cross-functional decisions (pricing, ad spend, release date) require a shared work order and explicit owner approval where consequential; the CEO agent doesn't secretly grant itself access to CFO/CTO credentials.
+
+Canonical product metadata: `apps/web/app/workforce/workforce-profiles.ts`. Changes to a role require updates to that module, these guardrails, and `tests/workforce-roles.test.mjs`. **This maps the product preview only**; backend registry/migrations and deployed computers are not yet switched to four persistent workers.
+
+**One accountable worker per outcome.** Other workers assist through scoped task handoffs with explicit evidence. Each worker has separate role memory, browser profile, file workspace, secrets capability, budget and computer lease. Shared company facts are served through an authorization-aware retrieval API: no implicit shared filesystem, no same password/cookies, no cross-tenant credentials.
+
+### Computer lifecycle (mandatory distinction)
+worker identity is persistent; running CPU is NOT required to be persistent.
+- `UNPROVISIONED` -> `STARTING` -> `READY` -> `BUSY` -> `IDLE` -> `HIBERNATED` -> `READY`.
+- `BLOCKED` and `FAILED` stop work and surface remediation.
+- Each worker leases a sandbox from a provider (pilot OpenSandbox self-hosted; evaluate Daytona or E2B for alternatives) with isolation guarantees verified for the actual selected runtime. Persist scoped state via encrypted volumes/snapshots or external object storage; do not rely on an always-running machine.
+- Worker-to-sandbox mapping is tenant-scoped and auditable, with strict admission control, quota, TTL, idle suspension, egress allowlists, data retention policies and kill switch.
+- Account-wide shared computer is NOT acceptable as a security boundary. Even though Grok Bot advertises named Bots with screens, its published FAQ describes a shared account computer, NOT one isolated computer per Bot. AGESOMA explicitly chooses per-worker isolation.
+
+### Desktop visibility
+- Status: glanceable worker state on avatar/roster and current verified task phase.
+- Preview: side-panel read-only streaming view + concise action log and artifacts.
+- Takeover: user claims exclusive control, the worker pauses input, session is audited, then control is explicitly returned; no simultaneous mouse/keyboard use.
+- No screen images, passwords or raw secret fields in logs. Private computer display endpoints require owner authentication and scoped session tokens.
+- Mobile provides same roster, statuses, approvals and preview; full takeover may require larger-screen experience depending on capability.
+
+### Authorization matrix
+- Read allowed public docs / authorized private records: scoped READ with provenance.
+- Internal draft/analysis: permitted within task limits.
+- Email to customers, public posts, CRM mutations, ticket closure: explicit grant, dry-run or review based on risk.
+- Money movement, purchases, destructive deletes, access grants, production changes: require granular approval or be denied by policy. Rate limits and spend caps always apply.
+- Credentials in secure broker, never in prompt, client-side JS, screenshot logs or shared storage.
+- Company documents and websites are untrusted input; prompt injection never overrides policy.
+
+## 3. Proposed implementation map (reuse before building)
+Existing base PR #38 and related draft PRs:
+- `apps/web`: Next.js/React, authenticated workspace, conversational surface; attach new workforce roster without replacing main UI yet.
+- `packages/core/src/agent-registry.ts`: preserve the existing granular specialist capabilities for compatible task routing; consolidate **visible** executive accountabilities through `apps/web/app/workforce/workforce-profiles.ts`. A later migration must map internal capabilities to four tenant-scoped persistent worker identities without breaking old tasks. The CEO+COO fills coordinator duties.
+- `packages/core/src/sentinel.ts`: R0-R4 policy foundation. Mandatory for every external action and computer-use step with side effects.
+- HERMES, Work Cells, Trust Store, Authd, Browser Safety, Model Gateway and ProofTree: retain current boundaries; validate exact deployment, not merely source-level contracts.
+- Draft #30 `Business Understanding Engine` and migration 0021: integrate via review/merge when ready; don't duplicate ontology or silently migrate production.
+- Draft #33 enterprise onboarding and draft #38 self-service Atendimento: converge into a single buyer onboarding, not separate setup journeys.
+- PostgreSQL/Neon for tenancy, tasks, provenance, grants, worker metadata, cost ledger and audit; durable queue for execution.
+- OpenSandbox self-hosted is the chosen pilot runtime for per-worker sandboxes; Daytona/E2B remain alternatives. Linux bootstrap, smoke and security constraints: [OpenSandbox installation](OPENSANDBOX_INSTALL.md). Deployment on Vercel supports web/control surfaces only, not permanent desktops.
+- Secrets and credentials managed through a broker; don't expose directly in VM environment or browser transcript.
+
+## 4. API and database contract (planned, not implemented)
+- `company_sources`: tenant_id, source_id, provider, scopes, sync_status, last_sync_at, revoked_at.
+- `business_facts`: tenant_id, fact_id, value, source_id, observed_at, confidence, freshness_status, review_status.
+- `worker_profiles`: tenant_id, worker_id, role, policy_version, status, budget_policy, memory_scope.
+- `worker_computers`: tenant_id, worker_id UNIQUE per tenant, provider, sandbox_ref, state, lease_expires_at, last_activity_at, storage_ref.
+- `work_orders`: tenant_id, owner_worker_id, objective, input_evidence, scope, spending_ceiling, state.
+- `computer_events`: tenant_id, worker_id, work_order_id, event_type, redacted_summary, evidence_ref, timestamp.
+- `approvals`: tenant/actor/action/scope/time-bound token and independent authorization decision.
+No external provider token or raw password in relational records. Enforce RLS and authorization in services. Align names with existing schema before migrations.
+
+Proposed endpoints under authenticated workspace:
+`GET /api/workforce`,
+`GET /api/workforce/:id/activity`,
+`POST /api/workforce/:id/tasks`,
+`GET /api/workforce/:id/computer` (signed read-only),
+`POST /api/workforce/:id/takeover` (exclusive temporary control),
+`POST /api/workforce/:id/stop`.
+All require server-side authorization, bounded inputs, CSRF/origin protection for mutations, and tenant checks.
+
+## 5. Delivery stages and exit gates
+P0 — Product surface: authenticated roster + business-learning states + non-deceptive computer placeholders. This PR introduces only the preview, no fake data or runtime actions.
+P1 — Business Brain: reconcile draft #30 ontology and source provenance, implement minimal read-only website/doc/FAQ intake and human confirmation. Verify tenant isolation, stale/conflicting data.
+P2 — One real worker: CEO+COO delegates its Atendimento capability using the #38 approved knowledge/FAQ and escalations, end-to-end customer flow, independent completion evidence. This is not a fifth executive agent.
+P3 — One isolated leased computer: provision per worker with secure lifecycle; run a non-sensitive test; test restart, cross-worker and cross-tenant isolation, permission revocation and budget cut-off.
+P4 — Safe preview + takeover and auditable concurrent task dispatch. Test 2+ workers concurrently without shared cookies/keys and no simultaneous input.
+P5 — Skills/Routines, additional roles only after 10+ real pilot customer tasks with measured success, retries, escalation and unit economics.
+
+**Definition of done (production):** provider credentials validated; DB migrations applied; tenant isolation and secrets tests; adversarial browser/prompt-injection tests; end-to-end buyer/auth/permission/runtime/approval/takeover; kill-switch and cost tests; accessibility + reduced motion; mobile responsive; logs/alerts; signed artifacts and evidence. CI green is not equivalent to production proof.
+
+## 6. Key unit economics
+Daytona's public rates (checked 2026-10-16): Linux vCPU $0.0504/hour; RAM $0.0162/GiB-hour, plus relevant storage and other charges. A 1vCPU/2GiB computer running 24/7 costs about $60/month before storage, model tokens, browser/proxy, retries and platform fees. Five always-running workers cost about $300/month of compute alone. Size-specific performance is not guaranteed.
+**Policy:** sell persistent *identity* and *work*, not permanently powered-on CPUs; idle hibernate and enforce tenant budget reservations. Price packages based on outcomes/tasks + included usage, with transparent excess use.
+
+## 7. Risk and tradeoffs
+- Market: assistants are crowded; category-level positioning has weak differentiation. Win with trusted business onboarding + one measurable workflow.
+- Reliability: browser automation can be blocked by MFA/CAPTCHA/site terms; API/connector first; human takeover if appropriate.
+- Security: cross-tenant leaks, prompt injection, credential sprawl and unapproved spend are existential risks; deny by default.
+- Product: overly broad worker roster produces "AI theater" rather than value; launch only coordinator and Atendimento first.
+- Migration: the default branch currently states PERSONAL assistant, while draft PRs #29/30/33/38 pursue enterprise. This proposal intentionally lives on a branch stacked on #38 and must not silently rewrite `main`.
+
+## Sources consulted (2026-10-16)
+- https://x.ai/news/designing-grok-bot
+- https://docs.x.ai/grok-bot/faq (shared machine per user, separate screens)
+- https://www.wonderful.ai/agents
+- https://www.daytona.io/docs/en/sandboxes/
+- https://www.daytona.io/pricing
+- https://e2b.dev/
+
+
+## 8. OpenSandbox integration status (2026-10-16)
+
+OpenSandbox 1.1.1 local Linux install script, test sandbox lifecycle and self-host guide were added to this feature branch. Configuration binds management and mapped ports to loopback, has a generated non-versioned key, Docker bridge and host mount allowlist. GitHub Actions has a disposable Ubuntu smoke workflow. **No host is provisioned; no live agent or customer computer is connected; the rollout remains experimental.** See [installation guide](OPENSANDBOX_INSTALL.md).

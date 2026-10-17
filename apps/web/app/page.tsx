@@ -3,6 +3,7 @@ import { tenantSql } from "@agesoma/db";
 import { resolveAuthenticatedWorkspace } from "../lib/auth-workspace";
 import AgesomaClient from "./agesoma-client";
 import { approvalCard } from "../lib/approval-card";
+import { loadConfirmedCompanyProfile } from "../lib/ceo-context";
 
 export const dynamic = "force-dynamic";
 
@@ -85,9 +86,17 @@ async function loadInitialState(tenantId: string) {
 
 export default async function Home() {
   const authenticated = await resolveAuthenticatedWorkspace();
-  if (!authenticated) redirect("/start");
+  if (!authenticated) redirect("/instant");
 
   const state = await loadInitialState(authenticated.tenantId);
+  const companyProfile = await loadConfirmedCompanyProfile(authenticated.tenantId);
+  // First-run: no generic bot builder. The owner teaches the CEO before
+  // new autonomous work. Existing in-flight/approval workflows stay accessible.
+  if (!companyProfile
+      && Number(state.summary.active_work) === 0
+      && Number(state.summary.approvals) === 0) {
+    redirect("/workforce/ceo");
+  }
   const active = Number(state.summary.active_work);
   const blocked = Number(state.summary.blocked_work);
   const approvals = Number(state.summary.approvals);
@@ -121,7 +130,9 @@ export default async function Home() {
         greeting: firstName ? `Olá, ${firstName}.` : "Olá.",
         brief: state.interruption
           ? `${state.interruption.summary} ${parts.join(". ")}.`
-          : `${parts.join(". ")}.`,
+          : companyProfile
+            ? `Empresa confirmada: ${companyProfile.companyName}. Objetivo informado pelo dono: ${companyProfile.objective}. ${parts.join(". ")}. Ainda não consultei ERP, CRM ou bancos.`
+            : `Sem briefing empresarial confirmado. ${parts.join(". ")}. A configuração do CEO está em /workforce/ceo.`,
         statusText,
         activeWork: active,
         verifiedResults: verified,

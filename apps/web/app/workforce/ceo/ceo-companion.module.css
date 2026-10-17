@@ -1,0 +1,37 @@
+.panel { margin: 24px 0 0; padding: 32px; border: 1px solid var(--age-border); border-radius: var(--age-radius-card); background: var(--age-surface); overflow-wrap: anywhere; }
+.header { display: flex; align-items: center; gap: 16px; }
+.mark { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; width: 64px; height: 64px; background: var(--age-ink); color: var(--age-surface); border-radius: var(--age-radius-control); font: 500 14px/1 var(--age-font-mono); }
+.kicker { color: var(--age-muted); font: 500 12px/16px var(--age-font-ui); letter-spacing: .04em; }
+.header h2 { font: 500 26px/32px var(--age-font-display); margin: 8px 0 0; }
+.conversation { background: var(--age-surface-subtle); border-radius: var(--age-radius-card); padding: 24px; margin-top: 24px; display: grid; gap: 12px; }
+.conversation p { margin: 0; color: var(--age-text); font-size: 15px; line-height: 24px; white-space: pre-wrap; }
+.conversation strong { font-weight: 600; color: var(--age-ink); }
+.notice { font-size: 12px; line-height: 20px; color: var(--age-muted); margin: 16px 0 32px; }
+.grid { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 32px; }
+.grid h3 { font: 500 20px/28px var(--age-font-display); margin: 0 0 12px; }
+.small { font-size: 13px; line-height: 20px; color: var(--age-muted); margin: 0 0 16px; }
+.actions { display: grid; gap: 8px; }
+.proposal { border: 1px solid var(--age-border); border-radius: var(--age-radius-card); }
+.proposal summary { cursor: pointer; padding: 16px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; min-height: 52px; }
+.proposal summary::marker { content: ""; }
+.proposal summary::-webkit-details-marker { display: none; }
+.proposal summary span { font-size: 14px; font-weight: 500; color: var(--age-ink); }
+.proposal summary small { font-size: 12px; color: var(--age-muted); white-space: nowrap; }
+.proposal[open] summary { border-bottom: 1px solid var(--age-border); }
+.proposalDetail { padding: 16px; }
+.proposalDetail p { font-size: 14px; color: var(--age-text); line-height: 22px; margin: 0 0 12px; }
+.proposalDetail .pending { color: var(--age-warning); font-size: 12px; }
+.questions { padding: 24px; border: 1px solid var(--age-border); border-radius: var(--age-radius-card); }
+.questions ol { color: var(--age-text); padding-inline-start: 24px; margin: 16px 0 24px; display: grid; gap: 16px; font-size: 14px; line-height: 24px; }
+.questions a { width: 100%; }
+.questions .small { margin-top: 16px; }
+.footer { margin-top: 32px; border-top: 1px solid var(--age-border); padding-top: 24px; display: flex; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--age-muted); }
+.panel :is(summary,a):focus-visible { outline: 3px solid var(--age-accent); outline-offset: 3px; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 599px) { .panel { padding: 24px 16px; } .header { align-items: flex-start; } .mark { width: 48px; height: 48px; } .header h2 { font-size: 23px; line-height: 30px; } .conversation { padding: 16px; } .questions { padding: 16px; } .footer { display: grid; } .proposal summary { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .panel *, .panel *::before, .panel *::after { animation: none; transition: none; scroll-behavior: auto; } }
+
+/* Midnight precision: nested insight panels use hairlines, not shadows. */
+.panel,.proposal,.questions { border-width: .5px; border-color: var(--age-border-subtle); }
+.conversation { background: var(--age-panel); border: .5px solid var(--age-border-subtle); }
+.mark { font-weight: 400; }

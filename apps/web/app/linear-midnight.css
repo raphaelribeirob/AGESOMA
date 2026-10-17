@@ -1,0 +1,208 @@
+/*
+ * AGESOMA Midnight — original implementation inspired by the supplied
+ * "Linear — Style Reference". Never use Linear assets, brand or fake UI.
+ * Scoped to AGE product roots; unrelated account/admin screens retain
+ * their previous theme until individually migrated and audited.
+ */
+.ageTheme {
+  color-scheme: dark;
+
+  /* Reference palette; locally scoped to avoid changing other product lines. */
+  --color-void: #08090a;
+  --color-carbon: #0f1011;
+  --color-obsidian: #161718;
+  --color-graphite: #23252a;
+  --color-smoke: #383b3f;
+  --color-ash: #62666d;
+  --color-fog: #8a8f98;
+  --color-mist: #d0d6e0;
+  --color-bone: #e5e5e6;
+  --color-paper: #ffffff;
+  --color-acid-lime: #e4f222;
+  --color-pulse-green: #27a644;
+  --color-coral-red: #eb5757;
+  --color-signal-teal: #02b8cc;
+  --color-iris-violet: #6366f1;
+  --color-lavender: #8b5cf6;
+
+  /* AGE semantic aliases — the only operational color vocabulary. */
+  --age-surface: var(--color-void);
+  --age-surface-subtle: var(--color-carbon);
+  --age-surface-warm: var(--color-obsidian);
+  --age-panel: var(--color-obsidian);
+  --age-ink: var(--color-paper);
+  --age-text: var(--color-mist);
+  --age-muted: var(--color-fog);
+  --age-placeholder: var(--color-fog);
+  --age-border: var(--color-smoke);
+  --age-border-subtle: var(--color-graphite);
+  --age-accent: var(--color-acid-lime);
+  --age-on-accent: var(--color-void);
+  --age-focus: var(--color-mist);
+  --age-success: #78d79b; /* bright accessible text; not decorative pulse green */
+  --age-warning: #edc779;
+  --age-danger: #ff8787;
+
+  --font-inter-variable: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-berkeley-mono: "JetBrains Mono Variable", "Geist Mono Variable", ui-monospace, monospace;
+  --age-font-display: var(--font-inter-variable);
+  --age-font-ui: var(--font-inter-variable);
+  --age-font-mono: var(--font-berkeley-mono);
+  --age-radius-card: 12px;
+  --age-radius-control: 6px;
+  --age-radius-pill: 9999px;
+  --age-hairline: 0.5px solid var(--age-border-subtle);
+
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-36: 36px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-128: 128px;
+
+  --text-caption: 13px;
+  --text-body-sm: 15px;
+  --text-body-lg: 20px;
+  --text-subheading: 24px;
+  --text-heading-sm: 32px;
+  --text-heading: 48px;
+  --text-heading-lg: 64px;
+  --text-display: 72px;
+
+  --age-shadow-subtle: inset 0 0 0 0.5px var(--age-border-subtle);
+  --age-motion-fast: 140ms;
+  --age-motion-base: 220ms;
+
+  background: var(--age-surface);
+  color: var(--age-text);
+  font-family: var(--age-font-ui);
+  font-feature-settings: "cv01" on, "ss03" on, "zero" on;
+  -webkit-font-smoothing: antialiased;
+}
+
+body:has(.ageTheme) {
+  background: #08090a;
+  color: #d0d6e0;
+  color-scheme: dark;
+}
+
+/* Wordmark is the existing AGESOMA-only monochrome vector, never a Linear logo. */
+.ageTheme img[src="/agesoma-wordmark-age.svg"] {
+  filter: brightness(0) invert(1);
+}
+
+.ageTheme :is(h1, h2, h3, h4) {
+  color: var(--age-ink);
+  font-family: var(--age-font-display);
+  letter-spacing: -0.012em;
+  font-weight: 510;
+}
+.ageTheme h1 { letter-spacing: -0.022em; }
+.ageTheme :is(button, input, textarea, select) {
+  font-family: var(--age-font-ui);
+  font-feature-settings: "cv01" on, "ss03" on, "zero" on;
+}
+.ageTheme :is(input, textarea, select) {
+  color: var(--age-text);
+  background-color: var(--age-surface-subtle);
+  border-color: var(--age-border);
+  border-radius: var(--age-radius-control);
+}
+.ageTheme :is(input, textarea)::placeholder { color: var(--age-muted); opacity: 1; }
+.ageTheme :is(input, textarea, select):disabled { opacity: .7; }
+.ageTheme :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--age-focus);
+  outline-offset: 3px;
+}
+.ageTheme ::selection { background: #383b3f; color: white; }
+.ageTheme :is(pre, code, kbd, samp) {
+  font-family: var(--age-font-mono);
+  font-feature-settings: "cv01" on, "ss03" on;
+}
+
+/* Reserve acid-lime for actual primary action, not ambient decoration. */
+.ageTheme .ageButton {
+  border-radius: var(--age-radius-control);
+  letter-spacing: -0.011em;
+  font-weight: 510;
+}
+.ageTheme .ageButtonPrimary {
+  border-color: var(--age-accent);
+  background: var(--age-accent);
+  color: var(--age-on-accent);
+}
+.ageTheme .ageButtonSecondary {
+  border-color: var(--age-border);
+  background: transparent;
+  color: var(--age-text);
+}
+.ageTheme .ageButtonTertiary {
+  border-color: transparent;
+  background: transparent;
+  color: var(--age-text);
+}
+.ageTheme .ageButton:not(:disabled):hover { filter: brightness(1.09); }
+.ageTheme .ageButtonSecondary:hover { background: var(--age-surface-subtle); }
+.ageTheme .ageButton:disabled { opacity: .55; }
+
+/* Product-first public navigation; one neutral white sign-in pill. */
+.ageTheme nav[aria-label="Navegação principal"] a:last-child {
+  background: var(--color-paper);
+  color: var(--color-void);
+  border-radius: var(--age-radius-pill);
+  min-height: 44px;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: 510;
+}
+
+/* Authenticated chat: avoid white-on-white on user messages or agent mark. */
+.museShell.ageTheme .ageIdentityMark {
+  background: var(--age-ink);
+  color: var(--age-surface);
+  border-color: var(--age-ink);
+}
+.museShell.ageTheme .museBubbleRow.user .museBubble {
+  background: var(--age-panel);
+  color: var(--age-ink);
+  border: 0.5px solid var(--age-border);
+}
+.museShell.ageTheme .museBubbleRow.assistant .museBubble {
+  background: var(--age-surface-subtle);
+  color: var(--age-text);
+  border: 0.5px solid var(--age-border-subtle);
+}
+.museShell.ageTheme .museBubbleRow.user .museBubble :is(p, strong, span) {
+  color: inherit;
+}
+
+/* Midnight hierarchy: an understated surface difference replaces glow. */
+.ageTheme :is(.ageCard, .agePanel) {
+  background: var(--age-surface-subtle);
+  border: var(--age-hairline);
+  border-radius: var(--age-radius-card);
+  box-shadow: none;
+}
+
+/* Intentional high contrast at mobile sizes; never shrink target below 44px. */
+@media (max-width: 599px) {
+  .ageTheme .ageButton { min-height: 48px; }
+  .ageTheme h1 { line-height: 1.1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ageTheme *, .ageTheme *::before, .ageTheme *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,62 @@
+name: AGESOMA dependency security QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+    paths:
+      - "package.json"
+      - "apps/**/package.json"
+      - "packages/**/package.json"
+      - "services/**/package.json"
+      - ".github/workflows/agesoma-dependency-qa.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "apps/**/package.json"
+      - "packages/**/package.json"
+      - "services/**/package.json"
+      - ".github/workflows/agesoma-dependency-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  npm-vulnerabilities:
+    name: Audit installed production dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build ephemeral dependency lock for accurate advisory resolution
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Audit all production workspace dependencies
+        shell: bash
+        run: |
+          mkdir -p qa-artifacts
+          npm audit --omit=dev --json > qa-artifacts/npm-audit.json || true
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const report=JSON.parse(readFileSync("qa-artifacts/npm-audit.json","utf8"));
+            const vuln=report.metadata?.vulnerabilities;
+            if(!vuln){console.error("npm audit returned no usable vulnerability counts");process.exit(1);}
+            console.log("Production dependency advisories:",JSON.stringify(vuln));
+            for(const [pkg,details] of Object.entries(report.vulnerabilities??{})){
+              if(["high","critical"].includes(details.severity))
+                console.log("BLOCKER",pkg,details.severity,"via",JSON.stringify(details.via.map(x=>typeof x==="string"?x:x.name)));
+            }
+            if(vuln.critical>0||vuln.high>0)process.exit(1);
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agesoma-dependency-audit-${{ github.run_number }}
+          path: qa-artifacts/npm-audit.json
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,0 +1,38 @@
+/* Demonstrable support matcher — AGE tokens, same functionality and API. */
+.demo { border: 1px solid var(--age-border); border-radius: var(--age-radius-card); background: var(--age-surface); padding: 32px; display: grid; gap: 24px; }
+.headingLabel { font: 500 12px/16px var(--age-font-ui); text-transform: uppercase; letter-spacing: .04em; color: var(--age-muted); }
+.demo h2 { font: 500 28px/36px var(--age-font-display); margin: 12px 0; }
+.demo p { font-size: 14px; line-height: 24px; margin: 0; color: var(--age-text); }
+.examples { display: flex; gap: 12px; flex-wrap: wrap; }
+.example {
+  border: 1px solid var(--age-border); border-radius: var(--age-radius-control); background: var(--age-surface-subtle);
+  font: 400 14px/20px var(--age-font-ui); color: var(--age-ink); padding: 12px 16px; min-height: 48px; cursor: pointer;
+}
+.example:disabled { opacity: .55; cursor: not-allowed; }
+.example:hover { border-color: var(--age-ink); }
+.form { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.field { display: grid; gap: 8px; flex: 1 1 300px; min-width: 0; }
+.field label { font: 500 14px/20px var(--age-font-ui); color: var(--age-text); }
+.field input { min-height: 48px; border: 1px solid var(--age-border); border-radius: var(--age-radius-control); padding: 12px 16px; font: 400 16px/24px var(--age-font-ui); color: var(--age-ink); min-width: 0; }
+.field input:focus-visible, .example:focus-visible { outline: 3px solid var(--age-accent); outline-offset: 3px; }
+.form button { flex: 0 0 auto; }
+.form button:disabled { opacity: .55; cursor: not-allowed; }
+.error { font-size: 14px; color: var(--age-danger) !important; font-weight: 500; }
+.result { padding: 24px; background: var(--age-surface-subtle); border-radius: var(--age-radius-card); border: 1px solid var(--age-border); }
+.result strong { color: var(--age-ink); font-size: 16px; font-weight: 500; }
+.result p { margin: 12px 0 !important; white-space: pre-wrap; }
+.result small, .note { color: var(--age-muted); font-size: 12px; line-height: 20px; }
+@media (max-width: 599px) {
+  .demo { padding: 24px 16px; gap: 20px; }
+  .demo h2 { font-size: 24px; line-height: 32px; }
+  .examples { display: grid; }
+  .example { text-align: start; }
+  .form { display: grid; }
+  .form button { width: 100%; }
+}
+
+/* Readable midnight FAQ controls, flat monochrome states. */
+.demo,.example,.result { border-width: .5px; border-color: var(--age-border-subtle); }
+.demo { background: var(--age-surface-subtle); }
+.example,.field input { background: var(--age-panel); color: var(--age-text); }
+.result { background: var(--age-panel); }

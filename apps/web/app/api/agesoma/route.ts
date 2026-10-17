@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   DEFAULT_AGENT_PACKAGE,
+  executiveOwnerForCapability,
+  isCeoBusinessQuestion,
+  answerCeoBusinessQuestion,
+  routeSmbOwnerRequest,
+  projectConfirmedCompanyForCapability,
   agentTemplateForPlan,
   buildCapabilityScope,
   decideExecutor,
@@ -17,6 +22,9 @@ import { resolveAuthenticatedWorkspace } from "../../../lib/auth-workspace";
 import { approvalCard } from "../../../lib/approval-card";
 import { appendConversationMessage, resolveConversationThread } from "../../../lib/conversation";
 import { ensurePersistentWorker } from "../../../lib/persistent-worker";
+import { loadConfirmedCompanyProfile } from "../../../lib/ceo-context";
+import { loadCeoApprovedFacts } from "../../../lib/ceo-approved-facts";
+import { probeExecutiveExecutor } from "../../../lib/executive-executor-readiness";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
@@ -280,13 +288,50 @@ function asksAboutConnections(message: string) {
 }
 
 async function answerQuestion(tenantId: string, message: string) {
-  const [state, facts, approval, personalContext, connections] = await Promise.all([
+  const [state, facts, approval, personalContext, connections, companyProfile] = await Promise.all([
     snapshot(tenantId),
     searchBrain(tenantId, message),
     firstApproval(tenantId),
     activePersonalContext(tenantId),
-    activeConnections(tenantId)
+    activeConnections(tenantId),
+    loadConfirmedCompanyProfile(tenantId)
   ]);
+
+  if (isCeoBusinessQuestion(message)) {
+    const overview = answerCeoBusinessQuestion(message, companyProfile);
+    // A reviewed company intake is mandatory before knowledge-enrichment.
+    if (!companyProfile) return { reply: overview, approval };
+    let enrichment = "";
+    try {
+      const memory = await loadCeoApprovedFacts(tenantId);
+      const lines = memory.facts.map((fact) =>
+        `• ${fact.key}: ${fact.value} (referência: ${fact.source}; observado em ${fact.observedAt})`);
+      if (lines.length) {
+        enrichment = "\n\nOutros fatos revisados pelo responsável (não auditados externamente):\n"
+          + lines.join("\n");
+      }
+      if (memory.conflictingFacts > 0) {
+        enrichment += "\nExistem informações contraditórias não resolvidas; não as usei.";
+      }
+      if (memory.truncated) enrichment += "\nO contexto disponível foi resumido; consulte as fontes para detalhes.";
+    } catch {
+      // Optional knowledge engine may not be migrated yet. Never invent facts.
+      enrichment = "\n\nFontes adicionais de conhecimento indisponíveis nesta sessão.";
+    }
+    return { reply: overview + enrichment, approval };
+  }
+
+  const smbSkill = routeSmbOwnerRequest(message);
+  if (smbSkill) {
+    const recommendations: Record<string, string> = {
+      "cash-flow-snapshot": "Para começar pelo caixa, abra /workforce/ceo e escolha Caixa e despesas. Informe um CSV com data, tipo e valor. A primeira análise calcula entradas, saídas e variação líquida, sem previsão de saldo bancário.",
+      "lead-triage": "Para avaliar seus leads, abra /workforce/ceo e escolha Vendas e clientes. Uma planilha CSV com nome, status e último contato gera uma triagem inicial, sem disparar mensagens.",
+      "business-pulse": "Para um briefing do negócio, abra /workforce/ceo e informe sua prioridade. O briefing completo depende de fontes autorizadas; sem elas não afirmo saldos ou faturamento.",
+      "build-connector": "Para conectar um ERP ou outro sistema, preciso saber qual ferramenta sua empresa já usa e quais informações deseja consultar. A conexão automática ainda não está ativa; podemos começar com um arquivo CSV local em /workforce/ceo."
+    };
+    const note = recommendations[smbSkill];
+    if (note) return { reply: note + " Nenhuma integração, cobrança ou execução externa foi iniciada.", approval };
+  }
 
   if (asksAboutAgents(message)) {
     return {
@@ -338,6 +383,15 @@ async function answerQuestion(tenantId: string, message: string) {
 }
 
 async function createWork(tenantId: string, actorId: string, role: string, message: string, threadId?:string|null) {
+  // CEO-first setup is mandatory for NEW work, never for handling existing approvals.
+  // This deliberately does not provision a sandbox, spend tokens, or grant permissions.
+  const profile = await loadConfirmedCompanyProfile(tenantId);
+  if (!profile) {
+    return {
+      reply: "Antes de executar tarefas, preciso conhecer sua empresa. Abra /workforce/ceo, cadastre o negócio e confirme o contexto com o responsável. Nenhuma tarefa foi criada.",
+      approval: await firstApproval(tenantId)
+    };
+  }
   let plan;
   try {
     plan = routeBusinessRequest(message);
@@ -373,6 +427,24 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   if (!explicitHuman && !selectedAgent) {
     return { reply: "Minhas capacidades de execução ainda não foram provisionadas corretamente. Não vou iniciar essa tarefa até isso estar corrigido.", approval: await firstApproval(tenantId) };
   }
+  // No database status or namespace is proof that a real cloud computer exists.
+  // The trusted executor must attest to four distinct live agent sessions.
+  const executiveOwner = selectedAgent ? executiveOwnerForCapability(selectedAgent.template_key) : null;
+  if (selectedAgent && !executiveOwner) {
+    return {
+      reply: "Não existe um agente executivo responsável por esta especialidade. Nenhuma tarefa foi criada até definirmos atribuição segura.",
+      approval: await firstApproval(tenantId)
+    };
+  }
+  const executorReadiness = selectedAgent
+    ? await probeExecutiveExecutor(process.env.AGESOMA_EXECUTOR_URL, process.env.AGESOMA_EXECUTOR_ATTEST_SECRET)
+    : null;
+  if (selectedAgent && !executorReadiness?.ready) {
+    return {
+      reply: "Ainda não há quatro sessões executivas isoladas e verificadas para executar essa tarefa. O pedido NÃO foi enfileirado e nenhum custo foi iniciado. Você pode continuar o diagnóstico local em /workforce/ceo. A configuração de OpenSandbox e os testes de segurança estão pendentes.",
+      approval: await firstApproval(tenantId)
+    };
+  }
   const selectedWorker = selectedAgent ? await ensurePersistentWorker(tenantId, selectedAgent) : null;
 
   const decision = explicitHuman
@@ -381,7 +453,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
         executorType: "hermes" as const,
         teamMemberId: null,
         teamMemberName: null,
-        reason: `${selectedAgent!.name} é a capacidade persistente responsável; a execução roda no runtime pessoal isolado do tenant.`,
+        reason: `${selectedAgent!.name} é a especialidade responsável. O executor remoto foi atestado, mas esta atribuição não comprova a conclusão.`,
         confidence: 0.95
       };
 
@@ -424,6 +496,11 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     operation: plan.operation,
     coordination: decision,
     digitalAgent: selectedAgent ? agentContext(selectedAgent) : null,
+    executiveWorker: executiveOwner && executorReadiness?.ready ? {
+      id: executiveOwner,
+      attestedSessionId: executorReadiness.sessionIds[executiveOwner],
+      provenance: "signed_runtime_attestation_only_not_execution_proof"
+    } : null,
     persistentWorker: selectedWorker ? {
       id: selectedWorker.id,
       key: selectedWorker.worker_key,
@@ -435,6 +512,9 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
       runtimeStrategy: selectedWorker.runtime_strategy
     } : null,
     teamContext,
+    companyContext: selectedAgent
+      ? projectConfirmedCompanyForCapability(profile, selectedAgent.template_key)
+      : null,
     personalContext: {
       source: "personal_context_entries",
       trust: "context-only-not-authorization-or-proof",
@@ -499,12 +579,6 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     JSON.stringify({ domain: plan.domain, mode: plan.mode, requestedBy: actorId })
   ]);
 
-  await tenantSql(tenantId, `
-    update work_cells
-    set runtime_mode='personal_persistent',persistent_home=true,last_active_at=now(),updated_at=now()
-    where tenant_id=$1
-  `, [tenantId]);
-
   if (selectedAgent) {
     await tenantSql(tenantId, `
       insert into agent_task_assignments (tenant_id,task_id,agent_id,assigned_reason)
@@ -526,11 +600,11 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     ? humanDecision.teamMemberName ?? "sua equipe"
     : selectedAgent!.name.replace(/^Agente de /, "meu especialista de ");
   const approvalNote = plan.requiresApproval
-    ? " Vou preparar a ação exata e pedir sua autorização antes de qualquer etapa consequencial."
-    : " Vou acompanhar até haver uma entrega ou um bloqueio real.";
+    ? " Ações consequenciais exigem aprovação específica antes da execução."
+    : " A conclusão só será informada após evidências do executor.";
 
   return {
-    reply: `Entendi. Coloquei ${responsible} para cuidar disso.${approvalNote}`,
+    reply: `Pedido registrado na fila para ${responsible}; ainda não foi executado.${approvalNote}`,
     taskId: task.id,
     accepted: true,
     approval: await firstApproval(tenantId)
@@ -566,6 +640,15 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   if (!task) return NextResponse.json({ error: "A decisão não existe mais." }, { status: 404 });
   if (task.status !== "awaiting_approval") return NextResponse.json({ error: "Essa decisão já não está aguardando aprovação." }, { status: 409 });
 
+  if (task.payload.digitalAgent || task.payload.persistentWorker) {
+    const readiness = await probeExecutiveExecutor(process.env.AGESOMA_EXECUTOR_URL, process.env.AGESOMA_EXECUTOR_ATTEST_SECRET);
+    if (!readiness.ready) {
+      return NextResponse.json({
+        error: "Ação não aprovada: nenhum executor isolado foi verificado. A tarefa continua aguardando aprovação; nenhuma execução foi iniciada."
+      }, {status:503});
+    }
+  }
+
   const resolved = canonicalScope(task);
   if (resolved.error || !resolved.scope) return NextResponse.json({ error: resolved.error ?? "Não foi possível validar a ação." }, { status: 409 });
 
@@ -579,7 +662,7 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   `, [tenantId, taskId, task.action_type, serializedScope, scopeHash, actorId, randomUUID(), expiresAt]);
   await tenantSql(tenantId, `update tasks set status='queued',dispatched_at=null,updated_at=now() where id=$1 and tenant_id=$2`, [taskId, tenantId]);
 
-  return NextResponse.json({ reply: "Aprovado. Vou executar exatamente o que foi autorizado e depois confirmar o resultado com evidência." });
+  return NextResponse.json({ reply: "Autorização registrada para o escopo definido. A tarefa está na fila; execução e resultado ainda precisam ser comprovados." });
 }
 
 export async function GET(req:Request) {
@@ -627,7 +710,7 @@ export async function POST(req: Request) {
     content:parsed.data.message
   });
 
-  const result = looksLikeQuestion(parsed.data.message) && !isPaidMediaRequest(parsed.data.message)
+  const result = (looksLikeQuestion(parsed.data.message) || isCeoBusinessQuestion(parsed.data.message) || routeSmbOwnerRequest(parsed.data.message) !== null) && !isPaidMediaRequest(parsed.data.message)
     ? await answerQuestion(authenticated.tenantId, parsed.data.message)
     : await createWork(
         authenticated.tenantId,

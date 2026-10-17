@@ -1,0 +1,87 @@
+name: AGESOMA real four-executive OpenSandbox bridge
+on:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+    paths:
+      - "scripts/opensandbox/executor-pilot.py"
+      - "tests/executor-live-bridge.test.mjs"
+      - ".github/workflows/executor-four-sessions.yml"
+  pull_request:
+    paths:
+      - "scripts/opensandbox/executor-pilot.py"
+      - "tests/executor-live-bridge.test.mjs"
+      - ".github/workflows/executor-four-sessions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-executor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    name: Four real sandboxes, browser commands and signed receipts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: astral-sh/setup-uv@v6
+      - name: Verify Python source and local Docker prerequisites
+        run: |
+          python3 -m py_compile scripts/opensandbox/executor-pilot.py
+          bash scripts/opensandbox/install.sh check
+      - name: Generate isolated per-run executor secret
+        shell: bash
+        run: echo "AGESOMA_EXECUTOR_ATTEST_SECRET=$(openssl rand -hex 48)" >> "$GITHUB_ENV"
+      - name: Start four real browser-capable sandboxes behind loopback-only executor
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/opensandbox/install.sh start > "$RUNNER_TEMP/opensandbox-server.log" 2>&1 &
+          server_pid=$!
+          executor_pid=""
+          cleanup() {
+            if [[ -n "$executor_pid" ]]; then
+              kill "$executor_pid" 2>/dev/null || true
+              wait "$executor_pid" 2>/dev/null || true
+            fi
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          ready=0
+          for i in {1..180}; do
+            if curl -fsS http://127.0.0.1:8080/health > /dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test "$ready" = 1 || { tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"; exit 1; }
+          source "$HOME/.config/agesoma/opensandbox.env"
+          export OPEN_SANDBOX_DOMAIN=127.0.0.1:8080
+          export AGESOMA_QA_VERBOSE_ERRORS=1
+          uv run --no-project --with opensandbox==1.1.1 --with 'aiohttp>=3.10,<4' \
+            python scripts/opensandbox/executor-pilot.py > "$RUNNER_TEMP/executor-pilot.log" 2>&1 &
+          executor_pid=$!
+          ready=0
+          for i in {1..170}; do
+            if curl -fsS http://127.0.0.1:8091/health > /dev/null; then ready=1; break; fi
+            if ! kill -0 "$executor_pid" 2>/dev/null; then
+              tail -n 90 "$RUNNER_TEMP/executor-pilot.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$ready" = 1 || { tail -n 90 "$RUNNER_TEMP/executor-pilot.log"; exit 1; }
+          node --test tests/executor-live-bridge.test.mjs || {
+            tail -n 100 "$RUNNER_TEMP/executor-pilot.log"
+            exit 1
+          }
+          kill -TERM "$executor_pid" || true
+          for i in {1..40}; do
+            if ! kill -0 "$executor_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          tail -n 80 "$RUNNER_TEMP/executor-pilot.log" | grep -E 'PROVISIONED|EXECUTOR_PILOT_READY|DIAGNOSTIC_ERROR|CLEANUP|ERROR' || true
