@@ -25,7 +25,7 @@ export function validateExecutorEndpoint(endpoint: string): URL | null {
     // Avoid localhost and IP literal probes; never send credentials or follow redirects.
     if (url.protocol !== "https:" || url.username || url.password ||
         url.search || url.hash || url.port !== "" || url.pathname !== "/" ||
-        isIP(url.hostname.replace(/^\\[|\\]$/g,"")) !== 0 ||
+        isIP(url.hostname.replace(/^\[|\]$/g,"")) !== 0 ||
         !/^[a-z0-9.-]+$/i.test(url.hostname) || !url.hostname.includes(".") ||
         /(^|\.)(localhost|local|internal|test|invalid)$/.test(url.hostname)) return null;
     return url;
