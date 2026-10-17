@@ -14,6 +14,7 @@ export default async function WorkforcePage() {
     <WorkforcePreview
       workspaceName={workspace.organization.name}
       runtimeStatus={runtime.ready ? "attested" : "unavailable"}
+      diagnosticsEnabled={runtime.ready && process.env.AGESOMA_EXECUTOR_DIAGNOSTIC_ENABLED === "true" && process.env.VERCEL_ENV !== "production" && (workspace.role === "owner" || workspace.role === "admin")}
     />
   );
 }
