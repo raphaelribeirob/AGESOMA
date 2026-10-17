@@ -22,10 +22,39 @@ function AgentMark({ initials, large = false }: { initials: string; large?: bool
   );
 }
 
-export default function WorkforcePreview({ workspaceName, runtimeStatus }: { workspaceName: string; runtimeStatus: "attested" | "unavailable" }) {
+export default function WorkforcePreview({ workspaceName, runtimeStatus, diagnosticsEnabled = false }: {
+  workspaceName: string;
+  runtimeStatus: "attested" | "unavailable";
+  diagnosticsEnabled?: boolean;
+}) {
   const [workerId, setWorkerId] = useState(WORKFORCE_PROFILES[0].id);
   const [section, setSection] = useState<Section>("missao");
   const [companyOpen, setCompanyOpen] = useState(true);
+  const [diagnosticRunning,setDiagnosticRunning] = useState(false);
+  const [diagnosticResult,setDiagnosticResult] = useState("");
+  async function runDiagnostic(executive: string) {
+    setDiagnosticRunning(true);
+    setDiagnosticResult("");
+    try {
+      const response=await fetch("/api/workforce/executor/diagnostic",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({action:"qa.browser",executive})
+      });
+      const data=await response.json();
+      if (!response.ok || !data.ok || !data.report?.verified) {
+        setDiagnosticResult("Diagnóstico não comprovado: "+String(data.error??"executor indisponível"));
+      } else {
+        setDiagnosticResult("Chromium de teste verificado para "+executive+
+          ". Prova SHA-256: "+data.report.screenshotSha256+
+          ". Nenhum sistema da empresa foi acessado.");
+      }
+    } catch {
+      setDiagnosticResult("Diagnóstico não comprovado: falha de conexão.");
+    } finally {
+      setDiagnosticRunning(false);
+    }
+  }
   const selected = WORKFORCE_PROFILES.find((worker) => worker.id === workerId) ?? WORKFORCE_PROFILES[0];
 
   return (
@@ -157,11 +186,26 @@ export default function WorkforcePreview({ workspaceName, runtimeStatus }: { wor
                   </div>
                   <div className={styles.desktopCenter}>
                     <div className={styles.monitorSymbol} aria-hidden="true">□</div>
-                    <strong>Computador não provisionado</strong>
+                    <strong>{runtimeStatus==="attested" ? "Executor remoto atestado; nenhuma tela transmitida" : "Computador não provisionado"}</strong>
                     <p>Futuramente: sessão isolada por agente, visão ao vivo, pausa e tomada de controle mediante autorização.</p>
                   </div>
                 </div>
                 <p className={styles.caution}>Isolamento, armazenamento, rede, sessões e orçamento precisam ser validados no backend antes de habilitar este painel.</p>
+                {diagnosticsEnabled && runtimeStatus==="attested" && (
+                  <div>
+                    <button
+                      type="button"
+                      className="ageButton ageButtonSecondary"
+                      disabled={diagnosticRunning}
+                      onClick={()=>runDiagnostic(selected.id)}
+                    >
+                      {diagnosticRunning ? "Testando navegador…" : "Executar diagnóstico offline do computador"}
+                    </button>
+                    <p className={styles.caution} role="status" aria-live="polite">
+                      {diagnosticResult || "Usa somente uma página fictícia, sem dados de clientes nem ações externas."}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
