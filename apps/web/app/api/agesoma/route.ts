@@ -23,6 +23,7 @@ import { appendConversationMessage, resolveConversationThread } from "../../../l
 import { ensurePersistentWorker } from "../../../lib/persistent-worker";
 import { loadConfirmedCompanyProfile } from "../../../lib/ceo-context";
 import { loadCeoApprovedFacts } from "../../../lib/ceo-approved-facts";
+import { probeExecutiveExecutor } from "../../../lib/executive-executor-readiness";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("message"), message: z.string().min(2).max(4000), threadId: z.string().uuid().optional() }),
@@ -425,6 +426,17 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
   if (!explicitHuman && !selectedAgent) {
     return { reply: "Minhas capacidades de execução ainda não foram provisionadas corretamente. Não vou iniciar essa tarefa até isso estar corrigido.", approval: await firstApproval(tenantId) };
   }
+  // No database status or namespace is proof that a real cloud computer exists.
+  // The trusted executor must attest to four distinct live agent sessions.
+  const executorReadiness = selectedAgent
+    ? await probeExecutiveExecutor(process.env.AGESOMA_EXECUTOR_URL, process.env.AGESOMA_EXECUTOR_ATTEST_SECRET)
+    : null;
+  if (selectedAgent && !executorReadiness?.ready) {
+    return {
+      reply: "Ainda não há quatro sessões executivas isoladas e verificadas para executar essa tarefa. O pedido NÃO foi enfileirado e nenhum custo foi iniciado. Você pode continuar o diagnóstico local em /workforce/ceo. A configuração de OpenSandbox e os testes de segurança estão pendentes.",
+      approval: await firstApproval(tenantId)
+    };
+  }
   const selectedWorker = selectedAgent ? await ensurePersistentWorker(tenantId, selectedAgent) : null;
 
   const decision = explicitHuman
@@ -433,7 +445,7 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
         executorType: "hermes" as const,
         teamMemberId: null,
         teamMemberName: null,
-        reason: `${selectedAgent!.name} é a capacidade persistente responsável; a execução roda no runtime pessoal isolado do tenant.`,
+        reason: `${selectedAgent!.name} é a especialidade responsável. O executor remoto foi atestado, mas esta atribuição não comprova a conclusão.`,
         confidence: 0.95
       };
 
@@ -554,12 +566,6 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     JSON.stringify({ domain: plan.domain, mode: plan.mode, requestedBy: actorId })
   ]);
 
-  await tenantSql(tenantId, `
-    update work_cells
-    set runtime_mode='personal_persistent',persistent_home=true,last_active_at=now(),updated_at=now()
-    where tenant_id=$1
-  `, [tenantId]);
-
   if (selectedAgent) {
     await tenantSql(tenantId, `
       insert into agent_task_assignments (tenant_id,task_id,agent_id,assigned_reason)
@@ -581,11 +587,11 @@ async function createWork(tenantId: string, actorId: string, role: string, messa
     ? humanDecision.teamMemberName ?? "sua equipe"
     : selectedAgent!.name.replace(/^Agente de /, "meu especialista de ");
   const approvalNote = plan.requiresApproval
-    ? " Vou preparar a ação exata e pedir sua autorização antes de qualquer etapa consequencial."
-    : " Vou acompanhar até haver uma entrega ou um bloqueio real.";
+    ? " Ações consequenciais exigem aprovação específica antes da execução."
+    : " A conclusão só será informada após evidências do executor.";
 
   return {
-    reply: `Entendi. Coloquei ${responsible} para cuidar disso.${approvalNote}`,
+    reply: `Pedido registrado na fila para ${responsible}; ainda não foi executado.${approvalNote}`,
     taskId: task.id,
     accepted: true,
     approval: await firstApproval(tenantId)
@@ -621,6 +627,15 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   if (!task) return NextResponse.json({ error: "A decisão não existe mais." }, { status: 404 });
   if (task.status !== "awaiting_approval") return NextResponse.json({ error: "Essa decisão já não está aguardando aprovação." }, { status: 409 });
 
+  if (task.payload.digitalAgent || task.payload.persistentWorker) {
+    const readiness = await probeExecutiveExecutor(process.env.AGESOMA_EXECUTOR_URL, process.env.AGESOMA_EXECUTOR_ATTEST_SECRET);
+    if (!readiness.ready) {
+      return NextResponse.json({
+        error: "Ação não aprovada: nenhum executor isolado foi verificado. A tarefa continua aguardando aprovação; nenhuma execução foi iniciada."
+      }, {status:503});
+    }
+  }
+
   const resolved = canonicalScope(task);
   if (resolved.error || !resolved.scope) return NextResponse.json({ error: resolved.error ?? "Não foi possível validar a ação." }, { status: 409 });
 
@@ -634,7 +649,7 @@ async function approveTask(tenantId: string, actorId: string, role: string, task
   `, [tenantId, taskId, task.action_type, serializedScope, scopeHash, actorId, randomUUID(), expiresAt]);
   await tenantSql(tenantId, `update tasks set status='queued',dispatched_at=null,updated_at=now() where id=$1 and tenant_id=$2`, [taskId, tenantId]);
 
-  return NextResponse.json({ reply: "Aprovado. Vou executar exatamente o que foi autorizado e depois confirmar o resultado com evidência." });
+  return NextResponse.json({ reply: "Autorização registrada para o escopo definido. A tarefa está na fila; execução e resultado ainda precisam ser comprovados." });
 }
 
 export async function GET(req:Request) {
