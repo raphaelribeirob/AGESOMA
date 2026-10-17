@@ -12,7 +12,6 @@ export type WorkforceProfile = {
   role: string;
   positions: readonly ExecutiveTitle[];
   mission: string;
-  tone: string;
   tasks: readonly string[];
   sources: readonly string[];
   boundaries: readonly string[];
@@ -26,7 +25,7 @@ export const WORKFORCE_PROFILES: readonly WorkforceProfile[] = [
     role: "Estratégia e Operações",
     positions: ["CEO", "COO"],
     mission: "Define direção, transforma metas em planos de execução, coordena áreas e acompanha prazos, qualidade operacional e resultados. A supervisão de atendimento fica neste núcleo.",
-    tone: "#86bce8",
+
     tasks: [
       "Definir prioridades e metas da empresa",
       "Delegar e acompanhar a execução operacional",
@@ -43,7 +42,7 @@ export const WORKFORCE_PROFILES: readonly WorkforceProfile[] = [
     role: "Finanças e Rentabilidade",
     positions: ["CFO"],
     mission: "Lê receitas, despesas, caixa e margens, identifica riscos financeiros e recomenda ações para preservar rentabilidade e liquidez.",
-    tone: "#a2b0cf",
+
     tasks: [
       "Monitorar fluxo de caixa e despesas",
       "Analisar margens, custos e rentabilidade",
@@ -60,7 +59,7 @@ export const WORKFORCE_PROFILES: readonly WorkforceProfile[] = [
     role: "Marketing e Receita",
     positions: ["CMO", "CRO"],
     mission: "Conecta marca, aquisição, funil, vendas e retenção para aumentar receita sem perder visibilidade de CAC, conversão e qualidade comercial.",
-    tone: "#b7a6e4",
+
     tasks: [
       "Planejar posicionamento e campanhas",
       "Analisar canais, CAC e conversão",
@@ -77,7 +76,7 @@ export const WORKFORCE_PROFILES: readonly WorkforceProfile[] = [
     role: "Tecnologia e Produto",
     positions: ["CTO", "CPO"],
     mission: "Define evolução do produto e da experiência do usuário, transforma demandas em prioridades técnicas, coordena desenvolvimento, testes, segurança e lançamentos.",
-    tone: "#89cbbb",
+
     tasks: [
       "Priorizar roadmap e experiência do usuário",
       "Especificar e implementar melhorias técnicas",
