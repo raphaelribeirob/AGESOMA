@@ -4,6 +4,9 @@ This document applies to all software-building agents working on this repository
 
 ## Product contract to read first
 
+**INSTDESIGN.MD v3.5.0 (canônico):** [fonte única da família Instant](INSTDESIGN.MD), importada integralmente da última versão verificada, com dez paletas do orbe, motion voz/aprendizagem/precisão, Global-First, RTL, iOS/Android/Web e QA incorporado. Respeitar os `DESIGN.md` individuais (incluindo a abertura InstantSpeak de 2.650 ms). NUNCA aplicar Instant a Dots nem afirmar que especificação Markdown equivale a assets, homologação ou app compilado.
+
+
 **PLATFORM_FAMILIES / PRODUCT_FAMILIES (2026-10-17):** Read [PLATFORMDESIGN.md](PLATFORMDESIGN.md) first.  This repository is the opt-in shared platform for **Instant first**, then **Dots**. See [architecture and migration contract](docs/PLATFORM_INSTANT_DOTS.md). InstantSpeak, InstantStudy, InstantBible and DotSpeak remain independent repos with their own `DESIGN.md`, identity, entitlements and release processes. The AGESOMA `AGE` dark/Linear-inspired styling is **legacy-console only**; never apply it to Instant or Dots mobile apps by default. Do not move data or billing scopes across apps without server-verified entitlement and consent.
 
 
