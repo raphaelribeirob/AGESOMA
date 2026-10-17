@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "./ceo-intake.module.css";
 import CeoCompanion from "./ceo-companion";
+import CeoQuickWin from "./ceo-quick-win";
 
 type IntakeFields = {
   companyName: string;
@@ -131,12 +132,13 @@ export default function CeoIntake({ workspaceName }: { workspaceName: string }) 
         <header className={styles.heading}>
           <div className={styles.kicker}>ETAPA 01 · CONHECIMENTO DA EMPRESA</div>
           <h1>Primeiro, o CEO entende seu negócio.</h1>
-          <p>Uma equipe de IA pronta começa com contexto. Conte como sua empresa trabalha; o CEO organizará essas informações antes de propor tarefas aos demais agentes.</p>
+          <p>Comece com um diagnóstico local opcional, sem conexão bancária. Depois confirme os dados do negócio; o CEO poderá organizar as informações antes de propor ações aos demais agentes.</p>
           <div className={styles.stepBadge} role="status">
             {loading ? "Carregando…" : confirmed ? "Perfil confirmado pelo responsável" :
               status === "draft" || dirty ? "Informações ainda não confirmadas" : "Aguardando informações"}
           </div>
         </header>
+        {!confirmed && <CeoQuickWin />}
         <div className={styles.layout}>
           <section className={styles.formCard} aria-label="Informações da empresa">
             {!loading && !canEdit && <p role="status" className={styles.message}>O CEO pode consultar informações confirmadas, mas somente o dono ou um administrador pode cadastrar e validar o perfil. Solicite ao responsável que conclua esta etapa.</p>}
