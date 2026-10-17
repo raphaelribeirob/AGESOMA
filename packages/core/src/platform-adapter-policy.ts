@@ -3,7 +3,7 @@ import {
   type PlatformProductId,
   type ProductFamilyId,
   type PlatformProduct
-} from "./product-families";
+} from "./product-families.ts";
 
 export type SharedCapability = PlatformProduct["recommendedSharedCapabilities"][number];
 export type PlatformAdapterRequest = Readonly<{
