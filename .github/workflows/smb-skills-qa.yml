@@ -8,6 +8,17 @@ on:
       - "packages/core/src/smb-skills.ts"
       - "packages/core/src/index.ts"
       - "apps/web/app/workforce/ceo/**"
+      - "apps/web/app/workforce/workforce-preview.module.css"
+      - "apps/web/app/start/**"
+      - "apps/web/app/age-tokens.css"
+      - "apps/web/app/linear-midnight.css"
+      - "apps/web/app/age-product-bridge.css"
+      - "apps/web/app/layout.tsx"
+      - "apps/web/package.json"
+      - "AGEDESIGN.md"
+      - "tests/midnight-style.test.mjs"
+      - "tests/agedesign-acceptance.test.mjs"
+      - "tests/workforce-ui.test.mjs"
       - "apps/web/app/api/agesoma/route.ts"
       - "tests/smb-skills.test.mjs"
       - ".github/workflows/smb-skills-qa.yml"
@@ -16,6 +27,17 @@ on:
       - "packages/core/src/smb-skills.ts"
       - "packages/core/src/index.ts"
       - "apps/web/app/workforce/ceo/**"
+      - "apps/web/app/workforce/workforce-preview.module.css"
+      - "apps/web/app/start/**"
+      - "apps/web/app/age-tokens.css"
+      - "apps/web/app/linear-midnight.css"
+      - "apps/web/app/age-product-bridge.css"
+      - "apps/web/app/layout.tsx"
+      - "apps/web/package.json"
+      - "AGEDESIGN.md"
+      - "tests/midnight-style.test.mjs"
+      - "tests/agedesign-acceptance.test.mjs"
+      - "tests/workforce-ui.test.mjs"
       - "apps/web/app/api/agesoma/route.ts"
       - "tests/smb-skills.test.mjs"
       - ".github/workflows/smb-skills-qa.yml"
@@ -35,7 +57,7 @@ jobs:
         with:
           node-version: "24"
       - name: Execute local-first, zero-token tests
-        run: node --test tests/smb-skills.test.mjs
+        run: node --test tests/smb-skills.test.mjs tests/midnight-style.test.mjs tests/agedesign-acceptance.test.mjs tests/workforce-ui.test.mjs
       - name: Verify CEO-first integration tests
         run: node --test tests/ceo-first-setup.test.mjs tests/ceo-companion.test.mjs
 
