@@ -1,6 +1,7 @@
 export * from "./action-registry";
 export * from "./sentinel";
 export * from "./margin-governor";
+export * from "./workforce-metering";
 export * from "./outcomes";
 export * from "./request-router";
 export * from "./agent-registry";
