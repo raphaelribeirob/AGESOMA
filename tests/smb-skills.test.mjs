@@ -68,6 +68,11 @@ test("fail closed on malformed CSV, money and dates",()=>{
   }
 });
 
+test("CSV maximum 1,000 records applies even without a trailing newline",()=>{
+  const raw="data;tipo;valor\\n"+Array.from({length:1001},(_,i)=>`2026-10-01;entrada;${i+1}`).join("\\n");
+  assert.throws(()=>parseLocalCsv(raw),/1\\.000 linhas/);
+});
+
 test("lead list is a transparent heuristic, not fabricated when there is no signal",()=>{
   const input=parseLocalCsv("nome;empresa;status;ultimo_contato\nPessoa A;Empresa A;interessado;2026-10-10\nPessoa B;Empresa B;proposta;2026-10-01");
   const ranked=analyzeLeadCsv(input,"2026-10-16");
