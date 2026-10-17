@@ -99,5 +99,5 @@ test("AGE identity has no eye-shaped Dot mascot, fake orb or idle loop", () => {
   assert.match(css, /--age-radius-card/);
   assert.match(css, /--age-accent/);
   assert.match(css, /\.demoButton/);
-  assert.match(ui, /href="\/start#demonstracao"/);
+  assert.match(ui, /href="\/workforce\/ceo"/);
 });
