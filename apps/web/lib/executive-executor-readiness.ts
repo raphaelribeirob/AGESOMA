@@ -63,9 +63,11 @@ export function verifyExecutorAttestation(
   const expires=Date.parse(x.expiresAt);
   if (!Number.isFinite(expires) || expires<=nowMs || expires>nowMs+30_000)
     return {ready:false,reason:"invalid_attestation"};
-  if (!Array.isArray(x.capabilities) || x.capabilities.length!==3 ||
-      !["browser","terminal","filesystem"].every(v=>x.capabilities.includes(v)) ||
-      x.capabilities.some(v=>typeof v!=="string")) return {ready:false,reason:"invalid_attestation"};
+  if (!Array.isArray(x.capabilities)) return {ready:false,reason:"invalid_attestation"};
+  const capabilities: unknown[] = x.capabilities;
+  if (capabilities.length!==3 ||
+      !["browser","terminal","filesystem"].every(v=>capabilities.includes(v)) ||
+      capabilities.some(v=>typeof v!=="string")) return {ready:false,reason:"invalid_attestation"};
   if (!x.sessions || typeof x.sessions!=="object" || Array.isArray(x.sessions))
     return {ready:false,reason:"invalid_attestation"};
   const sessions=x.sessions as Record<string,unknown>;
