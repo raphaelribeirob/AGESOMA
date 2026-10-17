@@ -32,6 +32,7 @@
 .sectionHead { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:0 0 24px; border-bottom:1px solid var(--family-border); }
 .sectionHead h2,.architecture h2 { font-weight:450; letter-spacing:-.035em; font-size:clamp(28px,3.5vw,42px); line-height:1.2; margin:0; color:var(--family-ink); }
 .sectionHead p { max-width:350px; font-size:13px; line-height:1.5; color:var(--family-muted); margin:0; }
+.productList { display: grid; grid-template-columns: minmax(0,1fr); }
 .product { border-bottom:1px solid var(--family-border); padding:32px 0; display:grid; grid-template-columns:92px minmax(0,1fr) auto; gap:24px; align-items:center; }
 .productIndex { font:400 12px/1.4 "Geist Mono Variable",ui-monospace,monospace; color:var(--family-muted); align-self:start; }
 .productInfo h3 { font-size:clamp(22px,2.5vw,32px); line-height:1.2; letter-spacing:-.035em; font-weight:500; margin:0 0 8px; color:var(--family-ink); }
