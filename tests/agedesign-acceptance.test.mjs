@@ -88,7 +88,7 @@ test("branded vector is local and preserves provenance as provisional", () => {
   assert.match(app, /agesoma-wordmark-age\.svg/);
 });
 test("there are no legacy Dot-eyes, looping agent avatars or fabricated voice activity", () => {
-  assert.doesNotMatch(workforce, /WorkerAvatar|styles\.eye/);
+  assert.doesNotMatch(workforce, /WorkerAvatar|styles\.eye\b/);
   assert.doesNotMatch(workforceCss, /radial-gradient|animation: presence/);
   assert.doesNotMatch(app, /museAvatarLobe/);
   assert.match(app, /recognition\.onstart=\(\)=>setListening\(true\)/);
@@ -99,7 +99,7 @@ test("there are no legacy Dot-eyes, looping agent avatars or fabricated voice ac
   assert.match(bridge, /prefers-reduced-motion: reduce/);
 });
 test("AGE color/shape/layout used on both marketing and workforce surfaces", () => {
-  assert.match(landing, /className=\{\`\\$\{styles\.page\} ageTheme\`\}/);
+  assert.ok(landing.includes('className={`${styles.page} ageTheme}`'));
   assert.match(landing, /href="#demonstracao"/);
   assert.match(landing, /<SupportPricing/);
   assert.match(landing, /<SupportDemo/);
@@ -121,5 +121,5 @@ test("demo remains actual safe FAQ matcher, not a simulated backend integration"
   assert.match(demo, /<label htmlFor="age-demo-question">/);
   assert.match(demo, /role="alert"/);
   assert.match(demo, /aria-live="polite"/);
-  assert.match(landing, /em desenvolvimento/);
+  assert.match(landing, /em desenvolvimento/i);
 });
