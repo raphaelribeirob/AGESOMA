@@ -137,3 +137,16 @@ test("AGESOMA client rejects tampered execution evidence and another session",as
     );
   }
 });
+
+test("product agent executes a real browser in its own fourth session",async()=>{
+  const tenantId=randomUUID(),taskId=randomUUID();
+  const result=await post("/v1/execute",task(tenantId,taskId,"product"));
+  assert.equal(result.status,200,JSON.stringify(result.json));
+  assert.equal(result.json.executive,"product");
+  assert.equal(result.json.tenantId,tenantId);
+  assert.equal(result.json.taskId,taskId);
+  assert.equal(result.json.signature,mac((({signature,...value})=>value)(result.json)));
+  assert.equal(result.json.proof.dom,"executed");
+  assert.equal(result.json.proof.browser,"chromium");
+  assert.match(result.json.proof.image_sha256,/^[a-f0-9]{64}$/);
+});
