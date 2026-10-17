@@ -15,6 +15,18 @@
 
 ---
 
+## Defeitos identificados em instalação limpa
+
+**Executar uma criação de banco do zero foi decisivo.** A suite de teste CLI encontrou e a PR corrigiu:
+
+1. `0012_muse_parity_runtime_attention.sql`: índice `goals_tenant_status_priority_idx` exigia a coluna `goals.updated_at` antes de ela existir. A migração agora cria essa coluna de maneira idempotente antes do índice.
+2. `0019_usage_metering_budget.sql`: migração com SQL truncado e duplicado; falhava ao criar tabelas de limites e medição de tokens. Reconstruída com `tenant_usage_budgets`, `task_usage_ledger`, checagens de montantes não negativos, chaves estrangeiras compostas por `tenant_id` e políticas RLS.
+3. Na primeira rodada de signup, autenticação e produto tinham caminhos de pesquisa SQL diferentes: `public` para Better Auth e `agesoma_p0` para as tabelas empresariais. A QA usava incorretamente `AGESOMA_DB_SCHEMA=public`; corrigida para `agesoma_p0`. **Ainda precisa ser comprovada por novo teste.**
+
+Esses testes e correções são feitos na branch draft e no banco descartável; **não foi executada migração em Neon ou outro banco comercial**. Corrigir uma migração em Git não comprova que instalações já existentes têm a mesma estrutura; a promoção futura exigirá revisão de migrações e backups.
+
+---
+
 ## Ambientes criados
 
 ### A. Vercel — QA protegido
