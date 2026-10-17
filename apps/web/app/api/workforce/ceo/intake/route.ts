@@ -44,10 +44,18 @@ const PRIMARY_KEY = "agesoma:ceo:company-profile:v1";
 
 const canEdit = (role: string) => role === "owner" || role === "admin";
 function sameOrigin(req: Request): boolean {
+  // Next behind a reverse proxy may expose an internal req.url origin;
+  // still require a browser Origin matching the external request Host.
   const origin = req.headers.get("origin");
   if (!origin) return false;
-  try { return new URL(origin).origin === new URL(req.url).origin; }
-  catch { return false; }
+  try {
+    const browser = new URL(origin);
+    const received = new URL(req.url);
+    if (browser.origin === received.origin) return true;
+    const host = req.headers.get("host");
+    return Boolean(host) && browser.host === host &&
+      browser.protocol === received.protocol;
+  } catch { return false; }
 }
 const err = (error: string, status: number) => NextResponse.json({ error }, { status });
 const ownRow = (tenantId: string) => tenantSql<IntakeRow>(tenantId, `
