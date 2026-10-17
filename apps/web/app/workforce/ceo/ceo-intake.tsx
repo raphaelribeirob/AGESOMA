@@ -186,6 +186,19 @@ export default function CeoIntake({ workspaceName }: { workspaceName: string }) 
               onClick={() => void confirm()}>
               Confirmar informações
             </button>
+            {confirmed && (
+              <section className={styles.brief} aria-label="Mapa da empresa confirmado">
+                <h3>Mapa confirmado pelo proprietário</h3>
+                <dl>
+                  <dt>O que vende</dt><dd>{fields.offer}</dd>
+                  <dt>Quem atende</dt><dd>{fields.customers}</dd>
+                  <dt>Como opera</dt><dd>{fields.operations}</dd>
+                  <dt>Desafio atual</dt><dd>{fields.challenge}</dd>
+                  <dt>Primeiro objetivo</dt><dd>{fields.objective}</dd>
+                </dl>
+                <p>Resumo organizado a partir das suas declarações; nenhuma fonte externa foi verificada.</p>
+              </section>
+            )}
             <div className={styles.divider} />
             <h3>O que vem depois</h3>
             <ol>
