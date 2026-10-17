@@ -35,6 +35,14 @@ O Grok Bot tem um computador persistente compartilhado entre Bots por conta, com
 - Backend `apps/web/app/api/agesoma/route.ts`: deve bloquear enfileiramento de novas tarefas autônomas quando não há executor validado.
 - **Limite de escopo:** a ausência foi confirmada neste projeto QA; não se afirma ter auditado infraestrutura externa não conectada a este repositório/projeto.
 
+## Teste 4 — Interface autenticada informa corretamente a indisponibilidade
+
+- [GitHub Actions CEO + two tenants (39003874614)](https://github.com/raphaelribeirob/AGESOMA/actions/runs/39003874614) — **PASS**.
+- Com banco do produto e Better Auth descartáveis, proprietário autenticado entra em `/workforce`, vê **“Nenhum computador executivo verificado. Esta tela não executa tarefas.”**, abre a aba `Computador` e encontra estado planejado, não execução simulada como real.
+- Em seguida segue para `/workforce/ceo`, cadastra e confirma a empresa, enquanto outro tenant continua sem ler as declarações anteriores.
+- O teste **não** conecta a sessão do CEO ao piloto Docker e **não** executa tarefas autônomas. Trata-se de uma **prova de bloqueio/estado correto** em aplicação real.
+
+
 ## Matriz de paridade
 
 | Requisito | Prova nesta execução | Estado |
@@ -47,7 +55,7 @@ O Grok Bot tem um computador persistente compartilhado entre Bots por conta, com
 | Computador persistente do dono da PME | não provisionado em QA | FAIL disponibilidade |
 | Quatro computadores AGESOMA vinculados | sem endpoint/atestado | FAIL disponibilidade |
 | Abertura do desktop e screen takeover | sem VNC/stream | NÃO testado |
-| Chat CEO → browser/terminal por tarefa | sem dispatcher executor | FAIL integração |
+| Chat CEO → browser/terminal por tarefa | sem dispatcher executor; UI autentica e declara indisponibilidade | FAIL integração |
 | Continuar tarefa com cliente desconectado | sem runtime persistente | NÃO demonstrado |
 | Handoff CEO → CFO → CEO com prova | ausente | NÃO demonstrado |
 | Segurança forte de duas PMEs na infraestrutura de computadores | Docker piloto não é boundary forte | NÃO testado |
