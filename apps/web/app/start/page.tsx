@@ -13,7 +13,7 @@ export const metadata = {
 const STEPS = [
   { no: "01", title: "Conecte o conhecimento", body: "Cadastre ou importe respostas aprovadas sem compartilhar credenciais de terceiros." },
   { no: "02", title: "Valide as respostas", body: "Teste os acertos e as recusas. Mudanças na base exigem nova avaliação." },
-  { no: "03", title: "Ative com controle", body: "Com assinatura validada, publique o link. Casos desconhecidos vão para a fila humana." }
+  { no: "03", title: "Ative com controle", body: "Com pagamento confirmado e qualidade validada, publique o link. Casos desconhecidos vão para a fila humana." }
 ] as const;
 const EXECUTIVES = ["CEO + COO", "CFO", "CMO + CRO", "CTO + CPO"] as const;
 
@@ -44,7 +44,7 @@ export default function StartPage() {
             <a className="ageButton ageButtonPrimary" href="#demonstracao">Testar demonstração</a>
             <Link className="ageButton ageButtonSecondary" href="/sign-in">Configurar minha empresa</Link>
           </div>
-          <p className={styles.disclaimer}>Disponível nesta oferta: respostas de FAQ aprovadas e encaminhamento para sua equipe. Não executa reembolsos, pedidos nem ações em CRM/ERP.</p>
+          <p className={styles.disclaimer}>Disponível nesta oferta: respostas de FAQ aprovadas e encaminhamento para sua equipe. Não executa pedidos, reembolsos nem ações em CRM/ERP.</p>
           <div className={styles.productPreview} aria-label="Resumo das etapas do produto">
             <span className={styles.productPreviewLabel}>FLUXO DO PRODUTO · REPRESENTAÇÃO CONCEITUAL</span>
             <div className={styles.productFlow}>
@@ -59,7 +59,7 @@ export default function StartPage() {
         </section>
 
         <section className={styles.demoSection} aria-label="Produto demonstrável">
-          <SupportDemo />
+          <SupportDemo/>
         </section>
 
         <section className={styles.steps} aria-label="Como começar">
