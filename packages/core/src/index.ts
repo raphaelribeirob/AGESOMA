@@ -8,6 +8,7 @@ export * from "./request-router";
 export * from "./agent-registry";
 export * from "./executive-workforce";
 export * from "./ceo-conversation";
+export * from "./smb-skills";
 export * from "./personalization";
 export * from "./autonomy";
 export * from "./company-ontology";
