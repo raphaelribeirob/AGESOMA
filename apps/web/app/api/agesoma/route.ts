@@ -5,6 +5,7 @@ import {
   DEFAULT_AGENT_PACKAGE,
   isCeoBusinessQuestion,
   answerCeoBusinessQuestion,
+  routeSmbOwnerRequest,
   projectConfirmedCompanyForCapability,
   agentTemplateForPlan,
   buildCapabilityScope,
@@ -316,6 +317,18 @@ async function answerQuestion(tenantId: string, message: string) {
       enrichment = "\n\nFontes adicionais de conhecimento indisponíveis nesta sessão.";
     }
     return { reply: overview + enrichment, approval };
+  }
+
+  const smbSkill = routeSmbOwnerRequest(message);
+  if (smbSkill) {
+    const recommendations: Record<string, string> = {
+      "cash-flow-snapshot": "Para começar pelo caixa, abra /workforce/ceo e escolha Caixa e despesas. Informe um CSV com data, tipo e valor. A primeira análise calcula entradas, saídas e variação líquida, sem previsão de saldo bancário.",
+      "lead-triage": "Para avaliar seus leads, abra /workforce/ceo e escolha Vendas e clientes. Uma planilha CSV com nome, status e último contato gera uma triagem inicial, sem disparar mensagens.",
+      "business-pulse": "Para um briefing do negócio, abra /workforce/ceo e informe sua prioridade. O briefing completo depende de fontes autorizadas; sem elas não afirmo saldos ou faturamento.",
+      "build-connector": "Para conectar um ERP ou outro sistema, preciso saber qual ferramenta sua empresa já usa e quais informações deseja consultar. A conexão automática ainda não está ativa; podemos começar com um arquivo CSV local em /workforce/ceo."
+    };
+    const note = recommendations[smbSkill];
+    if (note) return { reply: note + " Nenhuma integração, cobrança ou execução externa foi iniciada.", approval };
   }
 
   if (asksAboutAgents(message)) {
@@ -669,7 +682,7 @@ export async function POST(req: Request) {
     content:parsed.data.message
   });
 
-  const result = (looksLikeQuestion(parsed.data.message) || isCeoBusinessQuestion(parsed.data.message)) && !isPaidMediaRequest(parsed.data.message)
+  const result = (looksLikeQuestion(parsed.data.message) || isCeoBusinessQuestion(parsed.data.message) || routeSmbOwnerRequest(parsed.data.message) !== null) && !isPaidMediaRequest(parsed.data.message)
     ? await answerQuestion(authenticated.tenantId, parsed.data.message)
     : await createWork(
         authenticated.tenantId,
