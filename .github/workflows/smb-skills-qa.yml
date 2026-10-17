@@ -48,9 +48,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm"
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install workspace dependencies (no lockfile in repository)
+        run: npm install --package-lock=false --no-audit --no-fund
       - name: Check core and web TypeScript
         run: npm run typecheck --workspace @agesoma/core && npm run typecheck --workspace @agesoma/web
       - name: Check Next build
