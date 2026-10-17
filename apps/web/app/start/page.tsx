@@ -1,54 +1,96 @@
 import Link from "next/link";
 import SupportDemo from "./support-demo";
 import SupportPricing from "./support-pricing";
-import {SUPPORT_OFFER} from "@agesoma/core";
+import { SUPPORT_OFFER } from "@agesoma/core";
+import styles from "./start-age.module.css";
 
-export const dynamic="force-dynamic";
-export const metadata={
- title:"AGESOMA Atendimento — configure, teste e contrate online",
- description:"Responda dúvidas comuns com conhecimento aprovado e encaminhe exceções a um responsável humano. Experimente o atendimento antes de contratar."
+export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "AGESOMA Atendimento — demonstração e configuração",
+  description: "Teste o atendimento web com base aprovada e encaminhamento humano, sem prometer automações não implementadas."
 };
-const shell:React.CSSProperties={maxWidth:1040,margin:"0 auto",padding:"32px 20px 96px",fontFamily:"Arial,sans-serif",color:"#15191d"};
-const card:React.CSSProperties={border:"1px solid #dfe4e9",borderRadius:16,padding:22,background:"#fff"};
-export default function StartPage(){
- const token=process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN??"";
- const priceId=process.env.PADDLE_SUPPORT_PRICE_ID??"";
- const sandbox=process.env.PADDLE_ENV==="sandbox";
- return <main style={shell}>
-  <header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-   <strong style={{fontSize:23,letterSpacing:"-.05em"}}>AGESOMA</strong>
-   <nav aria-label="Navegação" style={{display:"flex",gap:18,fontSize:14,flexWrap:"wrap"}}>
-    <a href="#demonstracao" style={{color:"#475569"}}>Demonstração</a>
-    <a href="#plano" style={{color:"#475569"}}>Plano</a>
-    <Link href="/sign-in" style={{textDecoration:"underline"}}>Entrar</Link>
-   </nav>
-  </header>
-  <section style={{padding:"65px 0 35px"}}>
-   <span style={{fontSize:12,letterSpacing:2,color:"#64748b",fontWeight:700}}>AGESOMA ATENDIMENTO · PRIMEIRO SERVIÇO</span>
-   <h1 style={{fontSize:"clamp(36px,6vw,72px)",letterSpacing:"-.06em",lineHeight:1.04,maxWidth:850,margin:"18px 0"}}>Responda dúvidas comuns. Encaminhe o que exige uma pessoa.</h1>
-   <p style={{fontSize:19,color:"#475569",maxWidth:770,lineHeight:1.55}}>{SUPPORT_OFFER.promise} Configure sua própria base, teste antes de contratar e publique um atendimento por link hospedado quando a assinatura e as avaliações forem aprovadas.</p>
-   <div style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:28}}>
-    <a href="#demonstracao" style={{background:"#111827",color:"#fff",borderRadius:10,padding:"14px 22px",fontWeight:650,textDecoration:"none"}}>Experimentar uma demonstração</a>
-    <Link href="/sign-in" style={{border:"1px solid #cbd5e1",borderRadius:10,padding:"14px 22px",textDecoration:"none"}}>Configurar minha empresa</Link>
-   </div>
-   <p style={{fontSize:12,marginTop:18,color:"#64748b"}}>Primeira versão: perguntas e respostas aprovadas e fila humana. Não executa pedidos, reembolsos nem ações em CRM/ERP.</p>
-  </section>
-  <SupportDemo/>
-  <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginTop:30}}>
-   <article style={card}><strong>1. Configure</strong><p>Cadastre ou importe o conhecimento aprovado. Não precisa treinar um modelo nem compartilhar credenciais de terceiros.</p></article>
-   <article style={card}><strong>2. Valide</strong><p>Teste respostas e recusas. Alterações na base exigem uma nova avaliação antes da publicação.</p></article>
-   <article style={card}><strong>3. Opere</strong><p>Após pagamento confirmado, habilite o link; dúvidas não respondidas entram na fila humana com protocolo privado.</p></article>
-  </section>
-  <section id="plano" style={{marginTop:36,...card,display:"grid",gap:14}}>
-   <div>
-    <span style={{fontSize:12,fontWeight:700,letterSpacing:1.4,color:"#64748b"}}>UM PRODUTO. UMA PROMESSA VERIFICÁVEL.</span>
-    <h2 style={{fontSize:26,margin:"7px 0"}}>AGESOMA Atendimento · Web</h2>
-   </div>
-   <SupportPricing token={token} priceId={priceId} sandbox={sandbox}/>
-   <p style={{margin:0,lineHeight:1.55}}>Inclui link de chat hospedado, até {SUPPORT_OFFER.quotas.maxDailyMessages} interações por dia e {SUPPORT_OFFER.quotas.maxFaqs} respostas cadastradas. Limites adicionais: {SUPPORT_OFFER.quotas.maxHourlyMessages} interações por hora por empresa e {SUPPORT_OFFER.quotas.maxDailyMessagesPerVisitor} por visitante/dia.</p>
-   <p style={{margin:0,color:"#64748b",fontSize:13}}>As conversas seguem regras da base aprovada e casos sem resposta são encaminhados à equipe do próprio cliente empresarial. Não há atendimento humano prestado pelo AGESOMA, envio automático por WhatsApp/e-mail, integração CRM, voz ou garantia de resolução nesta versão.</p>
-   <Link href="/sign-in" style={{justifySelf:"start",padding:"13px 20px",borderRadius:10,background:"#111827",color:"#fff",textDecoration:"none",fontWeight:650}}>Criar minha conta e testar</Link>
-   <p style={{fontSize:12,margin:0,color:"#64748b"}}>É possível configurar e testar sem comprar. A operação pública depende de assinatura ativa, confirmação do provedor e avaliação de qualidade.</p>
-  </section>
- </main>;
+
+const STEPS = [
+  { no: "01", title: "Conecte o conhecimento", body: "Cadastre ou importe respostas aprovadas sem compartilhar credenciais de terceiros." },
+  { no: "02", title: "Valide as respostas", body: "Teste os acertos e as recusas. Mudanças na base exigem nova avaliação." },
+  { no: "03", title: "Ative com controle", body: "Com assinatura validada, publique o link. Casos desconhecidos vão para a fila humana." }
+] as const;
+const EXECUTIVES = ["CEO + COO", "CFO", "CMO + CRO", "CTO + CPO"] as const;
+
+export default function StartPage() {
+  const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN ?? "";
+  const priceId = process.env.PADDLE_SUPPORT_PRICE_ID ?? "";
+  const sandbox = process.env.PADDLE_ENV === "sandbox";
+
+  return (
+    <main className={`${styles.page} ageTheme`}>
+      <div className={styles.shell}>
+        <header className={styles.header}>
+          <Link href="/start" aria-label="AGESOMA, início" className={styles.brandLink}>
+            <img src="/agesoma-wordmark-age.svg" alt="AGESOMA" width={197} height={13} />
+          </Link>
+          <nav aria-label="Navegação principal" className={styles.navigation}>
+            <a href="#demonstracao">Demonstração</a>
+            <a href="#plano">Plano</a>
+            <Link href="/sign-in">Entrar</Link>
+          </nav>
+        </header>
+
+        <section className={styles.hero} aria-labelledby="hero-title">
+          <div className={styles.kicker}>AGESOMA / ATENDIMENTO WEB</div>
+          <h1 id="hero-title">Respostas confiáveis. Controle em cada etapa.</h1>
+          <p className={styles.lead}>{SUPPORT_OFFER.promise} Configure sua base e teste a experiência antes de contratar.</p>
+          <div className={styles.heroActions}>
+            <a className="ageButton ageButtonPrimary" href="#demonstracao">Testar demonstração</a>
+            <Link className="ageButton ageButtonSecondary" href="/sign-in">Configurar minha empresa</Link>
+          </div>
+          <p className={styles.disclaimer}>Disponível nesta oferta: respostas de FAQ aprovadas e encaminhamento para sua equipe. Não executa reembolsos, pedidos nem ações em CRM/ERP.</p>
+          <div className={styles.productPreview} aria-label="Resumo das etapas do produto">
+            <span className={styles.productPreviewLabel}>FLUXO DO PRODUTO · REPRESENTAÇÃO CONCEITUAL</span>
+            <div className={styles.productFlow}>
+              <span>Conhecimento aprovado</span>
+              <span aria-hidden="true">→</span>
+              <span>Resposta ou recusa</span>
+              <span aria-hidden="true">→</span>
+              <span>Equipe humana</span>
+            </div>
+            <p>O funcionamento demonstrável está na seção interativa abaixo; este diagrama não representa dados ou operações reais.</p>
+          </div>
+        </section>
+
+        <section className={styles.demoSection} aria-label="Produto demonstrável">
+          <SupportDemo />
+        </section>
+
+        <section className={styles.steps} aria-label="Como começar">
+          {STEPS.map((step) => (
+            <article className={styles.step} key={step.no}>
+              <span>{step.no}</span>
+              <h2>{step.title}</h2>
+              <p>{step.body}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className={styles.productVision} aria-label="Visão da futura equipe de agentes">
+          <p className={styles.kicker}>PRÓXIMA ETAPA DO PRODUTO</p>
+          <h2>Quatro agentes. Sete funções executivas.</h2>
+          <p>Este é o desenho futuro do AGESOMA Workforce OS. Os computadores por agente e a execução autônoma ainda estão em desenvolvimento.</p>
+          <div className={styles.executiveGrid}>
+            {EXECUTIVES.map((role) => <span key={role}>{role}<small>Em desenvolvimento</small></span>)}
+          </div>
+        </section>
+
+        <section id="plano" className={styles.plan}>
+          <span className={styles.kicker}>UM PRODUTO. UMA OFERTA VERIFICÁVEL.</span>
+          <h2>AGESOMA Atendimento · Web</h2>
+          <SupportPricing token={token} priceId={priceId} sandbox={sandbox} />
+          <p>Link de chat hospedado, até {SUPPORT_OFFER.quotas.maxDailyMessages} interações/dia, {SUPPORT_OFFER.quotas.maxFaqs} respostas cadastradas, {SUPPORT_OFFER.quotas.maxHourlyMessages} interações/hora/empresa e {SUPPORT_OFFER.quotas.maxDailyMessagesPerVisitor} por visitante/dia.</p>
+          <p>Casos sem resposta são encaminhados à equipe do próprio cliente. Não há atendimento humano prestado pelo AGESOMA, envio automático por WhatsApp/e-mail, voz, integração CRM nem garantia de resolução.</p>
+          <Link href="/sign-in" className="ageButton ageButtonPrimary">Criar conta e testar</Link>
+          <small>É possível configurar e testar sem comprar. A operação pública depende de assinatura ativa e validação das avaliações de qualidade.</small>
+        </section>
+      </div>
+    </main>
+  );
 }
