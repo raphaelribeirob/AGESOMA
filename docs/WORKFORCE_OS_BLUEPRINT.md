@@ -17,18 +17,32 @@ The product is B2B self-service with B2C-quality onboarding. Do not confuse Wond
 4. Produce an understandable **Business Brief**: offer, audience, products/services, channels, process, top pain points, metrics with explicit "unknown" labels. Validate important business assumptions with the owner.
 5. Rank 3 possible tasks by value, reversibility, evidence, cost and permission requirements.
 6. Owner delegates one bounded task (first slice: owner-approved support FAQ + human escalation, from PR #38).
-7. Coordinator assigns a specialist; its compute lease starts. Connectors/API are preferred; isolated browser/computer use is a fallback.
+7. CEO+COO routes the work to its accountable agent (CEO+COO, CFO, CMO+CRO, CTO+CPO); that agent leases its own isolated compute only when needed. Connectors/API are preferred; computer use is a fallback.
 8. Every consequential external action passes Sentinel. Human approves high-impact actions; grants are scoped, short-lived, revocable and audited.
 9. Capture artifacts + independent outcome verification (ProofTree where appropriate). Report achieved vs attempted vs blocked; never claim success from a language-model response.
 10. Learn procedures as versioned Skills and Routines, only after consent and observed successful execution.
 
-## 2. Roster and governance
-- **Coordenador**: routes tasks, enforces workload/budget/permissions and synthesizes evidence. Never silently increases privileges.
-- **Atendimento** (first revenue wedge): answers approved FAQ, creates tickets and escalates, with customer-facing honesty. Integrate the draft #38 capabilities, not a second support implementation.
-- **Vendas**: qualifies opted-in leads, prepares CRM notes and drafts follow-up; outbound needs approval.
-- **Marketing**: reads performance, drafts assets and recommends budget adjustments; publishing and spend changes require approval.
-- **Financeiro**: analyzes expenses, invoices, reconciliation discrepancies; payments/bank transfers are approval-only or prohibited until risk gates mature.
-- **Operações** (later): bounded internal workflows and file processing.
+## 2. Roster and governance — exactly FOUR customer-facing agents
+
+Seven executive accountabilities are covered by **four persistent agents**. Responsibilities below are consolidated roles, not seven separate sandboxes, subscriptions or employees.
+
+| Agent (one identity and isolated computer) | Executive titles | Accountabilities |
+| --- | --- | --- |
+| **CEO + COO** (`executive`) | Chief Executive Officer + Chief Operating Officer | Strategy, prioritization, coordination, operations, customer-service supervision and execution accountability |
+| **CFO** (`finance`) | Chief Financial Officer | Finance, cash flow, budgeting, margin and profitability; no autonomous money transfers |
+| **CMO + CRO** (`growth`) | Chief Marketing Officer + Chief Revenue Officer | Brand, marketing, acquisition, sales pipeline, commercial conversion, retention and revenue |
+| **CTO + CPO** (`product`) | Chief Technology Officer + Chief Product Officer | Engineering, security, product strategy, UX, roadmap, testing and approved releases |
+
+The coordinator is the **CEO+COO agent** rather than a fifth agent. Support/Atendimento is an internal bounded **capability under CEO+COO** and sales is an internal bounded **capability under CMO+CRO**, preserving the existing #38 support business logic instead of deleting it. Domain-specific worker skills, tools and ephemeral subtasks may exist invisibly; they must not be portrayed as extra executive identities or share another agent's credentials. Internal specialists are still routed according to actual permissions.
+
+### Delegation boundaries
+- CEO+COO decides operational priority but cannot self-approve consequence-heavy work or override owner approval.
+- CFO makes financial analyses and challenges assumptions independently; it does **not** allow payments by default or bypass Sentinel.
+- CMO+CRO can analyze marketing and sales, draft campaigns and outreach; external publishing, spend and bulk outbound require specific grants.
+- CTO+CPO can plan/prepare code and product changes; production releases, access grants and deletion need owner approval and independent checks.
+- Cross-functional decisions (pricing, ad spend, release date) require a shared work order and explicit owner approval where consequential; the CEO agent doesn't secretly grant itself access to CFO/CTO credentials.
+
+Canonical product metadata: `apps/web/app/workforce/workforce-profiles.ts`. Changes to a role require updates to that module, these guardrails, and `tests/workforce-roles.test.mjs`. **This maps the product preview only**; backend registry/migrations and deployed computers are not yet switched to four persistent workers.
 
 **One accountable worker per outcome.** Other workers assist through scoped task handoffs with explicit evidence. Each worker has separate role memory, browser profile, file workspace, secrets capability, budget and computer lease. Shared company facts are served through an authorization-aware retrieval API: no implicit shared filesystem, no same password/cookies, no cross-tenant credentials.
 
@@ -58,7 +72,7 @@ worker identity is persistent; running CPU is NOT required to be persistent.
 ## 3. Proposed implementation map (reuse before building)
 Existing base PR #38 and related draft PRs:
 - `apps/web`: Next.js/React, authenticated workspace, conversational surface; attach new workforce roster without replacing main UI yet.
-- `packages/core/src/agent-registry.ts`: existing sales/marketing/finance/service profiles; evolve into versioned worker profiles and add coordinator.
+- `packages/core/src/agent-registry.ts`: preserve the existing granular specialist capabilities for compatible task routing; consolidate **visible** executive accountabilities through `apps/web/app/workforce/workforce-profiles.ts`. A later migration must map internal capabilities to four tenant-scoped persistent worker identities without breaking old tasks. The CEO+COO fills coordinator duties.
 - `packages/core/src/sentinel.ts`: R0-R4 policy foundation. Mandatory for every external action and computer-use step with side effects.
 - HERMES, Work Cells, Trust Store, Authd, Browser Safety, Model Gateway and ProofTree: retain current boundaries; validate exact deployment, not merely source-level contracts.
 - Draft #30 `Business Understanding Engine` and migration 0021: integrate via review/merge when ready; don't duplicate ontology or silently migrate production.
@@ -89,7 +103,7 @@ All require server-side authorization, bounded inputs, CSRF/origin protection fo
 ## 5. Delivery stages and exit gates
 P0 — Product surface: authenticated roster + business-learning states + non-deceptive computer placeholders. This PR introduces only the preview, no fake data or runtime actions.
 P1 — Business Brain: reconcile draft #30 ontology and source provenance, implement minimal read-only website/doc/FAQ intake and human confirmation. Verify tenant isolation, stale/conflicting data.
-P2 — One real worker: Atendimento uses the #38 approved knowledge/FAQ and escalations, end-to-end customer flow, independent completion evidence.
+P2 — One real worker: CEO+COO delegates its Atendimento capability using the #38 approved knowledge/FAQ and escalations, end-to-end customer flow, independent completion evidence. This is not a fifth executive agent.
 P3 — One isolated leased computer: provision per worker with secure lifecycle; run a non-sensitive test; test restart, cross-worker and cross-tenant isolation, permission revocation and budget cut-off.
 P4 — Safe preview + takeover and auditable concurrent task dispatch. Test 2+ workers concurrently without shared cookies/keys and no simultaneous input.
 P5 — Skills/Routines, additional roles only after 10+ real pilot customer tasks with measured success, retries, escalation and unit economics.
