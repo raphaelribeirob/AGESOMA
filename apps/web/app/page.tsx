@@ -86,7 +86,7 @@ async function loadInitialState(tenantId: string) {
 
 export default async function Home() {
   const authenticated = await resolveAuthenticatedWorkspace();
-  if (!authenticated) redirect("/start");
+  if (!authenticated) redirect("/instant");
 
   const state = await loadInitialState(authenticated.tenantId);
   const companyProfile = await loadConfirmedCompanyProfile(authenticated.tenantId);
