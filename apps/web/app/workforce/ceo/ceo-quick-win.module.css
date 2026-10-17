@@ -51,3 +51,5 @@
 .connectorForm button { justify-self: start; }
 .connectorForm ol { padding-left: 24px; font-size: 14px; line-height: 23px; color: var(--age-text); }
 @media(max-width:599px){ .connectorForm button { justify-self: stretch; } }
+
+.helper { font-size: 12px; line-height: 20px; color: var(--age-muted); margin: 0; }
