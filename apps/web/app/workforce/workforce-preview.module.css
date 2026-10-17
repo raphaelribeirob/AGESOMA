@@ -46,7 +46,7 @@
   color: white;
 }
 .brand strong { font-size: 16px; line-height: 1.1; letter-spacing: -.05em; display: block; }
-.brand span { color: #8b94a2; display: block; font-size: 10px; margin-top: 4px; letter-spacing: .07em; }
+.brand span { color: #546477; display: block; font-size: 10px; margin-top: 4px; letter-spacing: .07em; }
 .workspaceBadge {
   display: flex;
   align-items: center;
@@ -76,9 +76,9 @@
   text-overflow: ellipsis;
   max-width: 155px;
 }
-.workspaceBadge span:not(.workspaceSymbol) { font-size: 10px; color: #83909d; }
+.workspaceBadge span:not(.workspaceSymbol) { font-size: 10px; color: #546477; }
 .sidebarLabel, .eyebrow {
-  color: #8190a1;
+  color: #546477;
   font-size: 10px;
   letter-spacing: .14em;
   font-weight: 750;
@@ -128,7 +128,7 @@
 @keyframes presence { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-2px) rotate(1deg); } }
 .workerInfo { min-width: 0; flex: 1; }
 .workerInfo strong { display: block; font-size: 12px; font-weight: 700; }
-.workerInfo small { display: block; font-size: 10px; color: #7f8a96; margin-top: 4px; }
+.workerInfo small { display: block; font-size: 10px; color: #546477; margin-top: 4px; }
 .plannedDot {
   display: inline-block;
   width: 7px;
@@ -142,7 +142,7 @@
   padding: 18px 9px 0;
   border-top: 1px solid #edf0f4;
 }
-.footNote { color: #8894a0; font-size: 11px; line-height: 1.55; }
+.footNote { color: #546477; font-size: 11px; line-height: 1.55; }
 .backLink {
   font-size: 11px;
   color: #496b90;
@@ -176,7 +176,7 @@
 .previewTag {
   white-space: nowrap;
   border: 1px solid #dfe8f1;
-  color: #657c96;
+  color: #526476;
   background: #f1f6fa;
   font-size: 10px;
   border-radius: 100px;
@@ -204,8 +204,8 @@
 }
 .companyHeader > span:first-child { display: grid; gap: 6px; }
 .companyHeader strong { font-size: 17px; letter-spacing: -.03em; }
-.companyHeader small { font-size: 11px; color: #8994a0; line-height: 1.45; }
-.companyHeader > span:last-child { font-size: 23px; color: #8291a0; }
+.companyHeader small { font-size: 11px; color: #546477; line-height: 1.45; }
+.companyHeader > span:last-child { font-size: 23px; color: #546477; }
 .sourceGrid {
   border-top: 1px solid #edf0f3;
   padding: 18px 20px 22px;
@@ -226,7 +226,7 @@
 .sourceIcon {
   width: 23px;
   height: 23px;
-  color: #9ba8b8;
+  color: #546477;
   font-size: 19px;
   font-weight: 600;
   line-height: 1;
@@ -235,8 +235,8 @@
 }
 .sourceCard strong, .sourceCard small, .sourceCard em { display: block; }
 .sourceCard strong { font-size: 12px; }
-.sourceCard small { font-size: 10px; color: #86919e; margin-top: 4px; }
-.sourceCard em { font-size: 10px; color: #aa7752; font-style: normal; margin-top: 9px; }
+.sourceCard small { font-size: 10px; color: #546477; margin-top: 4px; }
+.sourceCard em { font-size: 10px; color: #835126; font-style: normal; margin-top: 9px; }
 .agentIntro {
   display: flex;
   gap: 22px;
@@ -246,7 +246,7 @@
 .agentTitle h2 { font-size: 32px; margin: 8px 0 10px; letter-spacing: -.05em; font-weight: 660; }
 .statusText { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; color: #808d9a; }
 .tabs { display: flex; border-bottom: 1px solid #e9eef3; padding: 0 24px; gap: 8px; }
-.tab, .tabSelected { background: transparent; border: 0; padding: 13px 15px; cursor: pointer; color: #82909d; font-size: 12px; font-weight: 650; border-bottom: 2px solid transparent; }
+.tab, .tabSelected { background: transparent; border: 0; padding: 13px 15px; cursor: pointer; color: #546477; font-size: 12px; font-weight: 650; border-bottom: 2px solid transparent; }
 .tabSelected { color: #203751; border-bottom-color: #335d83; }
 .detailContent { padding: 26px 30px 32px; min-height: 270px; }
 .mission { margin: 0 0 26px; font-size: 14px; line-height: 1.65; color: #576676; max-width: 630px; }
@@ -261,24 +261,24 @@
   border-radius: 14px;
   text-align: center;
 }
-.emptyIcon { display: block; color: #92a4ba; font-size: 23px; margin-bottom: 8px; }
+.emptyIcon { display: block; color: #546477; font-size: 23px; margin-bottom: 8px; }
 .emptyActivity strong { font-size: 12px; display: block; }
-.emptyActivity p { font-size: 11px; line-height: 1.5; max-width: 370px; margin: 8px auto 0; color: #93a0ad; }
+.emptyActivity p { font-size: 11px; line-height: 1.5; max-width: 370px; margin: 8px auto 0; color: #546477; }
 .desktop { background: #edf3f8; border: 1px solid #d9e3ee; border-radius: 15px; overflow: hidden; }
 .desktopToolbar { padding: 12px 15px; background: #fff; border-bottom: 1px solid #dce5ee; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.desktopToolbar > span { color: #7e8c9e; font-size: 10px; font-family: "Geist Mono Variable", monospace; }
+.desktopToolbar > span { color: #526476; font-size: 10px; font-family: "Geist Mono Variable", monospace; }
 .desktopDots { display: flex; gap: 5px; }
 .desktopDots i { width: 7px; height: 7px; border-radius: 50%; background: #e3e8ed; }
 .desktopLock { font-size: 9px !important; color: #6983a1 !important; font-weight: 700; }
 .desktopCenter { text-align: center; padding: 38px 28px 42px; }
 .monitorSymbol { font-size: 40px; color: #9eb3c8; margin-bottom: 8px; }
 .desktopCenter strong { display: block; color: #3b536c; font-size: 13px; }
-.desktopCenter p { max-width: 380px; margin: 8px auto 0; font-size: 11px; color: #7d91a5; line-height: 1.65; }
-.caution { color: #8a96a2; font-size: 11px; line-height: 1.65; margin: 15px 0 0; }
+.desktopCenter p { max-width: 380px; margin: 8px auto 0; font-size: 11px; color: #526476; line-height: 1.65; }
+.caution { color: #546477; font-size: 11px; line-height: 1.65; margin: 15px 0 0; }
 .accessList { display: grid; gap: 8px; }
 .accessList div { border: 1px solid #ebeff3; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; gap: 10px; }
 .accessList span { font-size: 12px; font-weight: 650; }
-.accessList small { font-size: 10px; color: #a47658; }
+.accessList small { font-size: 10px; color: #835126; }
 .activity {
   padding: 46px 22px 26px;
   background: #fff;
@@ -287,19 +287,19 @@
 }
 .sideHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sideHeading strong { font-size: 14px; }
-.sideHeading span { font-size: 10px; color: #8b9cad; letter-spacing: .1em; }
+.sideHeading span { font-size: 10px; color: #526476; letter-spacing: .1em; }
 .metricGroup { display: grid; gap: 0; margin: 26px 0; border: 1px solid #edf0f4; border-radius: 15px; overflow: hidden; }
 .metricGroup div { display: grid; gap: 3px; padding: 16px 18px; }
 .metricGroup div + div { border-top: 1px solid #edf0f4; }
 .metricGroup strong { font-size: 29px; line-height: 1; font-weight: 610; letter-spacing: -.04em; }
-.metricGroup span { font-size: 10px; color: #8d99a7; }
+.metricGroup span { font-size: 10px; color: #546477; }
 .activityBox { min-height: 214px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed #e4eaf0; border-radius: 14px; padding: 24px 18px; text-align: center; }
 .placeholderIcon { font-size: 28px; color: #b0c0cf; margin-bottom: 9px; }
 .activityBox strong { font-size: 12px; }
-.activityBox p { font-size: 11px; color: #8d9aa8; line-height: 1.6; }
+.activityBox p { font-size: 11px; color: #546477; line-height: 1.6; }
 .trust { padding: 19px; margin-top: 21px; border-radius: 13px; background: #f5f8fb; }
 .trust strong { font-size: 11px; }
-.trust p { color: #8794a2; font-size: 11px; line-height: 1.6; margin-bottom: 0; }
+.trust p { color: #546477; font-size: 11px; line-height: 1.6; margin-bottom: 0; }
 @media (max-width: 1200px) {
   .workspace { grid-template-columns: 212px minmax(0, 1fr); }
   .activity { grid-column: 2; border-left: 0; border-top: 1px solid #e8edf2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 26px; align-items: start; }
