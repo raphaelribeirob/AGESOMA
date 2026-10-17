@@ -1,6 +1,6 @@
 # AUDITORIA — Claude for Small Business × AGESOMA Workforce OS
 
-**Data da revisão:** 2026-10-16
+> **Atualização da implementação (16/10/2026):** o primeiro AHA com CSV local foi adicionado ao código de `/workforce/ceo` e o chat roteia quatro categorias de necessidade. Há duas análises locais efetivas (movimentações e leads), um `business-pulse` de uma fonte e plano de conector sem acesso. Isso **não** valida o benchmark completo, nem ativa conectores. Ver [SMB_SKILLS_INCORPORATION.md](SMB_SKILLS_INCORPORATION.md).\n\n**Data da revisão:** 2026-10-16
 **Benchmark oficial:** Anthropic `knowledge-work-plugins/small-business`, v1.35.1 (README), documentação Claude Academy e anúncio 2026-09-15.
 **AGESOMA inspecionado:** PR #44, branch `feat/agesoma-workforce-computers-20261016`. Somente inspeção de código/documentação nesta auditoria; sem validação funcional no navegador ou CI.
 **Notas de referência (estimativas qualitativas):** alinhamento estratégico 8/10; paridade funcional demonstrada 3/10.
