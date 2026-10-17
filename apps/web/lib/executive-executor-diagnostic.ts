@@ -31,8 +31,10 @@ type VerifiedContext = {
 };
 
 export class ExecutorDiagnosticError extends Error {
-  constructor(public readonly kind: "unauthorized" | "unreachable" | "invalid_receipt") {
+  readonly kind: "unauthorized" | "unreachable" | "invalid_receipt";
+  constructor(kind: "unauthorized" | "unreachable" | "invalid_receipt") {
     super(kind);
+    this.kind=kind;
   }
 }
 
