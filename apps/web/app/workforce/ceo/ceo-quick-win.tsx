@@ -5,7 +5,7 @@ import {
   SMB_SKILLS, analyzeCashCsv, analyzeLeadCsv, parseLocalCsv,
   skillForArea,
   type CashSnapshot, type LeadSnapshot, type SmbArea
-} from "@agesoma/core";
+} from "@agesoma/core/src/smb-skills";
 import styles from "./ceo-quick-win.module.css";
 
 const choices: readonly { id:SmbArea;label:string;description:string }[] = [
