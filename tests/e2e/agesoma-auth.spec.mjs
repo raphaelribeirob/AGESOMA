@@ -21,6 +21,13 @@ test("authenticated owner confirms CEO facts and never sees another tenant's com
   try{
     const a=await contextA.newPage(),b=await contextB.newPage();
     await signUpOwner(a,"Alpha");
+    // Live application-facing contract: no unattested AGESOMA executive desktop.
+    // This is distinct from the disposable OpenSandbox engine smoke tests.
+    await a.goto("/workforce");
+    await expect(a.getByText(/Nenhum computador executivo verificado/)).toBeVisible();
+    await a.getByRole("button",{name:"Computador",exact:true}).click();
+    await expect(a.getByText(/Planejado|não provisionado|não conectado/i).first()).toBeVisible();
+    await a.goto("/workforce/ceo");
     const prefix="Empresa Alfa QA isolada";
     await a.getByLabel("Qual é o nome da empresa?").fill(prefix);
     await a.getByLabel("Em qual setor ela atua?").fill("Serviços empresariais");
