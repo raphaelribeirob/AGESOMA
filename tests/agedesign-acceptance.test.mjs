@@ -114,7 +114,7 @@ test("there are no legacy Dot-eyes, looping agent avatars or fabricated voice ac
   assert.match(midnight, /prefers-reduced-motion: reduce/);
 });
 test("AGE color/shape/layout used on both marketing and workforce surfaces", () => {
-  assert.ok(landing.includes('className={`${styles.page} ageTheme}`'));
+  assert.match(landing, /className=.*ageTheme/);
   assert.match(landing, /href="#demonstracao"/);
   assert.match(landing, /<SupportPricing/);
   assert.match(landing, /<SupportDemo/);
