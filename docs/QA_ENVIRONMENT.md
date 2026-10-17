@@ -1,6 +1,6 @@
 # AGESOMA — ambiente de homologação isolado e gates reais
 
-**Data:** 17/10/2026  
+> **Prêvia protegida atualizada:** [AGESOMA QA — build validado](https://agesoma-qa-preview-k29w96cly-r3-41f9.vercel.app) · Vercel READY · deploy `dpl_2YyySH5WSHHvCXkQxCgP4KDqGas5` do commit `42b129e00ae5aba17bb3db73170aa545fd728c63`. Não equivale a login/ERP/VM reais no Vercel sem backend staging configurado.\n\n**Data:** 17/10/2026  
 **Escopo:** PR #44, branch `feat/agesoma-workforce-computers-20261016`. **Não é produção. Não é atestado 10/10.**
 
 ## Resultado da homologação CEO First — duas empresas
@@ -44,8 +44,8 @@ Esses testes e correções são feitos na branch draft e no banco descartável; 
 
 - Equipe existente: `R3` (`r3-41f9`), plano Hobby.
 - Projeto dedicado: `agesoma-qa-preview` (`prj_7f4fx2j1hJ2PIc4fYgScAyChQBfC`).
-- URL da prévia protegida: https://agesoma-qa-preview-finq1b0uf-r3-41f9.vercel.app
-- Deployment: `dpl_FC3jAmEbpiqSWFzR1PiSrhAUGsCh`, revisão `67ccb2522d331e7f28cee9462c8347e2ad3f263e`. Revalidar status pela API.
+- URL da prévia protegida mais recente: https://agesoma-qa-preview-k29w96cly-r3-41f9.vercel.app
+- Deployment mais recente confirmado READY: `dpl_2YyySH5WSHHvCXkQxCgP4KDqGas5`, revisão `42b129e00ae5aba17bb3db73170aa545fd728c63`, status validado pela API.
 - **SSO Protection = all**, sem domínio próprio, sem dados Neon/ERP, sem preço/checkout e sem chaves operacionais dos produtos Instant/Dots.
 - Essa implantação foi disparada manualmente a partir do GitHub. O projeto não foi linkado para implantar automaticamente alterações da branch principal.
 - Observação Vercel API: quando explicitamente enviado `target:"preview"`, a primeira chamada normalizou para `production` e falhou por ausência de `BETTER_AUTH_SECRET`. A segunda implantação omitiu `target` (comportamento de preview por padrão) e usou apenas o **projeto dedicado protegido**; nenhum domínio comercial recebeu deploy.
