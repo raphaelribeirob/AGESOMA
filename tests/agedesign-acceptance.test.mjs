@@ -7,6 +7,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 const canonical = read("AGEDESIGN.md");
 const tokens = read("apps/web/app/age-tokens.css");
+const midnight = read("apps/web/app/linear-midnight.css");
 const bridge = read("apps/web/app/age-product-bridge.css");
 const landing = read("apps/web/app/start/page.tsx");
 const landingCss = read("apps/web/app/start/start-age.module.css");
@@ -33,11 +34,16 @@ function contrast(a,b) {
   const values = [brightness(a),brightness(b)].sort((a,b)=>b-a);
   return (values[0]+.05)/(values[1]+.05);
 }
-function token(name) {
-  const match = tokens.match(new RegExp(name + "\\s*:\\s*(#[\\da-f]{6})", "i"));
-  assert.ok(match, "Missing color token "+name);
-  return match[1];
+function token(name, seen = new Set()) {
+  assert.ok(!seen.has(name), "Circular color alias " + name);
+  seen.add(name);
+  const declaration = new RegExp(name + "\\s*:\\s*(#[0-9a-f]{6}|var\\(--[a-z-]+\\))\\s*;", "i");
+  const match = midnight.match(declaration) ?? tokens.match(declaration);
+  assert.ok(match, "Missing color token " + name);
+  if (match[1].startsWith("#")) return match[1];
+  return token(match[1].slice(4, -1), seen);
 }
+
 function assertLocalClasses(view,css,file) {
   const names = [...new Set([...view.matchAll(/styles\.([A-Za-z][A-Za-z0-9]*)/g)].map(m=>m[1]))];
   assert.ok(names.length >= 8, "few CSS classes found for "+file);
@@ -45,32 +51,39 @@ function assertLocalClasses(view,css,file) {
   assert.deepEqual(missing,[],file+" has missing CSS classes");
 }
 
-test("AGEDESIGN.md 1.1 is canonical in repository and four-agent model stays intact", () => {
-  assert.match(canonical, /Versão: 1\.1/);
+test("AGEDESIGN.md 1.2 is canonical in repository and four-agent model stays intact", () => {
+  assert.match(canonical, /Versão: 1\.2/);
   assert.match(canonical, /## 8\. AGE MOTION/);
   assert.match(canonical, /CEO\+COO/);
   assert.match(canonical, /CMO\+CRO/);
   assert.match(canonical, /CTO\+CPO/);
   assert.match(workforce, /WORKFORCE_PROFILES\.map/);
 });
-test("exact AGE colors, font and shape tokens match the design document", () => {
+test("Midnight Precision colors, typography and shape tokens match AGE v1.2", () => {
   const expected = {
-    "--age-accent": "#385ce5", "--age-ink": "#171a20",
-    "--age-text": "#393c41", "--age-muted": "#5c5e62",
-    "--age-border": "#cccccc", "--age-surface": "#ffffff",
-    "--age-surface-subtle": "#eeeeee", "--age-success": "#146c43",
-    "--age-warning": "#995a00", "--age-danger": "#b42318"
+    "--age-accent": "#e4f222", "--age-ink": "#ffffff",
+    "--age-text": "#d0d6e0", "--age-muted": "#8a8f98",
+    "--age-border": "#383b3f", "--age-surface": "#08090a",
+    "--age-surface-subtle": "#0f1011", "--age-success": "#78d79b",
+    "--age-warning": "#edc779", "--age-danger": "#ff8787"
   };
-  for (const [name,value] of Object.entries(expected)) assert.equal(token(name).toLowerCase(),value);
-  for (const shape of ["--age-radius-card: 8px","--age-radius-control: 4px","--age-control-height: 48px"]) assert.ok(tokens.includes(shape));
-  assert.match(tokens, /--age-font-display/);
-  assert.ok(contrast(token("--age-accent"),"#ffffff") >= 4.5);
-  assert.ok(contrast(token("--age-text"),"#ffffff") >= 7);
-  assert.ok(contrast(token("--age-muted"),"#eeeeee") >= 4.5);
+  for (const [name,value] of Object.entries(expected))
+    assert.equal(token(name).toLowerCase(),value);
+  for (const shape of ["--age-radius-card: 12px","--age-radius-control: 6px"])
+    assert.ok(midnight.includes(shape));
+  assert.ok(tokens.includes("--age-control-height: 48px"));
+  assert.match(midnight, /--age-font-display: var\(--font-inter-variable\)/);
+  assert.match(midnight, /--age-font-mono: var\(--font-berkeley-mono\)/);
+  assert.ok(contrast(token("--age-accent"),token("--age-surface")) >= 4.5);
+  assert.ok(contrast(token("--age-text"),token("--age-surface-subtle")) >= 7);
+  assert.ok(contrast(token("--age-muted"),token("--age-surface-subtle")) >= 4.5);
 });
+
 test("AGE presentation scope loads last, while old product logic stays mounted", () => {
   assert.ok(layout.indexOf('"./age-tokens.css"') > layout.indexOf('"./agesoma-visual-system.css"'));
   assert.ok(layout.indexOf('"./age-product-bridge.css"') > layout.indexOf('"./age-tokens.css"'));
+  assert.ok(layout.indexOf('"./linear-midnight.css"') > layout.indexOf('"./age-product-bridge.css"'));
+  assert.match(midnight, /\.ageTheme\s*\{/);
   assert.match(app, /className="museShell ageTheme"/);
   assert.match(app, /href="\/workforce"/);
   assert.match(app, /className="ageIdentityMark"/);
@@ -82,6 +95,7 @@ test("branded vector is local and preserves provenance as provisional", () => {
   assert.match(svg, /^<svg/);
   assert.match(svg, /<title[^>]*>AGESOMA<\/title>/);
   assert.match(svg, /<path fill="#171A20"/);
+  assert.match(midnight, /brightness\(0\) invert\(1\)/);
   assert.match(canonical, /não um logotipo final homologado/);
   assert.match(landing, /agesoma-wordmark-age\.svg/);
   assert.match(workforce, /agesoma-wordmark-age\.svg/);
@@ -97,6 +111,7 @@ test("there are no legacy Dot-eyes, looping agent avatars or fabricated voice ac
   assert.match(workforce, /Nenhum computador ou integração está ativo/);
   assert.match(tokens, /prefers-reduced-motion: reduce/);
   assert.match(bridge, /prefers-reduced-motion: reduce/);
+  assert.match(midnight, /prefers-reduced-motion: reduce/);
 });
 test("AGE color/shape/layout used on both marketing and workforce surfaces", () => {
   assert.ok(landing.includes('className={`${styles.page} ageTheme}`'));
@@ -122,4 +137,15 @@ test("demo remains actual safe FAQ matcher, not a simulated backend integration"
   assert.match(demo, /role="alert"/);
   assert.match(demo, /aria-live="polite"/);
   assert.match(landing, /em desenvolvimento/i);
+});
+
+test("Midnight actions, original AGESOMA identity and authenticated text contrast", () => {
+  assert.match(midnight, /--color-void: #08090a/);
+  assert.match(midnight, /--color-acid-lime: #e4f222/);
+  assert.match(midnight, /--age-on-accent: var\(--color-void\)/);
+  assert.match(midnight, /\.museShell\.ageTheme \.museBubbleRow\.user \.museBubble/);
+  assert.match(midnight, /body:has\(\.ageTheme\)/);
+  assert.match(midnight, /min-height: 48px/);
+  assert.doesNotMatch(midnight, /url\(https?:|linear\.app\/assets/);
+  assert.match(layout, /@fontsource-variable\/jetbrains-mono\/wght\.css/);
 });
