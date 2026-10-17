@@ -40,7 +40,7 @@ type Connection = {
 type SpeechRecognitionLike = {
   lang:string; interimResults:boolean; continuous:boolean; start:()=>void; stop:()=>void;
   onresult:((event:{results:ArrayLike<{0:{transcript:string};isFinal:boolean}>})=>void)|null;
-  onend:(()=>void)|null; onerror:(()=>void)|null;
+  onstart?:(()=>void)|null; onend:(()=>void)|null; onerror:(()=>void)|null;
 };
 type SpeechRecognitionConstructor = new()=>SpeechRecognitionLike;
 type View = "chat"|"goals"|"ideas"|"artifacts";
@@ -336,9 +336,14 @@ export default function AgesomaClient({initial}:{initial:InitialState}){
     };
     recognition.onend=()=>setListening(false);
     recognition.onerror=()=>setListening(false);
+    recognition.onstart=()=>setListening(true);
     recognitionRef.current=recognition;
-    setListening(true);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current=null;
+      setListening(false);
+    }
   }
 
   function submit(event:FormEvent<HTMLFormElement>){
