@@ -63,14 +63,14 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
                 key={worker.id}
                 onClick={() => { setWorkerId(worker.id); setSection("missao"); }}
                 className={worker.id === selected.id ? styles.workerSelected : styles.workerButton}
-                aria-current={worker.id === selected.id ? "true" : undefined}
+                aria-pressed={worker.id === selected.id}
               >
                 <WorkerAvatar tone={worker.tone} />
                 <span className={styles.workerInfo}>
                   <strong>{worker.title}</strong>
                   <small>{worker.role}</small>
                 </span>
-                <span className={styles.plannedDot} aria-label="Ainda não provisionado" />
+                <span className={styles.plannedDot} role="img" aria-label="Computador ainda não provisionado" />
               </button>
             ))}
           </nav>
@@ -152,11 +152,11 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
 
             {section === "computador" && (
               <div className={styles.detailContent}>
-                <div className={styles.desktop} role="img" aria-label="Espaço reservado para a transmissão segura do computador isolado deste agente; nenhum computador foi provisionado">
+                <div className={styles.desktop} role="img" aria-label="Ilustração de computador planejado para este agente; ainda não existe sessão ativa">
                   <div className={styles.desktopToolbar}>
                     <div className={styles.desktopDots}><i /><i /><i /></div>
                     <span>agesoma://computer/{selected.id}</span>
-                    <span className={styles.desktopLock}>ISOLADO</span>
+                    <span className={styles.desktopLock}>PRÉVIA</span>
                   </div>
                   <div className={styles.desktopCenter}>
                     <div className={styles.monitorSymbol} aria-hidden="true">▣</div>
