@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { tenantSql } from "@agesoma/db";
-import { resolveAuthenticatedWorkspace } from "../../../../lib/auth-workspace";
+import { resolveAuthenticatedWorkspace } from "../../../../../lib/auth-workspace";
 
 export const dynamic = "force-dynamic";
 
