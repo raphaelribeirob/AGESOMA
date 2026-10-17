@@ -1,9 +1,27 @@
 # AGEDESIGN.md — AGESOMA Design System
 
-> Versão: 1.1 · 16/10/2026 · Estado: **especificação pronta para implementar; não homologada em dispositivos**  
+> Versão: 1.2 · 17/10/2026 · Estado: **especificação pronta para implementar; não homologada em dispositivos**  
 > Marca: **AGESOMA** · Categoria: **Workforce OS com agentes de IA** · Plataformas: **Web responsiva, iOS e Android (quando aplicável)**  
-> Referência de linguagem visual: [Tesla — Refero Styles](https://styles.refero.design/style/7266b546-2fb0-465c-acd6-79001c39829a)  
+> Referência visual vigente: **Midnight Precision** inspirado na descrição Linear — Style Reference fornecida pelo proprietário. A antiga referência Tesla permanece histórica para proporção de marca/motion, não define a paleta ativa.  
 > Fontes normativas: [WCAG 2.2](https://www.w3.org/TR/WCAG22/), [Apple HIG — Buttons](https://developer.apple.com/design/human-interface-guidelines/buttons), [Android — Touch target size](https://support.google.com/accessibility/android/answer/7101858).
+
+## 0A. Emenda normativa v1.2 — MIDNIGHT PRECISION (sobrescreve v1.1 em cores, tipografia e superfícies)
+
+> **Prioridade:** quando houver divergência nesta especificação, a emenda v1.2 governa exclusivamente o design do aplicativo AGE. As regras anteriores sobre informação verdadeira, acessibilidade, AGE Motion, supervisão, quatro agentes e não-fabricação de estados continuam válidas. **Não copiar a marca, ícones, logotipos, ilustrações, prints nem código proprietário da Linear.** Apenas aplicar os padrões visuais descritos pelo proprietário à identidade original AGESOMA.
+
+**Tema padrão nas superfícies AGE:** escuro. Background `#08090A` (Void); cartão `#0F1011` (Carbon); elevação `#161718` (Obsidian); borda fina `#23252A` e separação `#383B3F`. Texto principal `#FFFFFF`, secundário `#D0D6E0`, metadados `#8A8F98`. `#62666D` apenas para ornamentação/inatividade, não para texto obrigatório que precise de AA. **Ação primária única de destaque:** `#E4F222` (Acid Lime), com texto `#08090A`; nenhuma outra cor cromática como CTA. `#27A644`, `#EB5757`, `#02B8CC`, `#6366F1` e `#8B5CF6` reservadas para referências, nunca como falsos indicadores de estado. Estados críticos usam semântica, ícone e texto; cores de mensagem têm contraste corrigido no tema.
+
+**Tipografia:** Inter Variable para toda a UI e títulos; pesos 400/510, até 590 para ênfase, tracking `-.022em` a partir de 48px e `-.012em` para outros títulos. Metadados técnicos em JetBrains Mono Variable (alternativa livre ao Berkeley Mono comercial). Features `cv01`, `ss03` e `zero` ativas. Não exibir Berkeley Mono sem licença e nunca distribuir fontes comerciais.
+
+**Componentes:** cartões com 12px de raio, botões/inputs 6px, chips tipo pill 9999px; espaçamento de base 4px. Bordas hairline 0.5px nos cartões quando as condições do dispositivo permitem, com contraste e foco acessíveis. Não substituir affordance por contraste insuficiente. Área de toque de ações principais permanece **48px** no mobile, mesmo com densidade compacta. Elevação por superfície e borda, sem sombras pesadas. Sem gradientes em botões, textos, logotipos ou cards. Movimento discretíssimo vinculado a eventos reais; `prefers-reduced-motion` sempre prevalece. Destaque aceso NÃO sinaliza agente ativo sem evidência de execução.
+
+**Composição:** até 1200px no showroom, hero editorial, demonstração real do produto abaixo, logo AGESOMA original em branco, sem depoimentos/logos fictícios. O workspace precisa preservar navegação, aprovação, rastreio e lista de agentes mesmo quando divergir do layout marketing sem sidebar da inspiração. Não inventar imagens ou screenshots da UI em produção. Os quatro cargos ficam CEO+COO, CFO, CMO+CRO, CTO+CPO.
+
+**Escopo técnico:** `apps/web/app/linear-midnight.css` implementa overrides **dentro de `.ageTheme`** (showroom `/start`, workforce `/workforce`, entrevista `/workforce/ceo` e chat autenticado). Os tokens legados de `:root` v1.1 permanecem por enquanto para páginas ainda não migradas — **não** significa tema escuro homologado globalmente. O SVG `agesoma-wordmark-age.svg` original é monocromático e recebe inversão de contraste somente nas superfícies escurecidas. As regras de onboarding, privacidade, cobrança e autorização não mudam nesta emenda.
+
+**Aceite:** Node tests, build Next, TypeScript, contraste WCAG AA de texto, dark/light mismatch, 320/390/768/1440, navegação por teclado e leitor de tela. Não declarar 10/10 nem produção pronta sem evidências visuais e E2E em dispositivos reais.
+
+---
 
 ## 0. Contrato de implementação
 
