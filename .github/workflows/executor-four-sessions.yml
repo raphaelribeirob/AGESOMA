@@ -61,6 +61,7 @@ jobs:
           test "$ready" = 1 || { tail -n 80 "$RUNNER_TEMP/opensandbox-server.log"; exit 1; }
           source "$HOME/.config/agesoma/opensandbox.env"
           export OPEN_SANDBOX_DOMAIN=127.0.0.1:8080
+          export AGESOMA_QA_VERBOSE_ERRORS=1
           uv run --no-project --with opensandbox==1.1.1 --with 'aiohttp>=3.10,<4' \
             python scripts/opensandbox/executor-pilot.py > "$RUNNER_TEMP/executor-pilot.log" 2>&1 &
           executor_pid=$!
