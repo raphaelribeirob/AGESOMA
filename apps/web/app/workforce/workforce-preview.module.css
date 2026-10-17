@@ -244,7 +244,7 @@
   padding: 30px 30px 28px;
 }
 .agentTitle h2 { font-size: 32px; margin: 8px 0 10px; letter-spacing: -.05em; font-weight: 660; }
-.statusText { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; color: #808d9a; }
+.statusText { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; color: #546477; }
 .tabs { display: flex; border-bottom: 1px solid #e9eef3; padding: 0 24px; gap: 8px; }
 .tab, .tabSelected { background: transparent; border: 0; padding: 13px 15px; cursor: pointer; color: #546477; font-size: 12px; font-weight: 650; border-bottom: 2px solid transparent; }
 .tabSelected { color: #203751; border-bottom-color: #335d83; }
