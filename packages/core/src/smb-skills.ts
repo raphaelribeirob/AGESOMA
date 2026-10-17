@@ -207,3 +207,34 @@ export function analyzeLeadCsv(data:TabularData, todayIso:string):LeadSnapshot {
       :"Dados insuficientes para uma classificação confiável; lista na ordem original, sem ranking inventado."
   };
 }
+
+/**
+ * CEO business-pulse MVP, limited to ONE owner-supplied browser-local CSV.
+ * No cross-connector synthesis, forecasting or account balances claimed.
+ */
+export function buildLocalBusinessPulse(snapshot: CashSnapshot | LeadSnapshot): {
+  source:"local_csv";
+  status:"partial";
+  headline:string;
+  nextStep:string;
+  limits:string;
+} {
+  if (snapshot.skill === "cash-flow-snapshot") {
+    return {
+      source:"local_csv", status:"partial",
+      headline:snapshot.netChangeCents < 0
+        ? "As saídas registradas superam as entradas no período do arquivo."
+        : "Este período apresenta entradas iguais ou superiores às saídas registradas.",
+      nextStep:"Conferir se todos os lançamentos foram incluídos e informar o saldo inicial antes de avaliar o caixa.",
+      limits:"Amostra local, não conciliação financeira, saldo, rentabilidade ou previsão."
+    };
+  }
+  return {
+    source:"local_csv", status:"partial",
+    headline:snapshot.hasRanking
+      ? "Há sinais suficientes no arquivo para revisar uma ordem sugerida de contatos."
+      : "O arquivo não fornece sinais suficientes para priorizar contatos automaticamente.",
+    nextStep:"Verificar status e datas dos contatos e autorizar uma consulta ao CRM antes de qualquer abordagem.",
+    limits:"Nenhuma mensagem foi enviada; os dados podem estar incompletos ou desatualizados."
+  };
+}
