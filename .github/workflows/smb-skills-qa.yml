@@ -1,0 +1,57 @@
+name: AGESOMA SME skills QA
+
+on:
+  push:
+    branches:
+      - feat/agesoma-workforce-computers-20261016
+    paths:
+      - "packages/core/src/smb-skills.ts"
+      - "packages/core/src/index.ts"
+      - "apps/web/app/workforce/ceo/**"
+      - "apps/web/app/api/agesoma/route.ts"
+      - "tests/smb-skills.test.mjs"
+      - ".github/workflows/smb-skills-qa.yml"
+  pull_request:
+    paths:
+      - "packages/core/src/smb-skills.ts"
+      - "packages/core/src/index.ts"
+      - "apps/web/app/workforce/ceo/**"
+      - "apps/web/app/api/agesoma/route.ts"
+      - "tests/smb-skills.test.mjs"
+      - ".github/workflows/smb-skills-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Native SME workflow tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Execute local-first, zero-token tests
+        run: node --test tests/smb-skills.test.mjs
+      - name: Verify CEO-first integration tests
+        run: node --test tests/ceo-first-setup.test.mjs tests/ceo-companion.test.mjs
+
+  build:
+    name: Typecheck and Next production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check core and web TypeScript
+        run: npm run typecheck --workspace @agesoma/core && npm run typecheck --workspace @agesoma/web
+      - name: Check Next build
+        run: npm run build --workspace @agesoma/web
