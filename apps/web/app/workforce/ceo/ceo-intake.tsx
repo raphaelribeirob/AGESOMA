@@ -139,6 +139,7 @@ export default function CeoIntake({ workspaceName }: { workspaceName: string }) 
         </header>
         <div className={styles.layout}>
           <section className={styles.formCard} aria-label="Informações da empresa">
+            {!loading && !canEdit && <p role="status" className={styles.message}>O CEO pode consultar informações confirmadas, mas somente o dono ou um administrador pode cadastrar e validar o perfil. Solicite ao responsável que conclua esta etapa.</p>}
             {loading ? <p>Carregando formulário…</p> : (
               <form onSubmit={(event) => void save(event)}>
                 <h2>Mapa inicial da empresa</h2>
