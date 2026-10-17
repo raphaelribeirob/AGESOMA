@@ -1,4 +1,4 @@
-# AGE Design 1.1 — implementation map and validation
+> **Visual update 2026-10-17:** `AGEDESIGN.md` v1.2 supersedes the earlier AGE white/blue design for `.ageTheme` roots with a user-provided **Linear-inspired Midnight Precision** dark style (void #08090a, acid-lime #e4f222 primary CTA, Inter UI, JetBrains Mono technical metadata, 0.5px hairlines, 6/12px radii). Implementation is `apps/web/app/linear-midnight.css` loaded last in `layout.tsx`. The rest of this document is **historical v1.1 implementation evidence**, not the active palette. No new agent backend or external integrations are claimed.\n\n# AGE Design 1.1 — implementation map and validation
 
 Date: 2026-10-16
 Source of truth: [`AGEDESIGN.md`](../AGEDESIGN.md), originally user-owned library file AGEDESIGN.md v1.1.
