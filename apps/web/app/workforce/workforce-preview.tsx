@@ -3,70 +3,7 @@
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import styles from "./workforce-preview.module.css";
-
-type Worker = {
-  id: string;
-  title: string;
-  initials: string;
-  role: string;
-  mission: string;
-  tone: string;
-  tasks: readonly string[];
-  sources: readonly string[];
-};
-
-const WORKERS: readonly Worker[] = [
-  {
-    id: "coordinator",
-    title: "Coordenador",
-    initials: "CO",
-    role: "Orquestração",
-    mission: "Transforma objetivos empresariais em entregas verificáveis, escolhe responsáveis e respeita os limites definidos pelo proprietário.",
-    tone: "#86bce8",
-    tasks: ["Priorizar demandas", "Delegar e acompanhar", "Consolidar entregas"],
-    sources: ["Brief da empresa", "Ordens de trabalho", "Resultados auditados"]
-  },
-  {
-    id: "service",
-    title: "Atendimento",
-    initials: "AT",
-    role: "Experiência do cliente",
-    mission: "Prepara respostas baseadas em conhecimento aprovado e encaminha casos que dependem de pessoas.",
-    tone: "#89cbbb",
-    tasks: ["Consultar FAQs aprovadas", "Preparar respostas", "Escalar situações não resolvidas"],
-    sources: ["Base de conhecimento", "Helpdesk", "Políticas da empresa"]
-  },
-  {
-    id: "sales",
-    title: "Vendas",
-    initials: "VD",
-    role: "Receita",
-    mission: "Acompanha oportunidades, organiza informações do pipeline e prepara comunicações para aprovação.",
-    tone: "#deb889",
-    tasks: ["Qualificar oportunidades", "Preparar follow-ups", "Organizar CRM"],
-    sources: ["CRM", "Catálogo", "E-mail autorizado"]
-  },
-  {
-    id: "marketing",
-    title: "Marketing",
-    initials: "MK",
-    role: "Aquisição",
-    mission: "Analisa canais e propõe campanhas, conteúdo e testes dentro do orçamento autorizado.",
-    tone: "#b7a6e4",
-    tasks: ["Analisar canais", "Preparar campanhas", "Recomendar melhorias"],
-    sources: ["Analytics", "Plataformas de anúncios", "Ativos da marca"]
-  },
-  {
-    id: "finance",
-    title: "Financeiro",
-    initials: "FN",
-    role: "Finanças",
-    mission: "Organiza indicadores e sinaliza divergências. Nunca movimenta dinheiro sem autorização específica.",
-    tone: "#a2b0cf",
-    tasks: ["Revisar despesas", "Preparar conciliações", "Sinalizar riscos"],
-    sources: ["ERP", "Notas e faturas", "Documentos financeiros"]
-  }
-];
+import { WORKFORCE_PROFILES } from "./workforce-profiles";
 
 type Section = "missao" | "computador" | "acessos";
 const BUSINESS_SOURCES = [
@@ -90,15 +27,15 @@ function WorkerAvatar({ tone, size = "regular" }: { tone: string; size?: "regula
 }
 
 export default function WorkforcePreview({ workspaceName }: { workspaceName: string }) {
-  const [workerId, setWorkerId] = useState("coordinator");
+  const [workerId, setWorkerId] = useState(WORKFORCE_PROFILES[0].id);
   const [section, setSection] = useState<Section>("missao");
   const [companyOpen, setCompanyOpen] = useState(true);
-  const selected = WORKERS.find((worker) => worker.id === workerId) ?? WORKERS[0];
+  const selected = WORKFORCE_PROFILES.find((worker) => worker.id === workerId) ?? WORKFORCE_PROFILES[0];
 
   return (
     <div className={styles.shell}>
       <div className={styles.globalNotice} role="status">
-        Prévia de produto — nenhum agente, computador ou integração está ativo nesta tela.
+        Prévia de produto — 4 agentes para 7 cargos executivos. Nenhum computador ou integração está ativo nesta tela.
       </div>
       <div className={styles.workspace}>
         <aside className={styles.sidebar} aria-label="Equipe do AGESOMA">
@@ -120,7 +57,7 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
 
           <div className={styles.sidebarLabel}>SUA EQUIPE</div>
           <nav className={styles.roster} aria-label="Selecionar agente">
-            {WORKERS.map((worker) => (
+            {WORKFORCE_PROFILES.map((worker) => (
               <button
                 type="button"
                 key={worker.id}
@@ -201,7 +138,9 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
             {section === "missao" && (
               <div className={styles.detailContent}>
                 <p className={styles.mission}>{selected.mission}</p>
-                <h3>Trabalho que poderá executar</h3>
+                <h3>Cargos deste agente</h3>
+                <div className={styles.chips}>{selected.positions.map((position) => <span key={position}>{position}</span>)}</div>
+                <h3 style={{ marginTop: 24 }}>Trabalho que poderá executar</h3>
                 <div className={styles.chips}>{selected.tasks.map((item) => <span key={item}>{item}</span>)}</div>
                 <div className={styles.emptyActivity}>
                   <span className={styles.emptyIcon} aria-hidden="true">↗</span>
@@ -237,6 +176,10 @@ export default function WorkforcePreview({ workspaceName }: { workspaceName: str
                     <div key={source}><span>{source}</span><small>Sem autorização concedida</small></div>
                   ))}
                 </div>
+                <h3 style={{ marginTop: 22 }}>Limites de atuação</h3>
+                <div className={styles.accessList}>{selected.boundaries.map((boundary) => (
+                  <div key={boundary}><span>{boundary}</span></div>
+                ))}</div>
                 <p className={styles.caution}>Acessos não são herdados automaticamente. Cada agente precisará de autorização individual, escopo mínimo, revogação e auditoria.</p>
               </div>
             )}
