@@ -10,6 +10,7 @@ import "./agesoma-visual-system.css";
 import "./agesoma-conversation.css";
 import "./settings.css";
 import "./age-tokens.css";
+import "./age-product-bridge.css";
 
 export const metadata: Metadata = {
   title: "AGESOMA",
