@@ -73,7 +73,7 @@ export const PLATFORM_PRODUCTS: readonly PlatformProduct[] = Object.freeze([
     runtime: "flutter", releaseStatus: "unverified_external_repository",
     authIntegration: "separate_until_explicit_link",
     entitlementNamespace: "instant.speak", dataNamespace: "instant.speak",
-    recommendedSharedCapabilities: ["model_gateway","usage_metering","observability","permission_policy"]
+    recommendedSharedCapabilities: ["model_gateway","usage_metering","observability","permission_policy"] as const
   }),
   Object.freeze({
     id: "instantstudy", family: "instant", title: "InstantStudy",
@@ -82,7 +82,7 @@ export const PLATFORM_PRODUCTS: readonly PlatformProduct[] = Object.freeze([
     runtime: "mixed", releaseStatus: "unverified_external_repository",
     authIntegration: "separate_until_explicit_link",
     entitlementNamespace: "instant.study", dataNamespace: "instant.study",
-    recommendedSharedCapabilities: ["model_gateway","usage_metering","safe_workflows","observability"]
+    recommendedSharedCapabilities: ["model_gateway","usage_metering","safe_workflows","observability"] as const
   }),
   Object.freeze({
     id: "instantbible", family: "instant", title: "InstantBible",
@@ -91,7 +91,7 @@ export const PLATFORM_PRODUCTS: readonly PlatformProduct[] = Object.freeze([
     runtime: "flutter", releaseStatus: "unverified_external_repository",
     authIntegration: "separate_until_explicit_link",
     entitlementNamespace: "instant.bible", dataNamespace: "instant.bible",
-    recommendedSharedCapabilities: ["model_gateway","usage_metering","safe_workflows","permission_policy"]
+    recommendedSharedCapabilities: ["model_gateway","usage_metering","safe_workflows","permission_policy"] as const
   }),
   Object.freeze({
     id: "dotspeak", family: "dots", title: "DotSpeak",
@@ -100,7 +100,7 @@ export const PLATFORM_PRODUCTS: readonly PlatformProduct[] = Object.freeze([
     runtime: "mixed", releaseStatus: "unverified_external_repository",
     authIntegration: "separate_until_explicit_link",
     entitlementNamespace: "dots.speak", dataNamespace: "dots.speak",
-    recommendedSharedCapabilities: ["model_gateway","usage_metering","observability","permission_policy"]
+    recommendedSharedCapabilities: ["model_gateway","usage_metering","observability","permission_policy"] as const
   })
 ]);
 
