@@ -30,3 +30,9 @@
   .form { display: grid; }
   .form button { width: 100%; }
 }
+
+/* Readable midnight FAQ controls, flat monochrome states. */
+.demo,.example,.result { border-width: .5px; border-color: var(--age-border-subtle); }
+.demo { background: var(--age-surface-subtle); }
+.example,.field input { background: var(--age-panel); color: var(--age-text); }
+.result { background: var(--age-panel); }
