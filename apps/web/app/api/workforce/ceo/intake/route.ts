@@ -43,6 +43,12 @@ type IntakeAttributes = {
 const PRIMARY_KEY = "agesoma:ceo:company-profile:v1";
 
 const canEdit = (role: string) => role === "owner" || role === "admin";
+function sameOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+  try { return new URL(origin).origin === new URL(req.url).origin; }
+  catch { return false; }
+}
 const err = (error: string, status: number) => NextResponse.json({ error }, { status });
 const ownRow = (tenantId: string) => tenantSql<IntakeRow>(tenantId, `
   select id,attributes,updated_at from company_entities
@@ -87,6 +93,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!sameOrigin(req)) return err("Origem da solicitação não autorizada.", 403);
   const workspace = await resolveAuthenticatedWorkspace();
   if (!workspace) return err("Sessão inválida.", 401);
   if (!canEdit(workspace.role)) return err("Somente owner/admin pode registrar o contexto da empresa.", 403);
@@ -134,6 +141,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  if (!sameOrigin(req)) return err("Origem da solicitação não autorizada.", 403);
   const workspace = await resolveAuthenticatedWorkspace();
   if (!workspace) return err("Sessão inválida.", 401);
   if (!canEdit(workspace.role)) return err("A confirmação exige owner/admin.", 403);
