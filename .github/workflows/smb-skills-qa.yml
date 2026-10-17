@@ -14,6 +14,10 @@ on:
       - "apps/web/app/families/**"
       - "apps/web/app/page.tsx"
       - "tests/product-families.test.mjs"
+      - "INSTDESIGN.MD"
+      - "PLATFORMDESIGN.md"
+      - "tests/instdesign-contract.test.mjs"
+      - "AGENTS.md"
       - "docs/PLATFORM_INSTANT_DOTS.md"
       - "apps/web/app/workforce/ceo/**"
       - "apps/web/app/workforce/workforce-preview.module.css"
@@ -41,6 +45,10 @@ on:
       - "apps/web/app/families/**"
       - "apps/web/app/page.tsx"
       - "tests/product-families.test.mjs"
+      - "INSTDESIGN.MD"
+      - "PLATFORMDESIGN.md"
+      - "tests/instdesign-contract.test.mjs"
+      - "AGENTS.md"
       - "docs/PLATFORM_INSTANT_DOTS.md"
       - "apps/web/app/workforce/ceo/**"
       - "apps/web/app/workforce/workforce-preview.module.css"
@@ -73,7 +81,7 @@ jobs:
         with:
           node-version: "24"
       - name: Execute local-first, zero-token tests
-        run: node --test tests/smb-skills.test.mjs tests/midnight-style.test.mjs tests/agedesign-acceptance.test.mjs tests/workforce-ui.test.mjs tests/product-families.test.mjs
+        run: node --test tests/smb-skills.test.mjs tests/midnight-style.test.mjs tests/agedesign-acceptance.test.mjs tests/workforce-ui.test.mjs tests/product-families.test.mjs tests/instdesign-contract.test.mjs
       - name: Verify CEO-first integration tests
         run: node --test tests/ceo-first-setup.test.mjs tests/ceo-companion.test.mjs
 
