@@ -25,12 +25,14 @@ function contrast(a, b) {
 
 function cssColorFor(selector) {
   const normalized = selector.replace(/[.*+?^$\{}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(normalized + "\\s*\\{([^}]*)\\}");
-  const match = css.match(regex);
-  assert.ok(match, `No CSS block for ${selector}`);
-  const declaration = match[1].match(/(?:^|;)\s*color:\s*(#[0-9a-f]{6})\b/i);
-  assert.ok(declaration, `No text color set for ${selector}`);
-  return declaration[1];
+  const regex = new RegExp(normalized + "\\s*\\{([^}]*)\\}", "g");
+  const blocks = [...css.matchAll(regex)];
+  assert.ok(blocks.length > 0, `No CSS block for ${selector}`);
+  const declarations = blocks
+    .map((block) => block[1].match(/(?:^|;)\s*color:\s*(#[0-9a-f]{6})\b/i))
+    .filter(Boolean);
+  assert.ok(declarations.length > 0, `No text color set for ${selector}`);
+  return declarations.at(-1)[1];
 }
 
 test("every CSS module class used by the actual workforce component exists", () => {
